@@ -3,52 +3,16 @@ use clap::Parser;
 use crate::prefs::Prefs;
 use crate::types::*;
 
-const CYBERPUNK_BANNER: &str = r#"
- ╔═══════════════════════════════════════════════════════════════════╗
- ║  ███████╗████████╗ ██████╗ ██████╗  █████╗  ██████╗ ███████╗    ║
- ║  ██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝ ██╔════╝    ║
- ║  ███████╗   ██║   ██║   ██║██████╔╝███████║██║  ███╗█████╗      ║
- ║  ╚════██║   ██║   ██║   ██║██╔══██╗██╔══██║██║   ██║██╔══╝      ║
- ║  ███████║   ██║   ╚██████╔╝██║  ██║██║  ██║╚██████╔╝███████╗    ║
- ║  ╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝    ║
- ║        ███████╗██╗  ██╗ ██████╗ ██╗    ██╗███████╗██████╗        ║
- ║        ██╔════╝██║  ██║██╔═══██╗██║    ██║██╔════╝██╔══██╗       ║
- ║        ███████╗███████║██║   ██║██║ █╗ ██║█████╗  ██████╔╝       ║
- ║        ╚════██║██╔══██║██║   ██║██║███╗██║██╔══╝  ██╔══██╗       ║
- ║        ███████║██║  ██║╚██████╔╝╚███╔███╔╝███████╗██║  ██║       ║
- ║        ╚══════╝╚═╝  ╚═╝ ╚═════╝  ╚══╝╚══╝ ╚══════╝╚═╝  ╚═╝       ║
- ╠═══════════════════════════════════════════════════════════════════╣
- ║  [NETRUNNER DISK MONITOR v0.1.0]     .: JACK IN TO YOUR CHROME :.║
- ╚═══════════════════════════════════════════════════════════════════╝"#;
-
-const CYBERPUNK_AFTER_HELP: &str = r#"
- ┌─────────────────────────────────────────────────────────────────┐
- │  ░▒▓ INTERACTIVE KEYBINDS ▓▒░                                  │
- │                                                                 │
- │  [q/Esc] Flatline (quit)    [j/k] Scroll the datastream        │
- │  [s] Cycle sort ICE          [r] Reverse sort polarity          │
- │  [b] Swap bar firmware       [c] Shift chroma palette           │
- │  [u] Toggle used/total       [a] Toggle all/local netlinks      │
- │  [m] Toggle full mount path  [/] Enter filter daemon            │
- │  [p] Pause data feed         [?] Open help overlay              │
- │                                                                 │
- │  Config synced to: ~/.storageshower.conf                        │
- │                                                                 │
- │  .: WAKE UP SAMURAI, WE HAVE DISKS TO MONITOR :.               │
- └─────────────────────────────────────────────────────────────────┘"#;
-
-/// Cyberpunk disk usage TUI — jack in to your chrome and monitor the datastream
+/// Cyberpunk disk usage TUI
 #[derive(Parser, Debug)]
 #[command(
     name = "storageshower",
     version,
-    about = "Cyberpunk disk usage TUI — jack in to your chrome and monitor the datastream",
-    before_help = CYBERPUNK_BANNER,
-    after_help = CYBERPUNK_AFTER_HELP,
-    styles = cyberpunk_styles(),
+    disable_help_flag = true,
+    disable_version_flag = true,
 )]
 pub struct Cli {
-    /// Sort mode for disk entries [name, pct, size]
+    /// Sort mode for disk entries
     #[arg(short = 's', long = "sort", value_name = "MODE")]
     pub sort_mode: Option<CliSortMode>,
 
@@ -56,27 +20,27 @@ pub struct Cli {
     #[arg(short = 'R', long = "reverse")]
     pub sort_rev: bool,
 
-    /// Show only local disks (HDD/SSD), filter out network/virtual
+    /// Show only local disks (HDD/SSD)
     #[arg(short = 'l', long = "local-only")]
     pub show_local: bool,
 
-    /// Data refresh interval in seconds [1, 2, 5, 10]
+    /// Data refresh interval in seconds
     #[arg(short = 'r', long = "refresh", value_name = "SECS")]
     pub refresh_rate: Option<u64>,
 
-    /// Bar visualization style [gradient, solid, thin, ascii]
+    /// Bar visualization style
     #[arg(short = 'b', long = "bar-style", value_name = "STYLE")]
     pub bar_style: Option<CliBarStyle>,
 
-    /// Color palette [default, green, blue, purple]
+    /// Color palette
     #[arg(short = 'c', long = "color", value_name = "PALETTE")]
     pub color_mode: Option<CliColorMode>,
 
-    /// Warning threshold percentage (disk usage)
+    /// Warning threshold percentage
     #[arg(short = 'w', long = "warn", value_name = "PCT")]
     pub thresh_warn: Option<u8>,
 
-    /// Critical threshold percentage (disk usage)
+    /// Critical threshold percentage
     #[arg(short = 'C', long = "crit", value_name = "PCT")]
     pub thresh_crit: Option<u8>,
 
@@ -104,11 +68,11 @@ pub struct Cli {
     #[arg(short = 'f', long = "full-mount")]
     pub full_mount: bool,
 
-    /// Hide virtual filesystems (tmpfs, devfs, etc.)
+    /// Hide virtual filesystems
     #[arg(long = "no-virtual")]
     pub no_virtual: bool,
 
-    /// Unit display mode [human, gib, mib, bytes]
+    /// Unit display mode
     #[arg(short = 'u', long = "units", value_name = "MODE")]
     pub unit_mode: Option<CliUnitMode>,
 
@@ -124,9 +88,17 @@ pub struct Cli {
     #[arg(long = "col-pct", value_name = "WIDTH")]
     pub col_pct_w: Option<u16>,
 
-    /// Config file path (default: ~/.storageshower.conf)
+    /// Config file path
     #[arg(long = "config", value_name = "PATH")]
     pub config: Option<String>,
+
+    /// Display this transmission
+    #[arg(short = 'h', long = "help")]
+    pub help: bool,
+
+    /// Display version information
+    #[arg(short = 'V', long = "version")]
+    pub version: bool,
 }
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
@@ -160,42 +132,105 @@ pub enum CliUnitMode {
     Bytes,
 }
 
-fn cyberpunk_styles() -> clap::builder::Styles {
-    clap::builder::Styles::styled()
-        .header(
-            clap::builder::styling::AnsiColor::Magenta
-                .on_default()
-                .bold(),
-        )
-        .usage(
-            clap::builder::styling::AnsiColor::Cyan
-                .on_default()
-                .bold(),
-        )
-        .literal(
-            clap::builder::styling::AnsiColor::Green
-                .on_default()
-                .bold(),
-        )
-        .placeholder(
-            clap::builder::styling::AnsiColor::Yellow
-                .on_default(),
-        )
-        .valid(
-            clap::builder::styling::AnsiColor::Cyan
-                .on_default()
-                .bold(),
-        )
-        .invalid(
-            clap::builder::styling::AnsiColor::Red
-                .on_default()
-                .bold(),
-        )
-        .error(
-            clap::builder::styling::AnsiColor::Red
-                .on_default()
-                .bold(),
-        )
+// ANSI color helpers
+const RST: &str = "\x1b[0m";
+const CYAN: &str = "\x1b[36m";
+const MAGENTA: &str = "\x1b[35m";
+const RED: &str = "\x1b[31m";
+const YELLOW: &str = "\x1b[33m";
+const B_CYAN: &str = "\x1b[1;36m";
+const B_MAGENTA: &str = "\x1b[1;35m";
+const B_GREEN: &str = "\x1b[1;32m";
+const B_YELLOW: &str = "\x1b[1;33m";
+
+pub fn print_help() {
+    println!(
+        r#"
+{CYAN}  ███████╗████████╗ ██████╗ ██████╗  █████╗  ██████╗ ███████╗{RST}
+{CYAN}  ██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝ ██╔════╝{RST}
+{MAGENTA}  ███████╗   ██║   ██║   ██║██████╔╝███████║██║  ███╗█████╗  {RST}
+{MAGENTA}  ╚════██║   ██║   ██║   ██║██╔══██╗██╔══██║██║   ██║██╔══╝  {RST}
+{RED}  ███████║   ██║   ╚██████╔╝██║  ██║██║  ██║╚██████╔╝███████╗{RST}
+{RED}  ╚══════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝{RST}
+{YELLOW}        ███████╗██╗  ██╗ ██████╗ ██╗    ██╗███████╗██████╗ {RST}
+{YELLOW}        ██╔════╝██║  ██║██╔═══██╗██║    ██║██╔════╝██╔══██╗{RST}
+{YELLOW}        ███████╗███████║██║   ██║██║ █╗ ██║█████╗  ██████╔╝{RST}
+{YELLOW}        ╚════██║██╔══██║██║   ██║██║███╗██║██╔══╝  ██╔══██╗{RST}
+{YELLOW}        ███████║██║  ██║╚██████╔╝╚███╔███╔╝███████╗██║  ██║{RST}
+{YELLOW}        ╚══════╝╚═╝  ╚═╝ ╚═════╝  ╚══╝╚══╝ ╚══════╝╚═╝  ╚═╝{RST}
+
+{B_CYAN}  >> NETRUNNER DISK MONITOR v{ver} << {RST}
+{B_MAGENTA}  [ jack in to your chrome and monitor the datastream ]{RST}
+
+{B_YELLOW}  USAGE:{RST} storageshower [OPTIONS]
+
+{B_CYAN}  ── SORTING ───────────────────────────────────────{RST}
+{B_GREEN}   -s, --sort MODE       {RST}sort disk entries {B_MAGENTA}(name, pct, size){RST}
+{B_GREEN}   -R, --reverse         {RST}reverse sort order
+{B_GREEN}   -l, --local-only      {RST}show only local disks {B_MAGENTA}(HDD/SSD){RST}
+{B_GREEN}       --no-virtual      {RST}hide virtual filesystems {B_MAGENTA}(tmpfs, devfs, etc.){RST}
+
+{B_CYAN}  ── DISPLAY ───────────────────────────────────────{RST}
+{B_GREEN}   -b, --bar-style STYLE {RST}bar visualization {B_MAGENTA}(gradient, solid, thin, ascii){RST}
+{B_GREEN}   -c, --color PALETTE   {RST}color palette {B_MAGENTA}(default, green, blue, purple){RST}
+{B_GREEN}   -u, --units MODE      {RST}unit display {B_MAGENTA}(human, gib, mib, bytes){RST}
+{B_GREEN}   -k, --compact         {RST}compact mount names
+{B_GREEN}   -f, --full-mount      {RST}show full mount paths
+{B_GREEN}       --no-bars         {RST}hide usage bars
+{B_GREEN}       --no-border       {RST}hide border chrome
+{B_GREEN}       --no-header       {RST}hide column headers
+{B_GREEN}       --no-used         {RST}hide used/total size display
+
+{B_CYAN}  ── THRESHOLDS ────────────────────────────────────{RST}
+{B_GREEN}   -w, --warn PCT        {RST}warning threshold {B_MAGENTA}(default: 70%){RST}
+{B_GREEN}   -C, --crit PCT        {RST}critical threshold {B_MAGENTA}(default: 90%){RST}
+
+{B_CYAN}  ── COLUMNS ───────────────────────────────────────{RST}
+{B_GREEN}       --col-mount WIDTH  {RST}mount column width {B_MAGENTA}(0 = auto){RST}
+{B_GREEN}       --col-bar-end WIDTH{RST} bar-end column width {B_MAGENTA}(0 = auto){RST}
+{B_GREEN}       --col-pct WIDTH    {RST}percentage column width {B_MAGENTA}(0 = auto){RST}
+
+{B_CYAN}  ── SYSTEM ────────────────────────────────────────{RST}
+{B_GREEN}   -r, --refresh SECS    {RST}data refresh interval {B_MAGENTA}(default: 1s){RST}
+{B_GREEN}       --config PATH     {RST}config file path {B_MAGENTA}(default: ~/.storageshower.conf){RST}
+{B_GREEN}   -h, --help            {RST}display this transmission
+{B_GREEN}   -V, --version         {RST}display version information
+
+{B_CYAN}  ── KEYBINDS ──────────────────────────────────────{RST}
+{B_GREEN}   q, Esc                {RST}flatline {B_MAGENTA}(quit){RST}
+{B_GREEN}   j / k                 {RST}scroll the datastream
+{B_GREEN}   s                     {RST}cycle sort ICE
+{B_GREEN}   r                     {RST}reverse sort polarity
+{B_GREEN}   b                     {RST}swap bar firmware
+{B_GREEN}   c                     {RST}shift chroma palette
+{B_GREEN}   u                     {RST}toggle used/total
+{B_GREEN}   a                     {RST}toggle all/local netlinks
+{B_GREEN}   m                     {RST}toggle full mount path
+{B_GREEN}   /                     {RST}enter filter daemon
+{B_GREEN}   p                     {RST}pause data feed
+{B_GREEN}   ?                     {RST}open help overlay
+
+{B_CYAN}  ── EXAMPLES ──────────────────────────────────────{RST}
+{B_GREEN}   storageshower -c purple -b ascii   {RST}purple palette with ascii bars
+{B_GREEN}   storageshower -s pct -R            {RST}sort by usage%, reversed
+{B_GREEN}   storageshower -l --no-virtual      {RST}local physical disks only
+{B_GREEN}   storageshower -u gib -w 60 -C 85  {RST}GiB units, custom thresholds
+{B_GREEN}   storageshower --config /tmp/ss.conf{RST} use alternate config
+
+{B_CYAN}  ── INFO ──────────────────────────────────────────{RST}
+{B_MAGENTA}  v{ver} {RST}// {B_YELLOW}cyberpunk disk usage TUI{RST}
+  Config synced to: ~/.storageshower.conf
+{B_MAGENTA}  Wake up, samurai. We have disks to monitor.{RST}
+"#,
+        ver = env!("CARGO_PKG_VERSION"),
+    );
+}
+
+pub fn print_version() {
+    println!(
+        "{B_CYAN}storageshower{RST} {B_MAGENTA}v{ver}{RST}",
+        ver = env!("CARGO_PKG_VERSION"),
+    );
 }
 
 impl Cli {

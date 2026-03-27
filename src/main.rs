@@ -7,13 +7,22 @@ use std::time::{Duration, Instant};
 use sysinfo::System;
 
 use storageshower::app::App;
-use storageshower::cli::Cli;
+use storageshower::cli::{self, Cli};
 use storageshower::system::{collect_disk_entries, collect_sys_stats, spawn_bg_collector};
 use storageshower::types::{DiskEntry, SysStats};
 use storageshower::ui::draw;
 
 fn main() -> io::Result<()> {
     let cli = Cli::parse();
+
+    if cli.help {
+        cli::print_help();
+        return Ok(());
+    }
+    if cli.version {
+        cli::print_version();
+        return Ok(());
+    }
 
     let sys = System::new_all();
     let initial_stats = collect_sys_stats(&sys);
