@@ -485,7 +485,7 @@ mod tests {
 
     #[test]
     fn all_color_modes_parse() {
-        for color in ["default", "green", "blue", "purple"] {
+        for color in ["default", "green", "blue", "purple", "amber", "cyan", "red", "sakura", "matrix", "sunset"] {
             let cli = Cli::parse_from(["storageshower", "-c", color]);
             assert!(cli.color_mode.is_some());
         }

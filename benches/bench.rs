@@ -18,6 +18,7 @@ fn sample_disks(n: usize) -> Vec<DiskEntry> {
             pct: (i as f64 + 1.0) / (i as f64 + 2.0) * 100.0,
             kind: DiskKind::SSD,
             fs: "apfs".into(),
+            latency_ms: None,
         })
         .collect()
 }

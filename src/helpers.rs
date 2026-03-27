@@ -34,6 +34,16 @@ pub fn format_uptime(secs: u64) -> String {
     }
 }
 
+pub fn format_latency(ms: f64) -> String {
+    if ms < 1.0 {
+        "<1ms".into()
+    } else if ms < 1000.0 {
+        format!("{:.0}ms", ms)
+    } else {
+        format!("{:.1}s", ms / 1000.0)
+    }
+}
+
 pub fn truncate_mount(mount: &str, width: usize) -> String {
     if mount.chars().count() <= width {
         format!("{:<width$}", mount, width = width)
@@ -258,5 +268,27 @@ mod tests {
         let r = truncate_mount(s, s.len() + 1);
         assert!(r.starts_with(s));
         assert_eq!(r.chars().count(), s.len() + 1);
+    }
+
+    // ── format_latency ──────────────────────────────────────
+
+    #[test]
+    fn format_latency_sub_millisecond() {
+        assert_eq!(format_latency(0.3), "<1ms");
+        assert_eq!(format_latency(0.0), "<1ms");
+    }
+
+    #[test]
+    fn format_latency_milliseconds() {
+        assert_eq!(format_latency(1.0), "1ms");
+        assert_eq!(format_latency(12.4), "12ms");
+        assert_eq!(format_latency(150.0), "150ms");
+        assert_eq!(format_latency(999.9), "1000ms");
+    }
+
+    #[test]
+    fn format_latency_seconds() {
+        assert_eq!(format_latency(1000.0), "1.0s");
+        assert_eq!(format_latency(2500.0), "2.5s");
     }
 }

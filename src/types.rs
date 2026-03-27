@@ -34,6 +34,48 @@ pub enum ColorMode {
     Green,
     Blue,
     Purple,
+    Amber,
+    Cyan,
+    Red,
+    Sakura,
+    Matrix,
+    Sunset,
+}
+
+impl ColorMode {
+    pub const ALL: &'static [ColorMode] = &[
+        ColorMode::Default,
+        ColorMode::Green,
+        ColorMode::Blue,
+        ColorMode::Purple,
+        ColorMode::Amber,
+        ColorMode::Cyan,
+        ColorMode::Red,
+        ColorMode::Sakura,
+        ColorMode::Matrix,
+        ColorMode::Sunset,
+    ];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            ColorMode::Default => "Neon Sprawl",
+            ColorMode::Green => "Acid Rain",
+            ColorMode::Blue => "Ice Breaker",
+            ColorMode::Purple => "Synth Wave",
+            ColorMode::Amber => "Rust Belt",
+            ColorMode::Cyan => "Ghost Wire",
+            ColorMode::Red => "Red Sector",
+            ColorMode::Sakura => "Sakura Den",
+            ColorMode::Matrix => "Data Stream",
+            ColorMode::Sunset => "Solar Flare",
+        }
+    }
+
+    pub fn next(self) -> ColorMode {
+        let all = ColorMode::ALL;
+        let idx = all.iter().position(|&m| m == self).unwrap_or(0);
+        all[(idx + 1) % all.len()]
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
@@ -55,6 +97,21 @@ pub struct DiskEntry {
     pub pct: f64,
     pub kind: DiskKind,
     pub fs: String,
+    pub latency_ms: Option<f64>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ViewMode {
+    Disks,
+    DrillDown,
+}
+
+#[derive(Clone)]
+pub struct DirEntry {
+    pub path: String,
+    pub name: String,
+    pub size: u64,
+    pub is_dir: bool,
 }
 
 #[derive(Clone)]
@@ -139,6 +196,7 @@ mod tests {
             pct: 50.0,
             kind: DiskKind::SSD,
             fs: "ext4".into(),
+            latency_ms: None,
         };
         let c = d.clone();
         assert_eq!(c.mount, "/mnt");
@@ -198,7 +256,7 @@ mod tests {
 
     #[test]
     fn color_mode_all_variants_debug() {
-        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+        for mode in ColorMode::ALL {
             let s = format!("{:?}", mode);
             assert!(!s.is_empty());
         }
@@ -239,7 +297,7 @@ mod tests {
 
     #[test]
     fn color_mode_serialize_deserialize() {
-        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+        for &mode in ColorMode::ALL {
             let s = serde_json::to_string(&mode).unwrap();
             let d: ColorMode = serde_json::from_str(&s).unwrap();
             assert_eq!(d, mode);

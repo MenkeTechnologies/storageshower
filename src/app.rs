@@ -9,7 +9,7 @@ use sysinfo::DiskKind;
 use crate::helpers::format_bytes;
 use crate::cli::Cli;
 use crate::prefs::{load_prefs_from, save_prefs, Prefs};
-use crate::system::chrono_now;
+use crate::system::{chrono_now, scan_directory};
 use crate::types::*;
 
 pub struct App {
@@ -28,6 +28,13 @@ pub struct App {
     pub drag: Option<DragTarget>,
     pub selected: Option<usize>,
     pub status_msg: Option<(String, Instant)>,
+    // Drill-down state
+    pub view_mode: ViewMode,
+    pub drill_path: Vec<String>,
+    pub drill_entries: Vec<DirEntry>,
+    pub drill_selected: usize,
+    pub drill_scanning: bool,
+    pub drill_scan_result: Arc<Mutex<Option<Vec<DirEntry>>>>,
 }
 
 impl App {
@@ -51,6 +58,12 @@ impl App {
             selected: None,
             status_msg: None,
             drag: None,
+            view_mode: ViewMode::Disks,
+            drill_path: Vec::new(),
+            drill_entries: Vec::new(),
+            drill_selected: 0,
+            drill_scanning: false,
+            drill_scan_result: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -74,16 +87,48 @@ impl App {
             selected: None,
             status_msg: None,
             drag: None,
+            view_mode: ViewMode::Disks,
+            drill_path: Vec::new(),
+            drill_entries: Vec::new(),
+            drill_selected: 0,
+            drill_scanning: false,
+            drill_scan_result: Arc::new(Mutex::new(None)),
         }
     }
 
     pub fn refresh_data(&mut self) {
+        // Check for completed drill-down scans
+        if self.drill_scanning {
+            let mut result = self.drill_scan_result.lock().unwrap();
+            if let Some(entries) = result.take() {
+                self.drill_entries = entries;
+                self.drill_scanning = false;
+                self.drill_selected = 0;
+            }
+        }
+
         if self.paused {
             return;
         }
         let (stats, disks) = self.shared_stats.lock().unwrap().clone();
         self.stats = stats;
         self.disks = disks;
+    }
+
+    fn start_drill_scan(&mut self, path: &str) {
+        self.drill_scanning = true;
+        self.drill_entries.clear();
+        let result = Arc::clone(&self.drill_scan_result);
+        let path = path.to_string();
+        std::thread::spawn(move || {
+            let entries = scan_directory(&path);
+            let mut lock = result.lock().unwrap();
+            *lock = Some(entries);
+        });
+    }
+
+    pub fn drill_current_path(&self) -> String {
+        self.drill_path.last().cloned().unwrap_or_default()
     }
 
     pub fn sorted_disks(&self) -> Vec<DiskEntry> {
@@ -339,12 +384,11 @@ impl App {
                 self.save();
             }
             KeyCode::Char('c') => {
-                self.prefs.color_mode = match self.prefs.color_mode {
-                    ColorMode::Default => ColorMode::Green,
-                    ColorMode::Green => ColorMode::Blue,
-                    ColorMode::Blue => ColorMode::Purple,
-                    ColorMode::Purple => ColorMode::Default,
-                };
+                self.prefs.color_mode = self.prefs.color_mode.next();
+                self.status_msg = Some((
+                    format!("\u{25C6} {}", self.prefs.color_mode.name()),
+                    Instant::now(),
+                ));
                 self.save();
             }
             KeyCode::Char('v') | KeyCode::Char('V') => {
@@ -658,10 +702,10 @@ mod tests {
 
     fn test_disks() -> Vec<DiskEntry> {
         vec![
-            DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into() },
-            DiskEntry { mount: "/home".into(), used: 80_000_000_000, total: 200_000_000_000, pct: 40.0, kind: DiskKind::SSD, fs: "ext4".into() },
-            DiskEntry { mount: "/data".into(), used: 900_000_000_000, total: 1_000_000_000_000, pct: 90.0, kind: DiskKind::HDD, fs: "xfs".into() },
-            DiskEntry { mount: "/tmp".into(), used: 100_000, total: 500_000_000, pct: 0.02, kind: DiskKind::Unknown(-1), fs: "tmpfs".into() },
+            DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None },
+            DiskEntry { mount: "/home".into(), used: 80_000_000_000, total: 200_000_000_000, pct: 40.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None },
+            DiskEntry { mount: "/data".into(), used: 900_000_000_000, total: 1_000_000_000_000, pct: 90.0, kind: DiskKind::HDD, fs: "xfs".into(), latency_ms: None },
+            DiskEntry { mount: "/tmp".into(), used: 100_000, total: 500_000_000, pct: 0.02, kind: DiskKind::Unknown(-1), fs: "tmpfs".into(), latency_ms: None },
         ]
     }
 
@@ -940,12 +984,13 @@ mod tests {
     fn key_c_cycles_color_mode() {
         let mut app = test_app();
         assert_eq!(app.prefs.color_mode, ColorMode::Default);
-        app.handle_key(make_key(KeyCode::Char('c')));
-        assert_eq!(app.prefs.color_mode, ColorMode::Green);
-        app.handle_key(make_key(KeyCode::Char('c')));
-        assert_eq!(app.prefs.color_mode, ColorMode::Blue);
-        app.handle_key(make_key(KeyCode::Char('c')));
-        assert_eq!(app.prefs.color_mode, ColorMode::Purple);
+        // Cycle through all modes and back to Default
+        for &expected in &ColorMode::ALL[1..] {
+            app.handle_key(make_key(KeyCode::Char('c')));
+            assert_eq!(app.prefs.color_mode, expected);
+            assert!(app.status_msg.is_some());
+            assert!(app.status_msg.as_ref().unwrap().0.contains(expected.name()));
+        }
         app.handle_key(make_key(KeyCode::Char('c')));
         assert_eq!(app.prefs.color_mode, ColorMode::Default);
     }
@@ -1606,7 +1651,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/sys/kernel".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "sysfs".into(),
+            kind: DiskKind::Unknown(-1), fs: "sysfs".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1618,7 +1663,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/proc".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "proc".into(),
+            kind: DiskKind::Unknown(-1), fs: "proc".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1630,7 +1675,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/dev/shm".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "tmpfs".into(),
+            kind: DiskKind::Unknown(-1), fs: "tmpfs".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1642,7 +1687,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/run/lock".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "tmpfs".into(),
+            kind: DiskKind::Unknown(-1), fs: "tmpfs".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1654,7 +1699,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/snap/core".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "squashfs".into(),
+            kind: DiskKind::Unknown(-1), fs: "squashfs".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1666,7 +1711,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/var/lib/docker".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "overlay".into(),
+            kind: DiskKind::Unknown(-1), fs: "overlay".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1678,7 +1723,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/dev".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "devtmpfs".into(),
+            kind: DiskKind::Unknown(-1), fs: "devtmpfs".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1690,7 +1735,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/dev".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "devfs".into(),
+            kind: DiskKind::Unknown(-1), fs: "devfs".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1702,7 +1747,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/net".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "autofs".into(),
+            kind: DiskKind::Unknown(-1), fs: "autofs".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1714,7 +1759,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/net".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "map".into(),
+            kind: DiskKind::Unknown(-1), fs: "map".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1726,7 +1771,7 @@ mod tests {
         let mut app = test_app();
         app.disks.push(DiskEntry {
             mount: "/empty".into(), used: 0, total: 0, pct: 0.0,
-            kind: DiskKind::SSD, fs: "ext4".into(),
+            kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1879,7 +1924,7 @@ mod tests {
         // Add more disks with 'a' in name
         app.disks.push(DiskEntry {
             mount: "/data2".into(), used: 200_000_000_000, total: 400_000_000_000,
-            pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(),
+            pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
         });
         app.filter = "data".into();
         app.prefs.sort_mode = SortMode::Size;

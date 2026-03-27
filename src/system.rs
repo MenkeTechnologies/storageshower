@@ -127,6 +127,86 @@ pub fn get_battery() -> Option<u8> {
     }
 }
 
+// ─── Network filesystem helpers ───────────────────────────────────────────
+
+pub fn is_network_fs(fs: &str) -> bool {
+    matches!(
+        fs,
+        "nfs" | "nfs4" | "cifs" | "smbfs" | "afp" | "ncp"
+            | "fuse.sshfs" | "fuse.rclone" | "fuse.s3fs"
+            | "9p" | "afs"
+    )
+}
+
+fn measure_mount_latency(mount: &str) -> Option<f64> {
+    let mount = mount.to_string();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let start = std::time::Instant::now();
+        match std::fs::read_dir(&mount) {
+            Ok(mut rd) => {
+                let _ = rd.next();
+                let _ = tx.send(Some(start.elapsed().as_secs_f64() * 1000.0));
+            }
+            Err(_) => {
+                let _ = tx.send(None);
+            }
+        }
+    });
+    rx.recv_timeout(Duration::from_secs(2)).ok().flatten()
+}
+
+// ─── Directory scanning ───────────────────────────────────────────────────
+
+fn dir_size(path: &std::path::Path) -> u64 {
+    let entries = match std::fs::read_dir(path) {
+        Ok(e) => e,
+        Err(_) => return 0,
+    };
+    let mut total = 0u64;
+    for entry in entries.flatten() {
+        let meta = match entry.metadata() {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+        if meta.is_dir() {
+            total += dir_size(&entry.path());
+        } else {
+            total += meta.len();
+        }
+    }
+    total
+}
+
+pub fn scan_directory(path: &str) -> Vec<DirEntry> {
+    let entries = match std::fs::read_dir(path) {
+        Ok(e) => e,
+        Err(_) => return Vec::new(),
+    };
+    let mut results: Vec<DirEntry> = entries
+        .flatten()
+        .filter_map(|entry| {
+            let meta = entry.metadata().ok()?;
+            let name = entry.file_name().to_string_lossy().to_string();
+            let full_path = entry.path().to_string_lossy().to_string();
+            let is_dir = meta.is_dir();
+            let size = if is_dir {
+                dir_size(&entry.path())
+            } else {
+                meta.len()
+            };
+            Some(DirEntry {
+                path: full_path,
+                name,
+                size,
+                is_dir,
+            })
+        })
+        .collect();
+    results.sort_by(|a, b| b.size.cmp(&a.size));
+    results
+}
+
 // ─── Disk collection ───────────────────────────────────────────────────────
 
 pub fn collect_disk_entries() -> Vec<DiskEntry> {
@@ -165,7 +245,12 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 } else {
                     DiskKind::Unknown(-1)
                 };
-                DiskEntry { mount, used, total, pct, kind, fs: fstype }
+                let latency_ms = if is_network_fs(&fstype) {
+                    measure_mount_latency(&mount)
+                } else {
+                    None
+                };
+                DiskEntry { mount, used, total, pct, kind, fs: fstype, latency_ms }
             })
             .collect()
     }
@@ -204,6 +289,11 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                     (0, 0, 0.0)
                 }
             };
+            let latency_ms = if is_network_fs(&fstype) {
+                measure_mount_latency(&mount)
+            } else {
+                None
+            };
             Some(DiskEntry {
                 mount,
                 used,
@@ -211,6 +301,7 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 pct,
                 kind: DiskKind::Unknown(-1),
                 fs: fstype,
+                latency_ms,
             })
         })
         .collect()
@@ -232,13 +323,21 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
             } else {
                 0.0
             };
+            let mount = d.mount_point().to_string_lossy().to_string();
+            let fs = d.file_system().to_string_lossy().to_string();
+            let latency_ms = if is_network_fs(&fs) {
+                measure_mount_latency(&mount)
+            } else {
+                None
+            };
             DiskEntry {
-                mount: d.mount_point().to_string_lossy().to_string(),
+                mount,
                 used,
                 total,
                 pct,
                 kind: d.kind(),
-                fs: d.file_system().to_string_lossy().to_string(),
+                fs,
+                latency_ms,
             }
         })
         .collect()

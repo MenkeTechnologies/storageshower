@@ -6,7 +6,7 @@ use ratatui::{
 use std::time::Duration;
 
 use crate::app::{mount_col_width, right_col_width, App};
-use crate::helpers::{format_bytes, format_uptime, truncate_mount};
+use crate::helpers::{format_bytes, format_latency, format_uptime, truncate_mount};
 use crate::system::{chrono_now, get_battery, get_local_ip, get_tty, get_username};
 use crate::types::*;
 
@@ -45,6 +45,54 @@ pub fn palette(mode: ColorMode) -> (Color, Color, Color, Color, Color, Color) {
             Color::Indexed(134),
             Color::Indexed(93),
             Color::Indexed(97),
+        ),
+        ColorMode::Amber => (
+            Color::Indexed(172),
+            Color::Indexed(214),
+            Color::Indexed(178),
+            Color::Indexed(220),
+            Color::Indexed(166),
+            Color::Indexed(130),
+        ),
+        ColorMode::Cyan => (
+            Color::Indexed(37),
+            Color::Indexed(50),
+            Color::Indexed(44),
+            Color::Indexed(87),
+            Color::Indexed(30),
+            Color::Indexed(23),
+        ),
+        ColorMode::Red => (
+            Color::Indexed(160),
+            Color::Indexed(203),
+            Color::Indexed(196),
+            Color::Indexed(210),
+            Color::Indexed(124),
+            Color::Indexed(88),
+        ),
+        ColorMode::Sakura => (
+            Color::Indexed(175),
+            Color::Indexed(218),
+            Color::Indexed(182),
+            Color::Indexed(225),
+            Color::Indexed(169),
+            Color::Indexed(132),
+        ),
+        ColorMode::Matrix => (
+            Color::Indexed(22),
+            Color::Indexed(46),
+            Color::Indexed(28),
+            Color::Indexed(119),
+            Color::Indexed(34),
+            Color::Indexed(22),
+        ),
+        ColorMode::Sunset => (
+            Color::Indexed(202),
+            Color::Indexed(220),
+            Color::Indexed(196),
+            Color::Indexed(213),
+            Color::Indexed(160),
+            Color::Indexed(125),
         ),
     }
 }
@@ -355,6 +403,20 @@ pub fn draw(frame: &mut Frame, app: &App) {
         };
         set_str(buf, lm + 3, row, &mount_display, Style::default().fg(pal_green), mount_w as u16);
 
+        if let Some(lat) = disk.latency_ms {
+            let badge = format_latency(lat);
+            let lat_color = if lat < 50.0 {
+                pal_green
+            } else if lat < 200.0 {
+                pal_lpurple
+            } else {
+                Color::Indexed(196)
+            };
+            let badge_len = badge.len() as u16;
+            let badge_x = lm + 3 + mount_w as u16 - badge_len - 1;
+            set_str(buf, badge_x, row, &badge, Style::default().fg(lat_color).add_modifier(Modifier::DIM), badge_len);
+        }
+
         let bar_col_start = lm + 3 + mount_w as u16;
         set_cell(buf, bar_col_start, row, "\u{2502}", border_s);
 
@@ -474,12 +536,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
                 BarStyle::Thin => "thin",
                 BarStyle::Ascii => "ascii",
             };
-            let color_name = match app.prefs.color_mode {
-                ColorMode::Default => "default",
-                ColorMode::Green => "green",
-                ColorMode::Blue => "blue",
-                ColorMode::Purple => "purple",
-            };
+            let color_name = app.prefs.color_mode.name();
             let unit_name = match app.prefs.unit_mode {
                 UnitMode::Human => "human",
                 UnitMode::GiB => "GiB",
@@ -741,7 +798,7 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
         HelpEntry { key: "DISPLAY", desc: "", val_fn: empty_val, is_section: true },
         HelpEntry { key: "b", desc: "Cycle bar style", val_fn: |a| format!("[{}]", match a.prefs.bar_style { BarStyle::Gradient=>"gradient", BarStyle::Solid=>"solid", BarStyle::Thin=>"thin", BarStyle::Ascii=>"ascii" }), is_section: false },
-        HelpEntry { key: "c", desc: "Cycle color mode", val_fn: |a| format!("[{}]", match a.prefs.color_mode { ColorMode::Default=>"default", ColorMode::Green=>"green", ColorMode::Blue=>"blue", ColorMode::Purple=>"purple" }), is_section: false },
+        HelpEntry { key: "c", desc: "Cycle color mode", val_fn: |a| format!("[{}]", a.prefs.color_mode.name()), is_section: false },
         HelpEntry { key: "v/V", desc: "Toggle bars", val_fn: |a| format!("[{}]", if a.prefs.show_bars {"on"} else {"off"}), is_section: false },
         HelpEntry { key: "d/D", desc: "Toggle used/size", val_fn: |a| format!("[{}]", if a.prefs.show_used {"on"} else {"off"}), is_section: false },
         HelpEntry { key: "g", desc: "Toggle col headers", val_fn: |a| format!("[{}]", if a.prefs.show_header {"on"} else {"off"}), is_section: false },
@@ -811,7 +868,7 @@ mod tests {
 
     #[test]
     fn palette_returns_six_colors() {
-        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+        for &mode in ColorMode::ALL {
             let (a, b, c, d, e, f) = palette(mode);
             // Just verify they are Color::Indexed values (not default)
             assert_ne!(a, Color::Reset);
@@ -864,7 +921,7 @@ mod tests {
 
     #[test]
     fn gradient_color_at_returns_colors() {
-        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+        for &mode in ColorMode::ALL {
             let c0 = gradient_color_at(0.0, mode);
             let c50 = gradient_color_at(0.5, mode);
             let c90 = gradient_color_at(0.9, mode);
@@ -914,7 +971,7 @@ mod tests {
 
     #[test]
     fn gradient_color_at_zero() {
-        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+        for &mode in ColorMode::ALL {
             let c = gradient_color_at(0.0, mode);
             assert_ne!(c, Color::Reset);
         }
@@ -922,7 +979,7 @@ mod tests {
 
     #[test]
     fn gradient_color_at_one() {
-        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+        for &mode in ColorMode::ALL {
             let c = gradient_color_at(1.0, mode);
             assert_ne!(c, Color::Reset);
         }
@@ -930,7 +987,7 @@ mod tests {
 
     #[test]
     fn gradient_color_at_half() {
-        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+        for &mode in ColorMode::ALL {
             let c = gradient_color_at(0.5, mode);
             assert_ne!(c, Color::Reset);
         }
@@ -952,7 +1009,7 @@ mod tests {
 
     #[test]
     fn all_palettes_return_six() {
-        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+        for &mode in ColorMode::ALL {
             let (a, b, c, d, e, f) = palette(mode);
             // All should be valid non-reset colors
             for color in [a, b, c, d, e, f] {
@@ -1088,7 +1145,7 @@ mod tests {
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
         let mut app = App::new_default(shared);
 
-        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+        for &mode in ColorMode::ALL {
             app.prefs.color_mode = mode;
             app.paused = false;
             let c = border_color(&app);
