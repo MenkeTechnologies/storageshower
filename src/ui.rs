@@ -65,7 +65,7 @@ fn thresh_color(pct: f64, app: &App) -> (Color, Option<Color>, &'static str) {
     }
 }
 
-fn gradient_color_at(frac: f64, mode: ColorMode) -> Color {
+pub fn gradient_color_at(frac: f64, mode: ColorMode) -> Color {
     let (blue, green, purple, _, _, dpurple) = palette(mode);
     if frac < 0.33 {
         green
@@ -908,5 +908,191 @@ mod tests {
         let (_, bg_crit, icon_crit) = thresh_color(95.0, &app);
         assert!(bg_crit.is_some());
         assert_eq!(icon_crit, "\u{2716}");
+    }
+
+    // ── Gradient at boundary values ─────────────────────────
+
+    #[test]
+    fn gradient_color_at_zero() {
+        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+            let c = gradient_color_at(0.0, mode);
+            assert_ne!(c, Color::Reset);
+        }
+    }
+
+    #[test]
+    fn gradient_color_at_one() {
+        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+            let c = gradient_color_at(1.0, mode);
+            assert_ne!(c, Color::Reset);
+        }
+    }
+
+    #[test]
+    fn gradient_color_at_half() {
+        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+            let c = gradient_color_at(0.5, mode);
+            assert_ne!(c, Color::Reset);
+        }
+    }
+
+    #[test]
+    fn gradient_color_at_near_zero() {
+        let c = gradient_color_at(0.001, ColorMode::Default);
+        assert_ne!(c, Color::Reset);
+    }
+
+    #[test]
+    fn gradient_color_at_near_one() {
+        let c = gradient_color_at(0.999, ColorMode::Default);
+        assert_ne!(c, Color::Reset);
+    }
+
+    // ── Palette all modes return 6 colors ───────────────────
+
+    #[test]
+    fn all_palettes_return_six() {
+        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+            let (a, b, c, d, e, f) = palette(mode);
+            // All should be valid non-reset colors
+            for color in [a, b, c, d, e, f] {
+                assert_ne!(color, Color::Reset, "palette({:?}) returned Reset", mode);
+            }
+        }
+    }
+
+    // ── set_cell at boundaries ──────────────────────────────
+
+    #[test]
+    fn set_cell_at_origin() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 5));
+        set_cell(&mut buf, 0, 0, "A", Style::default());
+        assert_eq!(buf[(0, 0)].symbol(), "A");
+    }
+
+    #[test]
+    fn set_cell_at_max_valid() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 5));
+        set_cell(&mut buf, 9, 4, "Z", Style::default());
+        assert_eq!(buf[(9, 4)].symbol(), "Z");
+    }
+
+    #[test]
+    fn set_cell_just_out_of_bounds_no_panic() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 5));
+        set_cell(&mut buf, 10, 5, "X", Style::default()); // should not panic
+    }
+
+    // ── set_str edge cases ──────────────────────────────────
+
+    #[test]
+    fn set_str_empty_string() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5));
+        set_str(&mut buf, 0, 0, "", Style::default(), 20);
+        assert_eq!(buf[(0, 0)].symbol(), " "); // unchanged
+    }
+
+    #[test]
+    fn set_str_max_w_zero() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5));
+        set_str(&mut buf, 0, 0, "Hello", Style::default(), 0);
+        assert_eq!(buf[(0, 0)].symbol(), " "); // nothing written
+    }
+
+    #[test]
+    fn set_str_at_buffer_edge() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 5, 1));
+        set_str(&mut buf, 3, 0, "Hello", Style::default(), 10);
+        // Should write "He" (positions 3,4) and not panic
+        assert_eq!(buf[(3, 0)].symbol(), "H");
+        assert_eq!(buf[(4, 0)].symbol(), "e");
+    }
+
+    // ── thresh_color boundary values ────────────────────────
+
+    #[test]
+    fn thresh_color_at_exact_warn() {
+        use std::sync::{Arc, Mutex};
+        use crate::app::App;
+
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs.thresh_warn = 70;
+
+        let (_, bg, icon) = thresh_color(70.0, &app);
+        assert!(bg.is_some());
+        assert_eq!(icon, "\u{26A0}");
+    }
+
+    #[test]
+    fn thresh_color_at_exact_crit() {
+        use std::sync::{Arc, Mutex};
+        use crate::app::App;
+
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs.thresh_crit = 90;
+
+        let (_, bg, icon) = thresh_color(90.0, &app);
+        assert!(bg.is_some());
+        assert_eq!(icon, "\u{2716}");
+    }
+
+    #[test]
+    fn thresh_color_just_below_warn() {
+        use std::sync::{Arc, Mutex};
+        use crate::app::App;
+
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs.thresh_warn = 70;
+
+        let (_, bg, icon) = thresh_color(69.9, &app);
+        assert!(bg.is_none());
+        assert_eq!(icon, "\u{25C8}");
+    }
+
+    #[test]
+    fn thresh_color_at_zero() {
+        use std::sync::{Arc, Mutex};
+        use crate::app::App;
+
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let app = App::new_default(shared);
+
+        let (_, bg, icon) = thresh_color(0.0, &app);
+        assert!(bg.is_none());
+        assert_eq!(icon, "\u{25C8}");
+    }
+
+    #[test]
+    fn thresh_color_at_hundred() {
+        use std::sync::{Arc, Mutex};
+        use crate::app::App;
+
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let app = App::new_default(shared);
+
+        let (_, bg, icon) = thresh_color(100.0, &app);
+        assert!(bg.is_some());
+        assert_eq!(icon, "\u{2716}");
+    }
+
+    // ── border_color with different color modes ─────────────
+
+    #[test]
+    fn border_color_different_modes() {
+        use std::sync::{Arc, Mutex};
+        use crate::app::App;
+
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+
+        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+            app.prefs.color_mode = mode;
+            app.paused = false;
+            let c = border_color(&app);
+            assert_ne!(c, Color::Reset, "border_color with {:?} returned Reset", mode);
+        }
     }
 }

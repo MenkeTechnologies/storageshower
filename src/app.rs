@@ -1287,4 +1287,835 @@ mod tests {
         app.refresh_data();
         assert_eq!(app.disks.len(), old_disks_len);
     }
+
+    // ── Navigation on empty disk list ─────────────────────
+
+    #[test]
+    fn navigation_empty_disks_j_noop() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.handle_key(make_key(KeyCode::Char('j')));
+        assert_eq!(app.selected, None);
+    }
+
+    #[test]
+    fn navigation_empty_disks_k_noop() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.handle_key(make_key(KeyCode::Char('k')));
+        assert_eq!(app.selected, None);
+    }
+
+    #[test]
+    fn navigation_empty_disks_g_noop() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.handle_key(make_key(KeyCode::Char('G')));
+        assert_eq!(app.selected, None);
+    }
+
+    #[test]
+    fn navigation_empty_disks_home_noop() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.handle_key(make_key(KeyCode::Home));
+        assert_eq!(app.selected, None);
+    }
+
+    #[test]
+    fn navigation_empty_disks_end_noop() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.handle_key(make_key(KeyCode::End));
+        assert_eq!(app.selected, None);
+    }
+
+    #[test]
+    fn navigation_empty_disks_ctrl_d_noop() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.handle_key(make_ctrl_key(KeyCode::Char('d')));
+        assert_eq!(app.selected, None);
+    }
+
+    #[test]
+    fn navigation_empty_disks_ctrl_u_noop() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.handle_key(make_ctrl_key(KeyCode::Char('u')));
+        assert_eq!(app.selected, None);
+    }
+
+    #[test]
+    fn navigation_empty_disks_ctrl_g_noop() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.handle_key(make_ctrl_key(KeyCode::Char('g')));
+        assert_eq!(app.selected, None);
+    }
+
+    // ── Down/Up arrow keys ────────────────────────────────
+
+    #[test]
+    fn down_arrow_selects_next() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Down));
+        assert_eq!(app.selected, Some(0));
+        app.handle_key(make_key(KeyCode::Down));
+        assert_eq!(app.selected, Some(1));
+    }
+
+    #[test]
+    fn up_arrow_selects_prev() {
+        let mut app = test_app();
+        app.selected = Some(2);
+        app.handle_key(make_key(KeyCode::Up));
+        assert_eq!(app.selected, Some(1));
+    }
+
+    // ── Filter mode — Delete key ──────────────────────────
+
+    #[test]
+    fn filter_mode_delete_at_cursor() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_key(KeyCode::Char('c')));
+        // Move cursor to position 1
+        app.handle_key(make_ctrl_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Right));
+        assert_eq!(app.filter_cursor, 1);
+        // Delete at cursor removes 'b'
+        app.handle_key(make_key(KeyCode::Delete));
+        assert_eq!(app.filter_buf, "ac");
+        assert_eq!(app.filter_cursor, 1);
+    }
+
+    #[test]
+    fn filter_mode_delete_at_end_noop() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Delete));
+        assert_eq!(app.filter_buf, "a");
+    }
+
+    // ── Filter mode — Ctrl+w word delete ──────────────────
+
+    #[test]
+    fn filter_mode_ctrl_w_deletes_word() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        for c in "hello world".chars() {
+            app.handle_key(make_key(KeyCode::Char(c)));
+        }
+        assert_eq!(app.filter_buf, "hello world");
+        app.handle_key(make_ctrl_key(KeyCode::Char('w')));
+        assert_eq!(app.filter_buf, "hello ");
+        app.handle_key(make_ctrl_key(KeyCode::Char('w')));
+        assert_eq!(app.filter_buf, "");
+    }
+
+    #[test]
+    fn filter_mode_ctrl_w_at_start_noop() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_ctrl_key(KeyCode::Char('w')));
+        assert_eq!(app.filter_buf, "");
+        assert_eq!(app.filter_cursor, 0);
+    }
+
+    // ── Filter mode — Ctrl+h backspace ────────────────────
+
+    #[test]
+    fn filter_mode_ctrl_h_backspace() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_ctrl_key(KeyCode::Char('h')));
+        assert_eq!(app.filter_buf, "a");
+        assert_eq!(app.filter_cursor, 1);
+    }
+
+    #[test]
+    fn filter_mode_ctrl_h_at_start_noop() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_ctrl_key(KeyCode::Char('h')));
+        assert_eq!(app.filter_buf, "");
+        assert_eq!(app.filter_cursor, 0);
+    }
+
+    // ── Filter mode — Ctrl+b/f cursor movement ───────────
+
+    #[test]
+    fn filter_mode_ctrl_b_moves_left() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        assert_eq!(app.filter_cursor, 2);
+        app.handle_key(make_ctrl_key(KeyCode::Char('b')));
+        assert_eq!(app.filter_cursor, 1);
+    }
+
+    #[test]
+    fn filter_mode_ctrl_b_at_start_stays() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_ctrl_key(KeyCode::Char('b')));
+        assert_eq!(app.filter_cursor, 0);
+    }
+
+    #[test]
+    fn filter_mode_ctrl_f_moves_right() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_ctrl_key(KeyCode::Char('a'))); // go to start
+        app.handle_key(make_ctrl_key(KeyCode::Char('f')));
+        assert_eq!(app.filter_cursor, 1);
+    }
+
+    #[test]
+    fn filter_mode_ctrl_f_at_end_stays() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_ctrl_key(KeyCode::Char('f')));
+        assert_eq!(app.filter_cursor, 1); // stays at end
+    }
+
+    // ── Filter mode — Left/Right arrows ───────────────────
+
+    #[test]
+    fn filter_mode_left_moves_cursor() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_key(KeyCode::Left));
+        assert_eq!(app.filter_cursor, 1);
+    }
+
+    #[test]
+    fn filter_mode_right_moves_cursor() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_ctrl_key(KeyCode::Char('a'))); // start
+        app.handle_key(make_key(KeyCode::Right));
+        assert_eq!(app.filter_cursor, 1);
+    }
+
+    // ── Filter mode — Home/End ────────────────────────────
+
+    #[test]
+    fn filter_mode_home_moves_to_start() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_key(KeyCode::Home));
+        assert_eq!(app.filter_cursor, 0);
+    }
+
+    #[test]
+    fn filter_mode_end_moves_to_end() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_key(KeyCode::Home));
+        app.handle_key(make_key(KeyCode::End));
+        assert_eq!(app.filter_cursor, 2);
+    }
+
+    // ── Filter mode — insert at middle ────────────────────
+
+    #[test]
+    fn filter_mode_insert_at_middle() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('c')));
+        app.handle_key(make_key(KeyCode::Left)); // cursor at 1
+        app.handle_key(make_key(KeyCode::Char('b')));
+        assert_eq!(app.filter_buf, "abc");
+        assert_eq!(app.filter_cursor, 2);
+    }
+
+    // ── Filter mode — backspace at start noop ─────────────
+
+    #[test]
+    fn filter_mode_backspace_at_start_noop() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Backspace));
+        assert_eq!(app.filter_buf, "");
+        assert_eq!(app.filter_cursor, 0);
+    }
+
+    // ── Filter — Ctrl+u at middle ─────────────────────────
+
+    #[test]
+    fn filter_mode_ctrl_u_at_middle() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        for c in "abcdef".chars() {
+            app.handle_key(make_key(KeyCode::Char(c)));
+        }
+        // Move cursor to position 3
+        app.handle_key(make_key(KeyCode::Home));
+        app.handle_key(make_key(KeyCode::Right));
+        app.handle_key(make_key(KeyCode::Right));
+        app.handle_key(make_key(KeyCode::Right));
+        assert_eq!(app.filter_cursor, 3);
+        app.handle_key(make_ctrl_key(KeyCode::Char('u')));
+        assert_eq!(app.filter_buf, "def");
+        assert_eq!(app.filter_cursor, 0);
+    }
+
+    // ── Filter — unknown key in filter mode ───────────────
+
+    #[test]
+    fn filter_mode_unknown_key_ignored() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::F(1)));
+        assert_eq!(app.filter_buf, "");
+        assert!(app.filter_mode);
+    }
+
+    // ── show_all=false filters various virtual fs ─────────
+
+    #[test]
+    fn show_all_off_filters_sys() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/sys/kernel".into(), used: 0, total: 100, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "sysfs".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.mount.starts_with("/sys")));
+    }
+
+    #[test]
+    fn show_all_off_filters_proc() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/proc".into(), used: 0, total: 100, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "proc".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.mount.starts_with("/proc")));
+    }
+
+    #[test]
+    fn show_all_off_filters_dev_shm() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/dev/shm".into(), used: 0, total: 100, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "tmpfs".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.mount.starts_with("/dev/shm")));
+    }
+
+    #[test]
+    fn show_all_off_filters_run() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/run/lock".into(), used: 0, total: 100, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "tmpfs".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.mount.starts_with("/run")));
+    }
+
+    #[test]
+    fn show_all_off_filters_snap() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/snap/core".into(), used: 0, total: 100, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "squashfs".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.mount.starts_with("/snap")));
+    }
+
+    #[test]
+    fn show_all_off_filters_overlay() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/var/lib/docker".into(), used: 0, total: 100, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "overlay".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.fs == "overlay"));
+    }
+
+    #[test]
+    fn show_all_off_filters_devtmpfs() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/dev".into(), used: 0, total: 100, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "devtmpfs".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.fs == "devtmpfs"));
+    }
+
+    #[test]
+    fn show_all_off_filters_devfs() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/dev".into(), used: 0, total: 100, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "devfs".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.fs == "devfs"));
+    }
+
+    #[test]
+    fn show_all_off_filters_autofs() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/net".into(), used: 0, total: 100, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "autofs".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.fs == "autofs"));
+    }
+
+    #[test]
+    fn show_all_off_filters_map() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/net".into(), used: 0, total: 100, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "map".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.fs == "map"));
+    }
+
+    #[test]
+    fn show_all_off_filters_zero_total() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/empty".into(), used: 0, total: 0, pct: 0.0,
+            kind: DiskKind::SSD, fs: "ext4".into(),
+        });
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.mount == "/empty"));
+    }
+
+    // ── Toggle show_local / show_all via keys ─────────────
+
+    #[test]
+    fn key_l_toggles_show_local() {
+        let mut app = test_app();
+        assert!(!app.prefs.show_local);
+        app.handle_key(make_key(KeyCode::Char('l')));
+        assert!(app.prefs.show_local);
+        app.handle_key(make_key(KeyCode::Char('l')));
+        assert!(!app.prefs.show_local);
+    }
+
+    #[test]
+    fn key_a_toggles_show_all() {
+        let mut app = test_app();
+        assert!(app.prefs.show_all);
+        app.handle_key(make_key(KeyCode::Char('a')));
+        assert!(!app.prefs.show_all);
+        app.handle_key(make_key(KeyCode::Char('a')));
+        assert!(app.prefs.show_all);
+    }
+
+    // ── Help mode dismissal ───────────────────────────────
+
+    #[test]
+    fn help_dismisses_with_q() {
+        let mut app = test_app();
+        app.show_help = true;
+        app.handle_key(make_key(KeyCode::Char('q')));
+        assert!(!app.show_help);
+        assert!(!app.quit); // q in help mode only dismisses, doesn't quit
+    }
+
+    #[test]
+    fn help_dismisses_with_k() {
+        let mut app = test_app();
+        app.show_help = true;
+        app.handle_key(make_key(KeyCode::Char('k')));
+        assert!(!app.show_help);
+    }
+
+    #[test]
+    fn help_dismisses_with_upper_q() {
+        let mut app = test_app();
+        app.show_help = true;
+        app.handle_key(make_key(KeyCode::Char('Q')));
+        assert!(!app.show_help);
+    }
+
+    #[test]
+    fn help_dismisses_with_upper_h() {
+        let mut app = test_app();
+        app.show_help = true;
+        app.handle_key(make_key(KeyCode::Char('H')));
+        assert!(!app.show_help);
+    }
+
+    #[test]
+    fn help_mode_swallows_all_other_keys() {
+        let mut app = test_app();
+        app.show_help = true;
+        let prev = app.prefs.clone();
+        // These should all be swallowed
+        for c in ['s', 'n', 'u', 'r', 'c', 'i', 'v', 'd', 'g', 'x', 'w', 'm', 'f', 't', 'T', 'a', 'l', 'p', '/', '0', '?'] {
+            app.handle_key(make_key(KeyCode::Char(c)));
+        }
+        // Help should still be shown (only q/h/esc/j/k dismiss)
+        assert!(app.show_help);
+        // Prefs should be unchanged
+        assert_eq!(app.prefs.sort_mode, prev.sort_mode);
+        assert_eq!(app.prefs.bar_style, prev.bar_style);
+        assert_eq!(app.prefs.color_mode, prev.color_mode);
+    }
+
+    // ── Copy without selection ─────────────────────────────
+
+    #[test]
+    fn key_y_without_selection_sets_status() {
+        let mut app = test_app();
+        assert!(app.selected.is_none());
+        app.handle_key(make_key(KeyCode::Char('y')));
+        assert!(app.status_msg.is_some());
+        assert!(app.status_msg.as_ref().unwrap().0.contains("Select a disk"));
+    }
+
+    // ── Export sets status message ─────────────────────────
+
+    #[test]
+    fn key_e_sets_status_msg() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('e')));
+        assert!(app.status_msg.is_some());
+        let msg = &app.status_msg.as_ref().unwrap().0;
+        assert!(msg.contains("Export") || msg.contains("export"));
+    }
+
+    // ── Enter with no selection is noop ────────────────────
+
+    #[test]
+    fn key_enter_no_selection_noop() {
+        let mut app = test_app();
+        assert!(app.selected.is_none());
+        app.handle_key(make_key(KeyCode::Enter));
+        assert!(app.status_msg.is_none());
+    }
+
+    // ── Enter with out-of-bounds selection ─────────────────
+
+    #[test]
+    fn key_enter_oob_selection_noop() {
+        let mut app = test_app();
+        app.selected = Some(999);
+        app.handle_key(make_key(KeyCode::Enter));
+        // No crash, status may or may not be set depending on sorted_disks len
+    }
+
+    // ── Sort by pct reversed ──────────────────────────────
+
+    #[test]
+    fn sorted_disks_by_pct_reversed() {
+        let mut app = test_app();
+        app.prefs.sort_mode = SortMode::Pct;
+        app.prefs.sort_rev = true;
+        let disks = app.sorted_disks();
+        let pcts: Vec<f64> = disks.iter().map(|d| d.pct).collect();
+        assert!(pcts.windows(2).all(|w| w[0] >= w[1]));
+    }
+
+    #[test]
+    fn sorted_disks_by_size_reversed() {
+        let mut app = test_app();
+        app.prefs.sort_mode = SortMode::Size;
+        app.prefs.sort_rev = true;
+        let disks = app.sorted_disks();
+        let sizes: Vec<u64> = disks.iter().map(|d| d.total).collect();
+        assert!(sizes.windows(2).all(|w| w[0] >= w[1]));
+    }
+
+    // ── Filter + sort combined ────────────────────────────
+
+    #[test]
+    fn filter_and_sort_combined() {
+        let mut app = test_app();
+        // Add more disks with 'a' in name
+        app.disks.push(DiskEntry {
+            mount: "/data2".into(), used: 200_000_000_000, total: 400_000_000_000,
+            pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(),
+        });
+        app.filter = "data".into();
+        app.prefs.sort_mode = SortMode::Size;
+        app.prefs.sort_rev = false;
+        let disks = app.sorted_disks();
+        assert_eq!(disks.len(), 2);
+        assert!(disks[0].total <= disks[1].total);
+    }
+
+    // ── Ctrl+d from None ──────────────────────────────────
+
+    #[test]
+    fn ctrl_d_from_none() {
+        let mut app = test_app();
+        assert_eq!(app.selected, None);
+        let count = app.sorted_disks().len();
+        app.handle_key(make_ctrl_key(KeyCode::Char('d')));
+        let jump = (count / 2).max(1);
+        assert_eq!(app.selected, Some(jump.min(count - 1)));
+    }
+
+    #[test]
+    fn ctrl_u_from_none() {
+        let mut app = test_app();
+        assert_eq!(app.selected, None);
+        app.handle_key(make_ctrl_key(KeyCode::Char('u')));
+        assert_eq!(app.selected, Some(0));
+    }
+
+    // ── Unknown key is noop ───────────────────────────────
+
+    #[test]
+    fn unknown_key_noop() {
+        let mut app = test_app();
+        let prev_mode = app.prefs.sort_mode;
+        let prev_bars = app.prefs.show_bars;
+        app.handle_key(make_key(KeyCode::F(12)));
+        assert_eq!(app.prefs.sort_mode, prev_mode);
+        assert_eq!(app.prefs.show_bars, prev_bars);
+        assert!(!app.quit);
+    }
+
+    // ── Mount column width edge cases ─────────────────────
+
+    #[test]
+    fn mount_col_width_small_terminal() {
+        let p = Prefs::default();
+        let w = mount_col_width(30, &p);
+        assert!(w >= 12); // max(30/3, 12) = 12
+    }
+
+    #[test]
+    fn mount_col_width_custom_below_min() {
+        let mut p = Prefs::default();
+        p.col_mount_w = 3; // below min of 8
+        assert_eq!(mount_col_width(120, &p), 8);
+    }
+
+    // ── Right col width dynamic edge cases ────────────────
+
+    #[test]
+    fn right_col_width_no_used() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.prefs.show_used = false;
+        assert_eq!(right_col_width(&app), 7);
+    }
+
+    #[test]
+    fn right_col_width_custom_override() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.prefs.col_bar_end_w = 40;
+        assert_eq!(right_col_width(&app), 40);
+    }
+
+    #[test]
+    fn right_col_width_custom_min_clamp() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.prefs.col_bar_end_w = 2;
+        assert_eq!(right_col_width(&app), 5); // min 5
+    }
+
+    // ── Mouse handling ────────────────────────────────────
+
+    #[test]
+    fn mouse_right_click_toggles_help() {
+        let mut app = test_app();
+        assert!(!app.show_help);
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 10, row: 10, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert!(app.show_help);
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 10, row: 10, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert!(!app.show_help);
+    }
+
+    #[test]
+    fn mouse_drag_mount_sep() {
+        let mut app = test_app();
+        let mount_w = mount_col_width(78, &app.prefs);
+        let mount_sep_x = 1 + 3 + mount_w as u16;
+
+        // Click near mount separator
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: mount_sep_x, row: 5, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert!(matches!(app.drag, Some(DragTarget::MountSep)));
+
+        // Drag to new position
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: 30, row: 5, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert!(app.prefs.col_mount_w > 0);
+
+        // Release
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: 30, row: 5, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert!(app.drag.is_none());
+    }
+
+    #[test]
+    fn mouse_up_without_drag_noop() {
+        let mut app = test_app();
+        assert!(app.drag.is_none());
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: 10, row: 10, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        // No crash, drag is still None
+        assert!(app.drag.is_none());
+    }
+
+    #[test]
+    fn mouse_scroll_and_other_events_noop() {
+        let mut app = test_app();
+        let prev_help = app.show_help;
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::ScrollUp, column: 10, row: 10, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert_eq!(app.show_help, prev_help);
+    }
+
+    // ── Slash in filter preserves prev filter ─────────────
+
+    #[test]
+    fn slash_preserves_previous_filter() {
+        let mut app = test_app();
+        app.filter = "old_filter".into();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        assert!(app.filter_mode);
+        assert_eq!(app.filter_prev, "old_filter");
+        assert_eq!(app.filter_buf, "old_filter");
+        assert_eq!(app.filter_cursor, 10);
+    }
+
+    // ── Warn/crit threshold full cycles ───────────────────
+
+    #[test]
+    fn warn_threshold_full_cycle() {
+        let mut app = test_app();
+        app.prefs.thresh_warn = 50;
+        app.handle_key(make_key(KeyCode::Char('t'))); assert_eq!(app.prefs.thresh_warn, 60);
+        app.handle_key(make_key(KeyCode::Char('t'))); assert_eq!(app.prefs.thresh_warn, 70);
+        app.handle_key(make_key(KeyCode::Char('t'))); assert_eq!(app.prefs.thresh_warn, 80);
+        app.handle_key(make_key(KeyCode::Char('t'))); assert_eq!(app.prefs.thresh_warn, 50);
+    }
+
+    #[test]
+    fn crit_threshold_full_cycle() {
+        let mut app = test_app();
+        app.prefs.thresh_crit = 80;
+        app.handle_key(make_key(KeyCode::Char('T'))); assert_eq!(app.prefs.thresh_crit, 85);
+        app.handle_key(make_key(KeyCode::Char('T'))); assert_eq!(app.prefs.thresh_crit, 90);
+        app.handle_key(make_key(KeyCode::Char('T'))); assert_eq!(app.prefs.thresh_crit, 95);
+        app.handle_key(make_key(KeyCode::Char('T'))); assert_eq!(app.prefs.thresh_crit, 80);
+    }
+
+    // ── Non-standard thresh value defaults to cycle start ─
+
+    #[test]
+    fn warn_threshold_nonstandard_resets() {
+        let mut app = test_app();
+        app.prefs.thresh_warn = 42; // non-standard
+        app.handle_key(make_key(KeyCode::Char('t')));
+        assert_eq!(app.prefs.thresh_warn, 50); // defaults to start
+    }
+
+    #[test]
+    fn crit_threshold_nonstandard_resets() {
+        let mut app = test_app();
+        app.prefs.thresh_crit = 42;
+        app.handle_key(make_key(KeyCode::Char('T')));
+        assert_eq!(app.prefs.thresh_crit, 80);
+    }
+
+    // ── Refresh rate non-standard resets ───────────────────
+
+    #[test]
+    fn refresh_rate_nonstandard_resets() {
+        let mut app = test_app();
+        app.prefs.refresh_rate = 7;
+        app.handle_key(make_key(KeyCode::Char('f')));
+        assert_eq!(app.prefs.refresh_rate, 1);
+    }
+
+    // ── d key resets col_bar_end_w ────────────────────────
+
+    #[test]
+    fn key_d_resets_bar_end_width() {
+        let mut app = test_app();
+        app.prefs.col_bar_end_w = 30;
+        app.handle_key(make_key(KeyCode::Char('d')));
+        assert_eq!(app.prefs.col_bar_end_w, 0);
+    }
+
+    // ── m key resets col_mount_w ──────────────────────────
+
+    #[test]
+    fn key_m_resets_mount_width() {
+        let mut app = test_app();
+        app.prefs.col_mount_w = 25;
+        app.handle_key(make_key(KeyCode::Char('m')));
+        assert_eq!(app.prefs.col_mount_w, 0);
+    }
 }

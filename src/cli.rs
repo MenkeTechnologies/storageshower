@@ -226,3 +226,285 @@ impl Cli {
         if self.no_virtual { prefs.show_all = false; }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    fn default_cli() -> Cli {
+        Cli::parse_from(["storageshower"])
+    }
+
+    #[test]
+    fn default_cli_no_overrides() {
+        let cli = default_cli();
+        assert!(cli.sort_mode.is_none());
+        assert!(!cli.sort_rev);
+        assert!(!cli.show_local);
+        assert!(cli.refresh_rate.is_none());
+        assert!(cli.bar_style.is_none());
+        assert!(cli.color_mode.is_none());
+        assert!(cli.thresh_warn.is_none());
+        assert!(cli.thresh_crit.is_none());
+        assert!(!cli.no_bars);
+        assert!(!cli.no_border);
+        assert!(!cli.no_header);
+        assert!(!cli.compact);
+        assert!(!cli.no_used);
+        assert!(!cli.full_mount);
+        assert!(!cli.no_virtual);
+        assert!(cli.unit_mode.is_none());
+        assert!(cli.col_mount_w.is_none());
+        assert!(cli.col_bar_end_w.is_none());
+        assert!(cli.col_pct_w.is_none());
+        assert!(cli.config.is_none());
+        assert!(!cli.help);
+        assert!(!cli.version);
+    }
+
+    #[test]
+    fn apply_sort_mode() {
+        let cli = Cli::parse_from(["storageshower", "-s", "pct"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.sort_mode, SortMode::Pct);
+    }
+
+    #[test]
+    fn apply_sort_mode_size() {
+        let cli = Cli::parse_from(["storageshower", "--sort", "size"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.sort_mode, SortMode::Size);
+    }
+
+    #[test]
+    fn apply_reverse() {
+        let cli = Cli::parse_from(["storageshower", "-R"]);
+        let mut prefs = Prefs::default();
+        assert!(!prefs.sort_rev);
+        cli.apply_to(&mut prefs);
+        assert!(prefs.sort_rev);
+    }
+
+    #[test]
+    fn apply_local_only() {
+        let cli = Cli::parse_from(["storageshower", "-l"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_local);
+    }
+
+    #[test]
+    fn apply_refresh_rate() {
+        let cli = Cli::parse_from(["storageshower", "-r", "5"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.refresh_rate, 5);
+    }
+
+    #[test]
+    fn apply_bar_style() {
+        let cli = Cli::parse_from(["storageshower", "-b", "ascii"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.bar_style, BarStyle::Ascii);
+    }
+
+    #[test]
+    fn apply_color_mode() {
+        let cli = Cli::parse_from(["storageshower", "-c", "purple"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.color_mode, ColorMode::Purple);
+    }
+
+    #[test]
+    fn apply_thresholds() {
+        let cli = Cli::parse_from(["storageshower", "-w", "60", "-C", "85"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.thresh_warn, 60);
+        assert_eq!(prefs.thresh_crit, 85);
+    }
+
+    #[test]
+    fn apply_no_flags() {
+        let cli = Cli::parse_from([
+            "storageshower", "--no-bars", "--no-border", "--no-header",
+            "--no-used", "--no-virtual",
+        ]);
+        let mut prefs = Prefs::default();
+        assert!(prefs.show_bars);
+        assert!(prefs.show_border);
+        assert!(prefs.show_header);
+        assert!(prefs.show_used);
+        assert!(prefs.show_all);
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.show_bars);
+        assert!(!prefs.show_border);
+        assert!(!prefs.show_header);
+        assert!(!prefs.show_used);
+        assert!(!prefs.show_all);
+    }
+
+    #[test]
+    fn apply_compact_and_full_mount() {
+        let cli = Cli::parse_from(["storageshower", "-k", "-f"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert!(prefs.compact);
+        assert!(prefs.full_mount);
+    }
+
+    #[test]
+    fn apply_unit_mode_gib() {
+        let cli = Cli::parse_from(["storageshower", "-u", "gib"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.unit_mode, UnitMode::GiB);
+    }
+
+    #[test]
+    fn apply_unit_mode_mib() {
+        let cli = Cli::parse_from(["storageshower", "--units", "mib"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.unit_mode, UnitMode::MiB);
+    }
+
+    #[test]
+    fn apply_unit_mode_bytes() {
+        let cli = Cli::parse_from(["storageshower", "-u", "bytes"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.unit_mode, UnitMode::Bytes);
+    }
+
+    #[test]
+    fn apply_column_widths() {
+        let cli = Cli::parse_from([
+            "storageshower", "--col-mount", "25", "--col-bar-end", "30", "--col-pct", "8",
+        ]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.col_mount_w, 25);
+        assert_eq!(prefs.col_bar_end_w, 30);
+        assert_eq!(prefs.col_pct_w, 8);
+    }
+
+    #[test]
+    fn apply_config_path() {
+        let cli = Cli::parse_from(["storageshower", "--config", "/tmp/test.conf"]);
+        assert_eq!(cli.config.as_deref(), Some("/tmp/test.conf"));
+    }
+
+    #[test]
+    fn help_flag() {
+        let cli = Cli::parse_from(["storageshower", "-h"]);
+        assert!(cli.help);
+    }
+
+    #[test]
+    fn version_flag() {
+        let cli = Cli::parse_from(["storageshower", "-V"]);
+        assert!(cli.version);
+    }
+
+    #[test]
+    fn no_override_preserves_prefs() {
+        let cli = default_cli();
+        let mut prefs = Prefs::default();
+        prefs.sort_mode = SortMode::Size;
+        prefs.bar_style = BarStyle::Thin;
+        prefs.color_mode = ColorMode::Blue;
+        prefs.refresh_rate = 10;
+        cli.apply_to(&mut prefs);
+        // None of these should change
+        assert_eq!(prefs.sort_mode, SortMode::Size);
+        assert_eq!(prefs.bar_style, BarStyle::Thin);
+        assert_eq!(prefs.color_mode, ColorMode::Blue);
+        assert_eq!(prefs.refresh_rate, 10);
+    }
+
+    #[test]
+    fn all_bar_styles_parse() {
+        for style in ["gradient", "solid", "thin", "ascii"] {
+            let cli = Cli::parse_from(["storageshower", "-b", style]);
+            assert!(cli.bar_style.is_some());
+        }
+    }
+
+    #[test]
+    fn all_color_modes_parse() {
+        for color in ["default", "green", "blue", "purple"] {
+            let cli = Cli::parse_from(["storageshower", "-c", color]);
+            assert!(cli.color_mode.is_some());
+        }
+    }
+
+    #[test]
+    fn all_sort_modes_parse() {
+        for mode in ["name", "pct", "size"] {
+            let cli = Cli::parse_from(["storageshower", "-s", mode]);
+            assert!(cli.sort_mode.is_some());
+        }
+    }
+
+    #[test]
+    fn all_unit_modes_parse() {
+        for mode in ["human", "gib", "mib", "bytes"] {
+            let cli = Cli::parse_from(["storageshower", "-u", mode]);
+            assert!(cli.unit_mode.is_some());
+        }
+    }
+
+    #[test]
+    fn combined_flags() {
+        let cli = Cli::parse_from([
+            "storageshower", "-s", "pct", "-R", "-l", "-b", "thin",
+            "-c", "green", "-u", "gib", "-k", "-f", "-w", "50", "-C", "80",
+            "-r", "2", "--no-bars", "--no-border",
+        ]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.sort_mode, SortMode::Pct);
+        assert!(prefs.sort_rev);
+        assert!(prefs.show_local);
+        assert_eq!(prefs.bar_style, BarStyle::Thin);
+        assert_eq!(prefs.color_mode, ColorMode::Green);
+        assert_eq!(prefs.unit_mode, UnitMode::GiB);
+        assert!(prefs.compact);
+        assert!(prefs.full_mount);
+        assert_eq!(prefs.thresh_warn, 50);
+        assert_eq!(prefs.thresh_crit, 80);
+        assert_eq!(prefs.refresh_rate, 2);
+        assert!(!prefs.show_bars);
+        assert!(!prefs.show_border);
+    }
+
+    #[test]
+    fn invalid_sort_mode_errors() {
+        let result = Cli::try_parse_from(["storageshower", "-s", "invalid"]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn invalid_bar_style_errors() {
+        let result = Cli::try_parse_from(["storageshower", "-b", "nope"]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn invalid_color_mode_errors() {
+        let result = Cli::try_parse_from(["storageshower", "-c", "rainbow"]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn invalid_unit_mode_errors() {
+        let result = Cli::try_parse_from(["storageshower", "-u", "petabytes"]);
+        assert!(result.is_err());
+    }
+}

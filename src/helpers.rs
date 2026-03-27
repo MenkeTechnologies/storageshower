@@ -146,4 +146,117 @@ mod tests {
         let r = truncate_mount("", 5);
         assert_eq!(r.len(), 5);
     }
+
+    // ── format_bytes edge cases ─────────────────────────────
+
+    #[test]
+    fn format_bytes_zero_all_modes() {
+        assert_eq!(format_bytes(0, UnitMode::Human), "0B");
+        assert_eq!(format_bytes(0, UnitMode::Bytes), "0B");
+        assert_eq!(format_bytes(0, UnitMode::GiB), "0.0G");
+        assert_eq!(format_bytes(0, UnitMode::MiB), "0.0M");
+    }
+
+    #[test]
+    fn format_bytes_one() {
+        assert_eq!(format_bytes(1, UnitMode::Human), "1B");
+        assert_eq!(format_bytes(1, UnitMode::Bytes), "1B");
+    }
+
+    #[test]
+    fn format_bytes_boundary_kilo_minus_one() {
+        assert_eq!(format_bytes(1023, UnitMode::Human), "1023B");
+    }
+
+    #[test]
+    fn format_bytes_boundary_kilo() {
+        assert_eq!(format_bytes(1024, UnitMode::Human), "1.0K");
+    }
+
+    #[test]
+    fn format_bytes_boundary_mega_minus_one() {
+        assert_eq!(format_bytes(1_048_575, UnitMode::Human), "1024.0K");
+    }
+
+    #[test]
+    fn format_bytes_boundary_mega() {
+        assert_eq!(format_bytes(1_048_576, UnitMode::Human), "1.0M");
+    }
+
+    #[test]
+    fn format_bytes_boundary_giga_minus_one() {
+        assert_eq!(format_bytes(1_073_741_823, UnitMode::Human), "1024.0M");
+    }
+
+    #[test]
+    fn format_bytes_boundary_giga() {
+        assert_eq!(format_bytes(1_073_741_824, UnitMode::Human), "1.0G");
+    }
+
+    #[test]
+    fn format_bytes_boundary_tera_minus_one() {
+        assert_eq!(format_bytes(1_099_511_627_775, UnitMode::Human), "1024.0G");
+    }
+
+    #[test]
+    fn format_bytes_boundary_tera() {
+        assert_eq!(format_bytes(1_099_511_627_776, UnitMode::Human), "1.0T");
+    }
+
+    #[test]
+    fn format_bytes_max_u64() {
+        // Should not panic
+        let _ = format_bytes(u64::MAX, UnitMode::Human);
+        let _ = format_bytes(u64::MAX, UnitMode::Bytes);
+        let _ = format_bytes(u64::MAX, UnitMode::GiB);
+        let _ = format_bytes(u64::MAX, UnitMode::MiB);
+    }
+
+    // ── format_uptime edge cases ────────────────────────────
+
+    #[test]
+    fn format_uptime_large_value() {
+        // 10 years
+        let secs = 10 * 365 * 86400;
+        let r = format_uptime(secs);
+        assert!(r.starts_with("3650d"));
+    }
+
+    #[test]
+    fn format_uptime_59_seconds() {
+        assert_eq!(format_uptime(59), "0m");
+    }
+
+    #[test]
+    fn format_uptime_60_seconds() {
+        assert_eq!(format_uptime(60), "1m");
+    }
+
+    #[test]
+    fn format_uptime_23h59m() {
+        assert_eq!(format_uptime(86399), "23h59m");
+    }
+
+    // ── truncate_mount edge cases ───────────────────────────
+
+    #[test]
+    fn truncate_mount_unicode() {
+        let r = truncate_mount("/日本語/パス", 8);
+        assert!(r.chars().count() <= 8);
+    }
+
+    #[test]
+    fn truncate_mount_width_equals_string() {
+        let s = "/mnt/data";
+        let r = truncate_mount(s, s.len());
+        assert_eq!(r, s);
+    }
+
+    #[test]
+    fn truncate_mount_width_one_more_than_string() {
+        let s = "/mnt";
+        let r = truncate_mount(s, s.len() + 1);
+        assert!(r.starts_with(s));
+        assert_eq!(r.chars().count(), s.len() + 1);
+    }
 }

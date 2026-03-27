@@ -1,10 +1,12 @@
 use std::sync::{Arc, Mutex};
 
+use clap::Parser;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
 use storageshower::app::{mount_col_width, right_col_width, right_col_width_static, App};
+use storageshower::cli::Cli;
 use storageshower::helpers::{format_bytes, format_uptime, truncate_mount};
-use storageshower::prefs::Prefs;
-use storageshower::system::{chrono_now, collect_disk_entries, collect_sys_stats};
+use storageshower::prefs::{load_prefs_from, Prefs};
+use storageshower::system::{chrono_now, collect_disk_entries, collect_sys_stats, epoch_to_local};
 use storageshower::types::*;
 
 use sysinfo::{DiskKind, System};
@@ -388,4 +390,386 @@ fn refresh_data_blocked_when_paused() {
     app.refresh_data();
     // Should NOT have updated
     assert_eq!(app.disks.len(), original_count);
+}
+
+// ─── CLI → Prefs → App integration ─────────────────────────────────────────
+
+#[test]
+fn cli_overrides_applied_to_app() {
+    let cli = Cli::parse_from([
+        "storageshower", "-s", "size", "-R", "-b", "ascii",
+        "-c", "purple", "-u", "gib", "-w", "60", "-C", "85",
+        "-r", "5", "--no-bars", "--no-border",
+    ]);
+    let shared = Arc::new(Mutex::new((SysStats::default(), sample_disks())));
+    let app = App::new(Arc::clone(&shared), &cli);
+    assert_eq!(app.prefs.sort_mode, SortMode::Size);
+    assert!(app.prefs.sort_rev);
+    assert_eq!(app.prefs.bar_style, BarStyle::Ascii);
+    assert_eq!(app.prefs.color_mode, ColorMode::Purple);
+    assert_eq!(app.prefs.unit_mode, UnitMode::GiB);
+    assert_eq!(app.prefs.thresh_warn, 60);
+    assert_eq!(app.prefs.thresh_crit, 85);
+    assert_eq!(app.prefs.refresh_rate, 5);
+    assert!(!app.prefs.show_bars);
+    assert!(!app.prefs.show_border);
+}
+
+#[test]
+fn cli_default_preserves_config_defaults() {
+    let cli = Cli::parse_from(["storageshower"]);
+    let mut prefs = Prefs::default();
+    let original = prefs.clone();
+    cli.apply_to(&mut prefs);
+    assert_eq!(prefs.sort_mode, original.sort_mode);
+    assert_eq!(prefs.sort_rev, original.sort_rev);
+    assert_eq!(prefs.bar_style, original.bar_style);
+    assert_eq!(prefs.color_mode, original.color_mode);
+    assert_eq!(prefs.refresh_rate, original.refresh_rate);
+}
+
+// ─── Load prefs from nonexistent path ───────────────────────────────────────
+
+#[test]
+fn load_prefs_from_nonexistent_returns_defaults() {
+    let prefs = load_prefs_from(Some("/tmp/does_not_exist_storageshower.conf"));
+    assert_eq!(prefs.sort_mode, SortMode::Name);
+    assert_eq!(prefs.refresh_rate, 1);
+}
+
+// ─── epoch_to_local known values ────────────────────────────────────────────
+
+#[test]
+fn epoch_to_local_unix_epoch() {
+    // 2024-01-01 00:00:00 UTC = 1704067200
+    // We can't predict local timezone, but we can check the function doesn't panic
+    // and returns reasonable values
+    let (y, mo, d, h, mi, s) = epoch_to_local(1704067200);
+    assert!(y >= 2023 && y <= 2025); // timezone could shift year
+    assert!((1..=12).contains(&mo));
+    assert!((1..=31).contains(&d));
+    assert!(h < 24);
+    assert!(mi < 60);
+    assert!(s < 60);
+}
+
+#[test]
+fn epoch_to_local_zero() {
+    let (y, mo, d, h, mi, s) = epoch_to_local(0);
+    // 1970-01-01 in some timezone
+    assert!(y >= 1969 && y <= 1970); // timezone could shift
+    assert!((1..=12).contains(&mo));
+    assert!((1..=31).contains(&d));
+    assert!(h < 24);
+    assert!(mi < 60);
+    assert!(s < 60);
+}
+
+// ─── Format bytes all modes ─────────────────────────────────────────────────
+
+#[test]
+fn format_bytes_all_modes_consistency() {
+    let size = 1_073_741_824u64; // 1 GiB
+    assert_eq!(format_bytes(size, UnitMode::Human), "1.0G");
+    assert_eq!(format_bytes(size, UnitMode::GiB), "1.0G");
+    assert_eq!(format_bytes(size, UnitMode::MiB), "1024.0M");
+    assert_eq!(format_bytes(size, UnitMode::Bytes), "1073741824B");
+}
+
+#[test]
+fn format_bytes_zero_all_modes() {
+    assert_eq!(format_bytes(0, UnitMode::Human), "0B");
+    assert_eq!(format_bytes(0, UnitMode::GiB), "0.0G");
+    assert_eq!(format_bytes(0, UnitMode::MiB), "0.0M");
+    assert_eq!(format_bytes(0, UnitMode::Bytes), "0B");
+}
+
+#[test]
+fn format_bytes_large_values() {
+    let tb = 1_099_511_627_776u64;
+    assert_eq!(format_bytes(tb, UnitMode::Human), "1.0T");
+    assert_eq!(format_bytes(5 * tb, UnitMode::Human), "5.0T");
+}
+
+// ─── Format uptime edge cases ───────────────────────────────────────────────
+
+#[test]
+fn format_uptime_zero() {
+    assert_eq!(format_uptime(0), "0m");
+}
+
+#[test]
+fn format_uptime_one_second() {
+    assert_eq!(format_uptime(1), "0m");
+}
+
+#[test]
+fn format_uptime_one_minute() {
+    assert_eq!(format_uptime(60), "1m");
+}
+
+#[test]
+fn format_uptime_one_day_exact() {
+    assert_eq!(format_uptime(86400), "1d0h0m");
+}
+
+#[test]
+fn format_uptime_large() {
+    // 365 days
+    assert_eq!(format_uptime(365 * 86400), "365d0h0m");
+}
+
+// ─── Truncate mount edge cases ──────────────────────────────────────────────
+
+#[test]
+fn truncate_mount_width_1() {
+    let r = truncate_mount("/very/long", 1);
+    assert!(r.chars().count() <= 1);
+}
+
+#[test]
+fn truncate_mount_width_0() {
+    let r = truncate_mount("/hello", 0);
+    // Should handle gracefully
+    assert!(r.chars().count() <= 1); // ellipsis or empty
+}
+
+#[test]
+fn truncate_mount_short_string() {
+    let r = truncate_mount("/", 20);
+    assert_eq!(r.trim_end(), "/");
+    assert_eq!(r.chars().count(), 20); // padded
+}
+
+// ─── Column widths stress ───────────────────────────────────────────────────
+
+#[test]
+fn mount_col_width_all_terminal_sizes() {
+    let p = Prefs::default();
+    for w in 20..200u16 {
+        let col = mount_col_width(w, &p);
+        assert!(col >= 12, "mount_col_width({}) = {} < 12", w, col);
+        assert!(col <= w as usize, "mount_col_width({}) = {} > {}", w, col, w);
+    }
+}
+
+#[test]
+fn right_col_width_with_different_unit_modes() {
+    let disks = vec![
+        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into() },
+    ];
+    for mode in [UnitMode::Human, UnitMode::GiB, UnitMode::MiB, UnitMode::Bytes] {
+        let shared = Arc::new(Mutex::new((SysStats::default(), disks.clone())));
+        let mut app = App::new_default(shared);
+        app.disks = disks.clone();
+        app.prefs = Prefs::default();
+        app.prefs.unit_mode = mode;
+        let w = right_col_width(&app);
+        assert!(w >= 22, "right_col_width with {:?} = {} < 22", mode, w);
+    }
+}
+
+// ─── Sort stability with equal elements ─────────────────────────────────────
+
+#[test]
+fn sort_stability_equal_pct() {
+    let disks = vec![
+        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into() },
+        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into() },
+        DiskEntry { mount: "/c".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into() },
+    ];
+    let mut app = make_app_with_disks(disks);
+    app.prefs.sort_mode = SortMode::Pct;
+    let sorted = app.sorted_disks();
+    // With equal pct, sort should not crash
+    assert_eq!(sorted.len(), 3);
+}
+
+#[test]
+fn sort_stability_equal_size() {
+    let disks = vec![
+        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into() },
+        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into() },
+    ];
+    let mut app = make_app_with_disks(disks);
+    app.prefs.sort_mode = SortMode::Size;
+    let sorted = app.sorted_disks();
+    assert_eq!(sorted.len(), 2);
+}
+
+// ─── Stress: many disks ─────────────────────────────────────────────────────
+
+#[test]
+fn sort_and_filter_many_disks() {
+    let mut disks = Vec::new();
+    for i in 0..500 {
+        disks.push(DiskEntry {
+            mount: format!("/mount_{:04}", i),
+            used: i as u64 * 1_000_000,
+            total: 1_000_000_000,
+            pct: i as f64 / 5.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+        });
+    }
+    let mut app = make_app_with_disks(disks);
+
+    // Sort by pct
+    app.prefs.sort_mode = SortMode::Pct;
+    let sorted = app.sorted_disks();
+    assert_eq!(sorted.len(), 500);
+    assert!(sorted.windows(2).all(|w| w[0].pct <= w[1].pct));
+
+    // Filter
+    app.filter = "mount_00".into();
+    let filtered = app.sorted_disks();
+    assert!(filtered.len() < 500);
+    assert!(filtered.iter().all(|d| d.mount.contains("mount_00")));
+}
+
+// ─── Disk entries sanity ────────────────────────────────────────────────────
+
+#[test]
+fn collect_disk_entries_used_le_total() {
+    let disks = collect_disk_entries();
+    for d in &disks {
+        assert!(d.used <= d.total,
+            "Disk {} has used={} > total={}", d.mount, d.used, d.total);
+    }
+}
+
+#[test]
+fn collect_disk_entries_fs_not_empty() {
+    let disks = collect_disk_entries();
+    for d in &disks {
+        assert!(!d.fs.is_empty(), "Disk {} has empty fs type", d.mount);
+    }
+}
+
+// ─── System stats fields ────────────────────────────────────────────────────
+
+#[test]
+fn sys_stats_kernel_not_empty() {
+    let sys = System::new_all();
+    let stats = collect_sys_stats(&sys);
+    // kernel should be populated on real systems
+    assert!(!stats.kernel.is_empty(), "kernel should not be empty");
+}
+
+#[test]
+fn sys_stats_arch_not_empty() {
+    let sys = System::new_all();
+    let stats = collect_sys_stats(&sys);
+    assert!(!stats.arch.is_empty(), "arch should not be empty");
+}
+
+#[test]
+fn sys_stats_uptime_nonzero() {
+    let sys = System::new_all();
+    let stats = collect_sys_stats(&sys);
+    assert!(stats.uptime > 0, "uptime should be > 0");
+}
+
+#[test]
+fn sys_stats_process_count_nonzero() {
+    let sys = System::new_all();
+    let stats = collect_sys_stats(&sys);
+    assert!(stats.process_count > 0, "process_count should be > 0");
+}
+
+// ─── Full navigation stress ─────────────────────────────────────────────────
+
+#[test]
+fn navigate_full_list_down_then_up() {
+    let mut app = make_app_with_disks(sample_disks());
+    let count = app.sorted_disks().len();
+
+    // Navigate all the way down
+    for _ in 0..count + 5 {
+        app.handle_key(make_key(KeyCode::Char('j')));
+    }
+    assert_eq!(app.selected, Some(count - 1));
+
+    // Navigate all the way up
+    for _ in 0..count + 5 {
+        app.handle_key(make_key(KeyCode::Char('k')));
+    }
+    assert_eq!(app.selected, Some(0));
+}
+
+// ─── Multi-step workflow ────────────────────────────────────────────────────
+
+#[test]
+fn workflow_change_all_settings_then_sort() {
+    let mut app = make_app_with_disks(sample_disks());
+
+    // Change every display option
+    app.handle_key(make_key(KeyCode::Char('b'))); // bar style
+    app.handle_key(make_key(KeyCode::Char('c'))); // color
+    app.handle_key(make_key(KeyCode::Char('i'))); // unit mode
+    app.handle_key(make_key(KeyCode::Char('v'))); // toggle bars
+    app.handle_key(make_key(KeyCode::Char('x'))); // toggle border
+    app.handle_key(make_key(KeyCode::Char('g'))); // toggle header
+    app.handle_key(make_key(KeyCode::Char('d'))); // toggle used
+    app.handle_key(make_key(KeyCode::Char('m'))); // toggle compact
+    app.handle_key(make_key(KeyCode::Char('w'))); // toggle full mount
+    app.handle_key(make_key(KeyCode::Char('t'))); // warn thresh
+    app.handle_key(make_key(KeyCode::Char('T'))); // crit thresh
+    app.handle_key(make_key(KeyCode::Char('f'))); // refresh rate
+
+    // Now sort and verify it still works
+    app.handle_key(make_key(KeyCode::Char('s'))); // sort by size
+    let sorted = app.sorted_disks();
+    assert!(sorted.windows(2).all(|w| w[0].total <= w[1].total));
+
+    // Navigate
+    app.handle_key(make_key(KeyCode::Char('j')));
+    assert_eq!(app.selected, Some(0));
+}
+
+// ─── Prefs load from custom path ────────────────────────────────────────────
+
+#[test]
+fn load_prefs_from_custom_toml() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("test.conf");
+    std::fs::write(&path, r#"
+sort_mode = "Pct"
+sort_rev = true
+show_local = false
+refresh_rate = 5
+bar_style = "Ascii"
+color_mode = "Purple"
+thresh_warn = 60
+thresh_crit = 85
+show_bars = false
+show_border = true
+show_header = true
+compact = true
+show_used = false
+full_mount = true
+"#).unwrap();
+    let prefs = load_prefs_from(Some(path.to_str().unwrap()));
+    assert_eq!(prefs.sort_mode, SortMode::Pct);
+    assert!(prefs.sort_rev);
+    assert_eq!(prefs.refresh_rate, 5);
+    assert_eq!(prefs.bar_style, BarStyle::Ascii);
+    assert_eq!(prefs.color_mode, ColorMode::Purple);
+    assert_eq!(prefs.thresh_warn, 60);
+    assert_eq!(prefs.thresh_crit, 85);
+    assert!(!prefs.show_bars);
+    assert!(prefs.compact);
+    assert!(!prefs.show_used);
+    assert!(prefs.full_mount);
+}
+
+#[test]
+fn load_prefs_from_invalid_toml_returns_defaults() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("bad.conf");
+    std::fs::write(&path, "this is not valid toml {{{{").unwrap();
+    let prefs = load_prefs_from(Some(path.to_str().unwrap()));
+    // Should fall back to defaults
+    assert_eq!(prefs.sort_mode, SortMode::Name);
+    assert_eq!(prefs.refresh_rate, 1);
 }

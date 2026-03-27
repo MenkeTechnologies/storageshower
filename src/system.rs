@@ -19,7 +19,7 @@ pub fn chrono_now() -> (String, String) {
 }
 
 #[cfg(unix)]
-fn epoch_to_local(epoch: i64) -> (i32, u32, u32, u32, u32, u32) {
+pub fn epoch_to_local(epoch: i64) -> (i32, u32, u32, u32, u32, u32) {
     unsafe {
         let mut tm: libc::tm = std::mem::zeroed();
         let t = epoch as libc::time_t;
@@ -36,7 +36,7 @@ fn epoch_to_local(epoch: i64) -> (i32, u32, u32, u32, u32, u32) {
 }
 
 #[cfg(not(unix))]
-fn epoch_to_local(epoch: i64) -> (i32, u32, u32, u32, u32, u32) {
+pub fn epoch_to_local(epoch: i64) -> (i32, u32, u32, u32, u32, u32) {
     let secs_per_day = 86400i64;
     let mut days = epoch / secs_per_day;
     let day_secs = (epoch % secs_per_day) as u32;

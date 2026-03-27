@@ -129,4 +129,120 @@ mod tests {
         assert_eq!(ColorMode::Default, ColorMode::Default);
         assert_ne!(ColorMode::Green, ColorMode::Blue);
     }
+
+    #[test]
+    fn disk_entry_clone() {
+        let d = DiskEntry {
+            mount: "/mnt".into(),
+            used: 100,
+            total: 200,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+        };
+        let c = d.clone();
+        assert_eq!(c.mount, "/mnt");
+        assert_eq!(c.used, 100);
+        assert_eq!(c.total, 200);
+        assert!((c.pct - 50.0).abs() < f64::EPSILON);
+        assert_eq!(c.fs, "ext4");
+    }
+
+    #[test]
+    fn sys_stats_clone() {
+        let s = SysStats {
+            hostname: "test".into(),
+            load_avg: (1.0, 2.0, 3.0),
+            mem_used: 100,
+            mem_total: 200,
+            cpu_count: 4,
+            process_count: 50,
+            swap_used: 10,
+            swap_total: 20,
+            kernel: "6.0".into(),
+            arch: "x86_64".into(),
+            uptime: 3600,
+            os_name: "Linux".into(),
+            os_version: "6.0".into(),
+        };
+        let c = s.clone();
+        assert_eq!(c.hostname, "test");
+        assert_eq!(c.cpu_count, 4);
+        assert_eq!(c.uptime, 3600);
+        assert_eq!(c.kernel, "6.0");
+    }
+
+    #[test]
+    fn unit_mode_all_variants_debug() {
+        for mode in [UnitMode::Human, UnitMode::GiB, UnitMode::MiB, UnitMode::Bytes] {
+            let s = format!("{:?}", mode);
+            assert!(!s.is_empty());
+        }
+    }
+
+    #[test]
+    fn sort_mode_all_variants_debug() {
+        for mode in [SortMode::Name, SortMode::Pct, SortMode::Size] {
+            let s = format!("{:?}", mode);
+            assert!(!s.is_empty());
+        }
+    }
+
+    #[test]
+    fn bar_style_all_variants_debug() {
+        for style in [BarStyle::Gradient, BarStyle::Solid, BarStyle::Thin, BarStyle::Ascii] {
+            let s = format!("{:?}", style);
+            assert!(!s.is_empty());
+        }
+    }
+
+    #[test]
+    fn color_mode_all_variants_debug() {
+        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+            let s = format!("{:?}", mode);
+            assert!(!s.is_empty());
+        }
+    }
+
+    #[test]
+    fn sys_stats_default_non_zero_mem() {
+        let s = SysStats::default();
+        assert_eq!(s.mem_total, 1); // prevents div-by-zero
+    }
+
+    #[test]
+    fn unit_mode_serialize_deserialize() {
+        for mode in [UnitMode::Human, UnitMode::GiB, UnitMode::MiB, UnitMode::Bytes] {
+            let s = serde_json::to_string(&mode).unwrap();
+            let d: UnitMode = serde_json::from_str(&s).unwrap();
+            assert_eq!(d, mode);
+        }
+    }
+
+    #[test]
+    fn sort_mode_serialize_deserialize() {
+        for mode in [SortMode::Name, SortMode::Pct, SortMode::Size] {
+            let s = serde_json::to_string(&mode).unwrap();
+            let d: SortMode = serde_json::from_str(&s).unwrap();
+            assert_eq!(d, mode);
+        }
+    }
+
+    #[test]
+    fn bar_style_serialize_deserialize() {
+        for style in [BarStyle::Gradient, BarStyle::Solid, BarStyle::Thin, BarStyle::Ascii] {
+            let s = serde_json::to_string(&style).unwrap();
+            let d: BarStyle = serde_json::from_str(&s).unwrap();
+            assert_eq!(d, style);
+        }
+    }
+
+    #[test]
+    fn color_mode_serialize_deserialize() {
+        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+            let s = serde_json::to_string(&mode).unwrap();
+            let d: ColorMode = serde_json::from_str(&s).unwrap();
+            assert_eq!(d, mode);
+        }
+    }
 }

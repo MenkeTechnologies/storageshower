@@ -1,5 +1,10 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use storageshower::*;
+use storageshower::app::{mount_col_width, right_col_width_static};
+use storageshower::helpers::{format_bytes, format_uptime, truncate_mount};
+use storageshower::prefs::Prefs;
+use storageshower::system::{chrono_now, collect_disk_entries, collect_sys_stats, epoch_to_local};
+use storageshower::types::*;
+use storageshower::ui::{gradient_color_at, palette};
 use sysinfo::{DiskKind, System};
 
 // ─── Test data ──────────────────────────────────────────────────────────────
