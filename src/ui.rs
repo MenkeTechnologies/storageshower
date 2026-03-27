@@ -872,13 +872,18 @@ pub fn draw(frame: &mut Frame, app: &App) {
         draw_help(buf, w, h, app);
     }
 
+    // ─── Theme chooser overlay ───
+    if app.theme_chooser.active {
+        draw_theme_chooser(buf, w, h, app);
+    }
+
     // ─── Theme editor overlay ───
     if app.theme_edit.active {
         draw_theme_editor(buf, w, h, app);
     }
 
-    // ─── Hover tooltip (2s delay) ───
-    if !app.show_help && !app.theme_edit.active && !app.filter.active && app.hover_ready() {
+    // ─── Hover tooltip (1s delay) ───
+    if !app.show_help && !app.theme_edit.active && !app.theme_chooser.active && !app.filter.active && app.hover_ready() {
         match app.hovered_zone(h) {
             HoverZone::DiskRow(idx) => {
                 let disks = app.sorted_disks();
@@ -1570,6 +1575,124 @@ fn draw_hover_bar_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, is_title:
     render_tooltip(buf, w, h, hover_x, hover_y, app, &lines);
 }
 
+fn draw_theme_chooser(buf: &mut Buffer, w: u16, h: u16, app: &App) {
+    let themes = app.all_themes();
+    let box_w: u16 = 50u16.min(w.saturating_sub(4));
+    let box_h: u16 = (themes.len() as u16 + 4).min(h.saturating_sub(4));
+    let x0 = (w.saturating_sub(box_w)) / 2;
+    let y0 = (h.saturating_sub(box_h)) / 2;
+    let bc = border_color(app);
+    let border_s = Style::default().fg(bc);
+    let title_s = Style::default()
+        .fg(Color::Indexed(27))
+        .bg(HELP_BG)
+        .add_modifier(Modifier::BOLD);
+    let hint_s = Style::default().fg(Color::Indexed(240)).bg(HELP_BG);
+    let sel_s = Style::default().fg(Color::White).bg(Color::Indexed(237));
+    let name_s = Style::default().fg(Color::Indexed(48)).bg(HELP_BG);
+
+    // Background
+    for y in y0..y0 + box_h {
+        for x in x0..x0 + box_w {
+            if x < w && y < h {
+                set_cell(buf, x, y, " ", Style::default().bg(HELP_BG));
+            }
+        }
+    }
+
+    // Border
+    set_cell(buf, x0, y0, "\u{2554}", border_s);
+    set_cell(buf, x0 + box_w - 1, y0, "\u{2557}", border_s);
+    set_cell(buf, x0, y0 + box_h - 1, "\u{255A}", border_s);
+    set_cell(buf, x0 + box_w - 1, y0 + box_h - 1, "\u{255D}", border_s);
+    for x in x0 + 1..x0 + box_w - 1 {
+        set_cell(buf, x, y0, "\u{2550}", border_s);
+        set_cell(buf, x, y0 + box_h - 1, "\u{2550}", border_s);
+    }
+    for y in y0 + 1..y0 + box_h - 1 {
+        set_cell(buf, x0, y, "\u{2551}", border_s);
+        set_cell(buf, x0 + box_w - 1, y, "\u{2551}", border_s);
+    }
+
+    // Title
+    let title = "\u{1F3A8} CHOOSE THEME";
+    let tlen = title.chars().count() as u16;
+    let tx = x0 + (box_w.saturating_sub(tlen)) / 2;
+    set_str(buf, tx, y0 + 1, title, title_s, box_w - 2);
+
+    // Theme list
+    let content_start = y0 + 2;
+    let content_end = y0 + box_h - 2;
+    let visible = (content_end - content_start) as usize;
+
+    // Scroll the list if needed
+    let scroll = if app.theme_chooser.selected >= visible {
+        app.theme_chooser.selected - visible + 1
+    } else {
+        0
+    };
+
+    // Determine current active theme key
+    let current_key = if let Some(ref name) = app.prefs.active_theme {
+        name.clone()
+    } else {
+        format!("{:?}", app.prefs.color_mode).to_lowercase()
+    };
+
+    for (i, (key, display)) in themes.iter().enumerate().skip(scroll) {
+        let row_y = content_start + (i - scroll) as u16;
+        if row_y >= content_end {
+            break;
+        }
+
+        let is_sel = i == app.theme_chooser.selected;
+        let is_active = *key == current_key;
+
+        // Selection highlight
+        if is_sel {
+            for x in x0 + 1..x0 + box_w - 1 {
+                set_cell(buf, x, row_y, " ", sel_s);
+            }
+        }
+
+        // Active marker
+        let marker = if is_active { "\u{25B8}" } else { " " };
+        let row_style = if is_sel { sel_s } else { name_s };
+        set_str(buf, x0 + 2, row_y, marker, row_style, 1);
+
+        // Theme name
+        set_str(buf, x0 + 4, row_y, display, row_style, 20);
+
+        // Color swatch — get palette for this theme
+        let swatch_x = x0 + 25;
+        let colors: [u8; 6] = if let Some(theme) = app.prefs.custom_themes.get(key) {
+            [theme.blue, theme.green, theme.purple, theme.light_purple, theme.royal, theme.dark_purple]
+        } else {
+            // Builtin — find the mode
+            let mode = ColorMode::ALL.iter()
+                .find(|&&m| format!("{:?}", m).to_lowercase() == *key)
+                .copied()
+                .unwrap_or(ColorMode::Default);
+            let (a, b, c, d, e, f) = palette(mode);
+            fn idx(col: Color) -> u8 { match col { Color::Indexed(n) => n, _ => 0 } }
+            [idx(a), idx(b), idx(c), idx(d), idx(e), idx(f)]
+        };
+        for (j, &ci) in colors.iter().enumerate() {
+            let sx = swatch_x + (j as u16 * 3);
+            if sx + 2 < x0 + box_w - 1 {
+                let swatch_style = Style::default().fg(Color::Indexed(ci));
+                set_str(buf, sx, row_y, "\u{2588}\u{2588}", swatch_style, 2);
+            }
+        }
+    }
+
+    // Footer hint
+    let hint_y = y0 + box_h - 1;
+    let hint = " j/k:nav  Enter:select  Esc:cancel ";
+    let hx = x0 + (box_w.saturating_sub(hint.len() as u16)) / 2;
+    set_str(buf, hx, hint_y, hint, hint_s, box_w - 2);
+}
+
 fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     let box_w: u16 = 56u16.min(w.saturating_sub(4));
     let box_h: u16 = if app.theme_edit.naming { 16 } else { 15 };
@@ -1764,7 +1887,7 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     let col2 = vec![
         HelpEntry { key: "DISPLAY", desc: "", val_fn: empty_val, is_section: true },
         HelpEntry { key: "b", desc: "Bar style", val_fn: |a| format!("[{}]", match a.prefs.bar_style { BarStyle::Gradient=>"grad", BarStyle::Solid=>"solid", BarStyle::Thin=>"thin", BarStyle::Ascii=>"ascii" }), is_section: false },
-        HelpEntry { key: "c", desc: "Color theme", val_fn: |a| { let n = if let Some(ref t) = a.prefs.active_theme { t.clone() } else { a.prefs.color_mode.name().into() }; format!("[{}]", n) }, is_section: false },
+        HelpEntry { key: "c", desc: "Theme chooser", val_fn: |a| { let n = if let Some(ref t) = a.prefs.active_theme { t.clone() } else { a.prefs.color_mode.name().into() }; format!("[{}]", n) }, is_section: false },
         HelpEntry { key: "C", desc: "Theme editor", val_fn: empty_val, is_section: false },
         HelpEntry { key: "v/V", desc: "Toggle bars", val_fn: |a| format!("[{}]", if a.prefs.show_bars {"on"} else {"off"}), is_section: false },
         HelpEntry { key: "d/D", desc: "Used/size cols", val_fn: |a| format!("[{}]", if a.prefs.show_used {"on"} else {"off"}), is_section: false },

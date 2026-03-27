@@ -252,11 +252,10 @@ fn cycle_all_display_options() {
     }
     assert_eq!(app.prefs.bar_style, BarStyle::Gradient); // back to start
 
-    // Cycle color modes (10 variants)
-    for _ in 0..ColorMode::ALL.len() {
-        app.handle_key(make_key(KeyCode::Char('c')));
-    }
-    assert_eq!(app.prefs.color_mode, ColorMode::Default);
+    // 'c' now opens theme chooser popup
+    app.handle_key(make_key(KeyCode::Char('c')));
+    assert!(app.theme_chooser.active);
+    app.handle_key(make_key(KeyCode::Esc)); // close it
 
     // Cycle unit modes
     for _ in 0..4 {
@@ -714,7 +713,8 @@ fn workflow_change_all_settings_then_sort() {
 
     // Change every display option
     app.handle_key(make_key(KeyCode::Char('b'))); // bar style
-    app.handle_key(make_key(KeyCode::Char('c'))); // color
+    app.handle_key(make_key(KeyCode::Char('c'))); // open theme chooser
+    app.handle_key(make_key(KeyCode::Esc));        // close it
     app.handle_key(make_key(KeyCode::Char('i'))); // unit mode
     app.handle_key(make_key(KeyCode::Char('v'))); // toggle bars
     app.handle_key(make_key(KeyCode::Char('x'))); // toggle border
@@ -972,24 +972,34 @@ fn custom_theme_roundtrip_toml() {
 // ─── Color mode cycling with custom themes ───────────────────────────────
 
 #[test]
-fn color_mode_cycles_through_custom_themes() {
+fn theme_chooser_shows_custom_themes() {
     let mut app = make_app_with_disks(sample_disks());
     app.prefs.custom_themes.insert("alpha".into(), ThemeColors {
         blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
     });
 
-    // Cycle through all builtins
-    for _ in 0..ColorMode::ALL.len() - 1 {
-        app.handle_key(make_key(KeyCode::Char('c')));
-    }
-    // One more should enter custom theme
-    app.handle_key(make_key(KeyCode::Char('c')));
-    assert_eq!(app.prefs.active_theme, Some("alpha".into()));
+    let themes = app.all_themes();
+    assert_eq!(themes.len(), ColorMode::ALL.len() + 1);
+    assert_eq!(themes.last().unwrap().0, "alpha");
+}
 
-    // One more should wrap back to first builtin
+#[test]
+fn theme_chooser_selects_custom_theme() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.custom_themes.insert("alpha".into(), ThemeColors {
+        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
+    });
+
     app.handle_key(make_key(KeyCode::Char('c')));
-    assert!(app.prefs.active_theme.is_none());
-    assert_eq!(app.prefs.color_mode, ColorMode::ALL[0]);
+    assert!(app.theme_chooser.active);
+
+    app.handle_key(make_key(KeyCode::Char('G')));
+    let themes = app.all_themes();
+    assert_eq!(app.theme_chooser.selected, themes.len() - 1);
+
+    app.handle_key(make_key(KeyCode::Enter));
+    assert!(!app.theme_chooser.active);
+    assert_eq!(app.prefs.active_theme, Some("alpha".into()));
 }
 
 // ─── Mouse click selection ───────────────────────────────────────────────
@@ -1620,4 +1630,84 @@ fn cargo_version_available() {
     let ver = env!("CARGO_PKG_VERSION");
     assert!(!ver.is_empty());
     assert!(ver.contains('.'));
+}
+
+// ─── Theme chooser popup ────────────────────────────────────────────────
+
+#[test]
+fn theme_chooser_opens_with_c() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert!(!app.theme_chooser.active);
+    app.handle_key(make_key(KeyCode::Char('c')));
+    assert!(app.theme_chooser.active);
+}
+
+#[test]
+fn theme_chooser_preselects_current() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.color_mode = ColorMode::Blue;
+    app.handle_key(make_key(KeyCode::Char('c')));
+    // Blue is index 2 in ColorMode::ALL
+    let expected = app.all_themes().iter().position(|(k, _)| k == "blue").unwrap();
+    assert_eq!(app.theme_chooser.selected, expected);
+}
+
+#[test]
+fn theme_chooser_navigate_bounds() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('c')));
+
+    // Navigate past end
+    for _ in 0..100 {
+        app.handle_key(make_key(KeyCode::Char('j')));
+    }
+    let count = app.all_themes().len();
+    assert_eq!(app.theme_chooser.selected, count - 1);
+
+    // Navigate past start
+    for _ in 0..100 {
+        app.handle_key(make_key(KeyCode::Char('k')));
+    }
+    assert_eq!(app.theme_chooser.selected, 0);
+}
+
+#[test]
+fn theme_chooser_g_jumps() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('c')));
+
+    app.handle_key(make_key(KeyCode::Char('G')));
+    assert_eq!(app.theme_chooser.selected, app.all_themes().len() - 1);
+
+    app.handle_key(make_key(KeyCode::Char('g')));
+    assert_eq!(app.theme_chooser.selected, 0);
+}
+
+#[test]
+fn theme_chooser_enter_applies_builtin() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('c')));
+    // Select Purple (index 3)
+    app.theme_chooser.selected = 3;
+    app.handle_key(make_key(KeyCode::Enter));
+    assert!(!app.theme_chooser.active);
+    assert_eq!(app.prefs.color_mode, ColorMode::Purple);
+    assert!(app.prefs.active_theme.is_none());
+}
+
+#[test]
+fn all_themes_includes_builtins_and_custom() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert_eq!(app.all_themes().len(), ColorMode::ALL.len());
+    app.prefs.custom_themes.insert("zeta".into(), ThemeColors {
+        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
+    });
+    app.prefs.custom_themes.insert("alpha".into(), ThemeColors {
+        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
+    });
+    let themes = app.all_themes();
+    assert_eq!(themes.len(), ColorMode::ALL.len() + 2);
+    // Custom themes sorted alphabetically after builtins
+    assert_eq!(themes[ColorMode::ALL.len()].0, "alpha");
+    assert_eq!(themes[ColorMode::ALL.len() + 1].0, "zeta");
 }

@@ -13,6 +13,45 @@ use crate::prefs::{load_prefs_from, save_prefs, Prefs};
 use crate::system::{chrono_now, scan_directory_with_progress};
 use crate::types::*;
 
+fn copy_to_clipboard(text: &str) -> Result<(), String> {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+
+    let candidates: &[&[&str]] = &[
+        #[cfg(target_os = "macos")]
+        &["pbcopy"],
+        #[cfg(target_os = "linux")]
+        &["wl-copy"],
+        #[cfg(target_os = "linux")]
+        &["xclip", "-selection", "clipboard"],
+        #[cfg(target_os = "linux")]
+        &["xsel", "--clipboard", "--input"],
+    ];
+
+    for cmd in candidates {
+        let program = cmd[0];
+        let args = &cmd[1..];
+        if let Ok(mut child) = Command::new(program)
+            .args(args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+        {
+            if let Some(ref mut stdin) = child.stdin {
+                let _ = stdin.write_all(text.as_bytes());
+            }
+            if let Ok(status) = child.wait() {
+                if status.success() {
+                    return Ok(());
+                }
+            }
+        }
+    }
+
+    Err("no clipboard tool found (pbcopy/wl-copy/xclip/xsel)".into())
+}
+
 pub struct AlertState {
     pub mounts: HashSet<String>,
     pub flash: Option<Instant>,
@@ -132,6 +171,7 @@ impl App {
                 scan_count: Arc::new(Mutex::new(0)),
                 scan_total: Arc::new(Mutex::new(0)),
             },
+            theme_chooser: ThemeChooser { active: false, selected: 0 },
         }
     }
 
@@ -187,6 +227,7 @@ impl App {
                 scan_count: Arc::new(Mutex::new(0)),
                 scan_total: Arc::new(Mutex::new(0)),
             },
+            theme_chooser: ThemeChooser { active: false, selected: 0 },
         }
     }
 
@@ -243,6 +284,20 @@ impl App {
             let entries = scan_directory_with_progress(&path, Some(count), Some(total));
             *result.lock().unwrap() = Some(entries);
         });
+    }
+
+    /// List all available themes: builtins then custom, as (key, display_name) pairs.
+    pub fn all_themes(&self) -> Vec<(String, String)> {
+        let mut themes: Vec<(String, String)> = Vec::new();
+        for &mode in ColorMode::ALL {
+            themes.push((format!("{:?}", mode).to_lowercase(), mode.name().to_string()));
+        }
+        let mut custom_names: Vec<String> = self.prefs.custom_themes.keys().cloned().collect();
+        custom_names.sort();
+        for name in custom_names {
+            themes.push((name.clone(), name));
+        }
+        themes
     }
 
     pub fn hover_ready(&self) -> bool {
@@ -473,6 +528,55 @@ impl App {
                 KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Char('h') | KeyCode::Char('H') | KeyCode::Esc
                 | KeyCode::Char('j') | KeyCode::Char('k') => {
                     self.show_help = false;
+                }
+                _ => {}
+            }
+            return;
+        }
+
+        if self.theme_chooser.active {
+            match key.code {
+                KeyCode::Esc | KeyCode::Char('q') => {
+                    self.theme_chooser.active = false;
+                }
+                KeyCode::Char('j') | KeyCode::Down => {
+                    let count = self.all_themes().len();
+                    if count > 0 {
+                        self.theme_chooser.selected = (self.theme_chooser.selected + 1).min(count - 1);
+                    }
+                }
+                KeyCode::Char('k') | KeyCode::Up => {
+                    self.theme_chooser.selected = self.theme_chooser.selected.saturating_sub(1);
+                }
+                KeyCode::Home | KeyCode::Char('g') => {
+                    self.theme_chooser.selected = 0;
+                }
+                KeyCode::End | KeyCode::Char('G') => {
+                    let count = self.all_themes().len();
+                    if count > 0 {
+                        self.theme_chooser.selected = count - 1;
+                    }
+                }
+                KeyCode::Enter => {
+                    let themes = self.all_themes();
+                    if let Some((key, display)) = themes.get(self.theme_chooser.selected) {
+                        // Check if it's a builtin
+                        let mut found_builtin = false;
+                        for &mode in ColorMode::ALL {
+                            if format!("{:?}", mode).to_lowercase() == *key {
+                                self.prefs.color_mode = mode;
+                                self.prefs.active_theme = None;
+                                found_builtin = true;
+                                break;
+                            }
+                        }
+                        if !found_builtin {
+                            self.prefs.active_theme = Some(key.clone());
+                        }
+                        self.status_msg = Some((format!("\u{25C6} {}", display), Instant::now()));
+                        self.save();
+                    }
+                    self.theme_chooser.active = false;
                 }
                 _ => {}
             }
@@ -761,44 +865,18 @@ impl App {
                 self.save();
             }
             KeyCode::Char('c') => {
-                let custom_names: Vec<String> = {
-                    let mut names: Vec<String> = self.prefs.custom_themes.keys().cloned().collect();
-                    names.sort();
-                    names
-                };
-                if let Some(ref active) = self.prefs.active_theme {
-                    // Currently on a custom theme — find next custom or wrap to first built-in
-                    if let Some(pos) = custom_names.iter().position(|n| n == active) {
-                        if pos + 1 < custom_names.len() {
-                            self.prefs.active_theme = Some(custom_names[pos + 1].clone());
-                        } else {
-                            self.prefs.active_theme = None;
-                            self.prefs.color_mode = ColorMode::ALL[0];
-                        }
-                    } else {
-                        self.prefs.active_theme = None;
-                        self.prefs.color_mode = ColorMode::ALL[0];
-                    }
-                } else {
-                    // Currently on a built-in theme
-                    let next = self.prefs.color_mode.next();
-                    if next == ColorMode::ALL[0] && !custom_names.is_empty() {
-                        // Wrapped around — enter custom themes
-                        self.prefs.active_theme = Some(custom_names[0].clone());
-                    } else {
-                        self.prefs.color_mode = next;
-                    }
-                }
-                let display_name = if let Some(ref name) = self.prefs.active_theme {
+                // Open theme chooser popup
+                let themes = self.all_themes();
+                // Pre-select current theme
+                let current_key = if let Some(ref name) = self.prefs.active_theme {
                     name.clone()
                 } else {
-                    self.prefs.color_mode.name().to_string()
+                    format!("{:?}", self.prefs.color_mode).to_lowercase()
                 };
-                self.status_msg = Some((
-                    format!("\u{25C6} {}", display_name),
-                    Instant::now(),
-                ));
-                self.save();
+                self.theme_chooser.selected = themes.iter()
+                    .position(|(k, _)| *k == current_key)
+                    .unwrap_or(0);
+                self.theme_chooser.active = true;
             }
             KeyCode::Char('C') => {
                 // Open theme editor, seeded with current palette
@@ -958,19 +1036,9 @@ impl App {
                     let disks = self.sorted_disks();
                     if let Some(disk) = disks.get(idx) {
                         let mount = disk.mount.clone();
-                        let copied = std::process::Command::new("pbcopy")
-                            .stdin(std::process::Stdio::piped())
-                            .spawn()
-                            .and_then(|mut child| {
-                                use std::io::Write;
-                                if let Some(ref mut stdin) = child.stdin {
-                                    stdin.write_all(mount.as_bytes())?;
-                                }
-                                child.wait()
-                            });
-                        match copied {
+                        match copy_to_clipboard(&mount) {
                             Ok(_) => self.status_msg = Some((format!("Copied: {}", mount), Instant::now())),
-                            Err(_) => self.status_msg = Some(("Copy failed (pbcopy not found)".into(), Instant::now())),
+                            Err(e) => self.status_msg = Some((format!("Copy failed: {}", e), Instant::now())),
                         }
                     }
                 } else {
@@ -1499,17 +1567,40 @@ mod tests {
     }
 
     #[test]
-    fn key_c_cycles_color_mode() {
+    fn key_c_opens_theme_chooser() {
         let mut app = test_app();
-        assert_eq!(app.prefs.color_mode, ColorMode::Default);
-        // Cycle through all modes and back to Default
-        for &expected in &ColorMode::ALL[1..] {
-            app.handle_key(make_key(KeyCode::Char('c')));
-            assert_eq!(app.prefs.color_mode, expected);
-            assert!(app.status_msg.is_some());
-            assert!(app.status_msg.as_ref().unwrap().0.contains(expected.name()));
-        }
+        assert!(!app.theme_chooser.active);
         app.handle_key(make_key(KeyCode::Char('c')));
+        assert!(app.theme_chooser.active);
+        // Should pre-select current theme (Default = index 0)
+        assert_eq!(app.theme_chooser.selected, 0);
+    }
+
+    #[test]
+    fn theme_chooser_navigate_and_select() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('c'))); // open
+        assert!(app.theme_chooser.active);
+
+        // Navigate down
+        app.handle_key(make_key(KeyCode::Char('j')));
+        assert_eq!(app.theme_chooser.selected, 1);
+
+        // Select with Enter
+        app.handle_key(make_key(KeyCode::Enter));
+        assert!(!app.theme_chooser.active);
+        // Should have changed to second builtin theme
+        assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
+    }
+
+    #[test]
+    fn theme_chooser_esc_cancels() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('c')));
+        assert!(app.theme_chooser.active);
+        app.handle_key(make_key(KeyCode::Esc));
+        assert!(!app.theme_chooser.active);
+        // Theme should not have changed
         assert_eq!(app.prefs.color_mode, ColorMode::Default);
     }
 

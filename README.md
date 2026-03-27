@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v18.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v19.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -297,8 +297,8 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `KEY` | `ACTION` |
 |:---:|:---|
 | `b` | Cycle bar style — gradient / solid / thin / ascii |
-| `c` | Cycle color theme — 10 builtins + custom themes |
-| `C` | Open theme editor — live color picker |
+| `c` | Theme chooser popup — browse all themes with color swatches |
+| `C` | Theme editor — live per-channel color picker |
 | `v` `V` | Toggle usage bars |
 | `d` `D` | Toggle used/size columns |
 | `g` | Toggle column headers |
