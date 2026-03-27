@@ -1311,29 +1311,32 @@ fn drill_sort_toggle_same_mode_reverses() {
 
 #[test]
 fn drill_scan_progress_counters() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("a.txt"), "hello").unwrap();
+    std::fs::write(dir.path().join("b.txt"), "world").unwrap();
+    let dir_path = dir.path().to_str().unwrap().to_string();
+
     let mut app = make_app_with_disks(sample_disks());
-    // Before scan, counters are zero
     assert_eq!(*app.drill.scan_count.lock().unwrap(), 0);
     assert_eq!(*app.drill.scan_total.lock().unwrap(), 0);
 
-    // Start a scan of /tmp
     app.selected = Some(0);
     app.drill.mode = ViewMode::DrillDown;
-    app.drill.path = vec!["/tmp".into()];
-    // Simulate by directly calling start_drill_scan
-    app.start_drill_scan("/tmp");
+    app.drill.path = vec![dir_path.clone()];
+    app.start_drill_scan(&dir_path);
     assert!(app.drill.scanning);
 
-    // Wait for scan to complete
-    std::thread::sleep(std::time::Duration::from_millis(500));
-    app.refresh_data();
-
-    // After completion, scanning should be false
+    // Poll until scan completes (small dir, should be fast)
+    for _ in 0..20 {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        app.refresh_data();
+        if !app.drill.scanning { break; }
+    }
     assert!(!app.drill.scanning);
-    // Total should have been set (may be 0 if /tmp is empty)
     let total = *app.drill.scan_total.lock().unwrap();
     let count = *app.drill.scan_count.lock().unwrap();
     assert_eq!(count, total, "count should equal total after completion");
+    assert_eq!(app.drill.entries.len(), 2);
 }
 
 #[test]
@@ -2665,10 +2668,13 @@ fn sort_r_toggles_reverse() {
 fn help_overlay_blocks_navigation() {
     let mut app = make_app_with_disks(sample_disks());
     app.show_help = true;
-    app.handle_key(make_key(KeyCode::Char('s'))); // sort
-    // Sort should NOT change because help is shown
+    app.handle_key(make_key(KeyCode::Char('s'))); // not a dismiss key
+    // Sort should NOT change because help is shown, and 's' doesn't dismiss help
     assert_eq!(app.prefs.sort_mode, SortMode::Name);
-    assert!(!app.show_help); // but help is dismissed
+    assert!(app.show_help); // 's' is ignored while help is open
+    // Dismiss with h
+    app.handle_key(make_key(KeyCode::Char('h')));
+    assert!(!app.show_help);
 }
 
 #[test]
@@ -3472,17 +3478,19 @@ fn hovered_disk_index_no_border_no_header() {
 #[test]
 fn scan_directory_with_progress_tracks_counters() {
     use storageshower::system::scan_directory_with_progress;
+    let dir = tempfile::tempdir().unwrap();
+    // Create a few files
+    std::fs::write(dir.path().join("a.txt"), "hello").unwrap();
+    std::fs::write(dir.path().join("b.txt"), "world!").unwrap();
     let count = Arc::new(Mutex::new(0usize));
     let total = Arc::new(Mutex::new(0usize));
-    let entries = scan_directory_with_progress("/tmp", Some(count.clone()), Some(total.clone()));
+    let entries = scan_directory_with_progress(dir.path().to_str().unwrap(), Some(count.clone()), Some(total.clone()));
     let t = *total.lock().unwrap();
     let c = *count.lock().unwrap();
-    // count should equal total after completion
     assert_eq!(c, t, "count should match total after scan");
+    assert_eq!(entries.len(), 2);
     // entries should be sorted by size descending
-    for w in entries.windows(2) {
-        assert!(w[0].size >= w[1].size);
-    }
+    assert!(entries[0].size >= entries[1].size);
 }
 
 // ─── Dir entry fields ───────────────────────────────────────────────────
@@ -3718,10 +3726,10 @@ fn bookmarks_preserve_relative_sort_within_groups() {
 #[test]
 fn chrono_now_returns_valid_format() {
     let (date, time) = chrono_now();
-    // Date: YYYY-MM-DD
+    // Date: YYYY.MM.DD
     assert_eq!(date.len(), 10);
-    assert_eq!(&date[4..5], "-");
-    assert_eq!(&date[7..8], "-");
+    assert_eq!(&date[4..5], ".");
+    assert_eq!(&date[7..8], ".");
     // Time: HH:MM:SS
     assert_eq!(time.len(), 8);
     assert_eq!(&time[2..3], ":");
@@ -3731,10 +3739,12 @@ fn chrono_now_returns_valid_format() {
 // ─── Scan directory on real path ────────────────────────────────────────
 
 #[test]
-fn scan_directory_root_has_entries() {
-    let entries = scan_directory("/");
-    assert!(!entries.is_empty(), "Root directory should have entries");
-    // All entries should have non-empty names
+fn scan_directory_tempdir_has_entries() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("file1.txt"), "data").unwrap();
+    std::fs::create_dir(dir.path().join("subdir")).unwrap();
+    let entries = scan_directory(dir.path().to_str().unwrap());
+    assert_eq!(entries.len(), 2);
     for e in &entries {
         assert!(!e.name.is_empty());
         assert!(!e.path.is_empty());
@@ -3743,10 +3753,13 @@ fn scan_directory_root_has_entries() {
 
 #[test]
 fn scan_directory_entries_have_valid_paths() {
-    let entries = scan_directory("/tmp");
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("a.txt"), "x").unwrap();
+    let dir_str = dir.path().to_str().unwrap();
+    let entries = scan_directory(dir_str);
     for e in &entries {
-        assert!(e.path.starts_with("/tmp/") || e.path == "/tmp",
-            "Path '{}' should start with /tmp/", e.path);
+        assert!(e.path.starts_with(dir_str),
+            "Path '{}' should start with '{}'", e.path, dir_str);
     }
 }
 
