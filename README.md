@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v12.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v13.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -80,6 +80,8 @@ cargo install storageshower
   │   ├── recursive size calculation per directory
   │   ├── background scanning via Arc<Mutex<>>
   │   ├── breadcrumb navigation (Enter/Backspace/Esc)
+  │   ├── sort by size or name (s/n/r keys)
+  │   ├── progress bar with item count during scan
   │   └── gradient size bars relative to largest entry
   │
 [NET_LATENCY]

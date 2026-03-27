@@ -907,10 +907,36 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     let footer_rows: u16 = 2 + (if show_border { 1 } else { 0 });
     let entry_area_end = h.saturating_sub(footer_rows);
 
-    // ─── Scanning indicator ───
+    // ─── Scanning indicator with progress bar ───
     if app.drill_scanning {
+        let scan_count = *app.drill_scan_count.lock().unwrap();
+        let scan_total = *app.drill_scan_total.lock().unwrap();
         let scanning_s = Style::default().fg(pal_blue).add_modifier(Modifier::BOLD);
-        set_str(buf, lm + 2, row, "\u{25CB} Scanning\u{2026}", scanning_s, inner_w);
+
+        if scan_total > 0 {
+            let label = format!(" \u{25CB} Scanning {}/{} ", scan_count, scan_total);
+            let label_len = label.chars().count() as u16;
+            set_str(buf, lm + 1, row, &label, scanning_s, inner_w);
+
+            // Progress bar
+            let bar_max = (inner_w as usize).saturating_sub(label_len as usize + 3);
+            if bar_max > 4 {
+                let frac = scan_count as f64 / scan_total as f64;
+                let filled = (frac * bar_max as f64).round() as usize;
+                let bar_x = lm + 1 + label_len;
+                for j in 0..bar_max {
+                    let x = bar_x + j as u16;
+                    if j < filled {
+                        let gc = gradient_color_at_prefs(j as f64 / bar_max as f64, &app.prefs);
+                        set_cell(buf, x, row, "\u{2588}", Style::default().fg(gc));
+                    } else {
+                        set_cell(buf, x, row, "\u{2591}", Style::default().fg(DIM_BORDER));
+                    }
+                }
+            }
+        } else {
+            set_str(buf, lm + 2, row, "\u{25CB} Scanning\u{2026}", scanning_s, inner_w);
+        }
         row += 1;
     }
 

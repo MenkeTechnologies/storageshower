@@ -10,7 +10,7 @@ use sysinfo::DiskKind;
 use crate::helpers::format_bytes;
 use crate::cli::Cli;
 use crate::prefs::{load_prefs_from, save_prefs, Prefs};
-use crate::system::{chrono_now, scan_directory};
+use crate::system::{chrono_now, scan_directory_with_progress};
 use crate::types::*;
 
 pub struct App {
@@ -48,6 +48,8 @@ pub struct App {
     pub drill_selected: usize,
     pub drill_scanning: bool,
     pub drill_scan_result: Arc<Mutex<Option<Vec<DirEntry>>>>,
+    pub drill_scan_count: Arc<Mutex<usize>>,
+    pub drill_scan_total: Arc<Mutex<usize>>,
 }
 
 impl App {
@@ -87,6 +89,8 @@ impl App {
             drill_selected: 0,
             drill_scanning: false,
             drill_scan_result: Arc::new(Mutex::new(None)),
+            drill_scan_count: Arc::new(Mutex::new(0)),
+            drill_scan_total: Arc::new(Mutex::new(0)),
         }
     }
 
@@ -126,6 +130,8 @@ impl App {
             drill_selected: 0,
             drill_scanning: false,
             drill_scan_result: Arc::new(Mutex::new(None)),
+            drill_scan_count: Arc::new(Mutex::new(0)),
+            drill_scan_total: Arc::new(Mutex::new(0)),
         }
     }
 
@@ -169,15 +175,18 @@ impl App {
         self.alert_mounts = current_alert_mounts;
     }
 
-    fn start_drill_scan(&mut self, path: &str) {
+    pub fn start_drill_scan(&mut self, path: &str) {
         self.drill_scanning = true;
         self.drill_entries.clear();
+        *self.drill_scan_count.lock().unwrap() = 0;
+        *self.drill_scan_total.lock().unwrap() = 0;
         let result = Arc::clone(&self.drill_scan_result);
+        let count = Arc::clone(&self.drill_scan_count);
+        let total = Arc::clone(&self.drill_scan_total);
         let path = path.to_string();
         std::thread::spawn(move || {
-            let entries = scan_directory(&path);
-            let mut lock = result.lock().unwrap();
-            *lock = Some(entries);
+            let entries = scan_directory_with_progress(&path, Some(count), Some(total));
+            *result.lock().unwrap() = Some(entries);
         });
     }
 

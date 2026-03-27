@@ -180,13 +180,29 @@ fn dir_size(path: &std::path::Path) -> u64 {
 }
 
 pub fn scan_directory(path: &str) -> Vec<DirEntry> {
-    let entries = match std::fs::read_dir(path) {
-        Ok(e) => e,
+    scan_directory_with_progress(path, None, None)
+}
+
+pub fn scan_directory_with_progress(
+    path: &str,
+    count: Option<Arc<Mutex<usize>>>,
+    total: Option<Arc<Mutex<usize>>>,
+) -> Vec<DirEntry> {
+    let entries: Vec<_> = match std::fs::read_dir(path) {
+        Ok(e) => e.flatten().collect(),
         Err(_) => return Vec::new(),
     };
+    let entry_count = entries.len();
+    if let Some(ref t) = total {
+        *t.lock().unwrap() = entry_count;
+    }
     let mut results: Vec<DirEntry> = entries
-        .flatten()
-        .filter_map(|entry| {
+        .into_iter()
+        .enumerate()
+        .filter_map(|(i, entry)| {
+            if let Some(ref c) = count {
+                *c.lock().unwrap() = i + 1;
+            }
             let meta = entry.metadata().ok()?;
             let name = entry.file_name().to_string_lossy().to_string();
             let full_path = entry.path().to_string_lossy().to_string();

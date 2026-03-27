@@ -1286,6 +1286,34 @@ fn drill_sort_toggle_same_mode_reverses() {
 }
 
 #[test]
+#[test]
+fn drill_scan_progress_counters() {
+    let mut app = make_app_with_disks(sample_disks());
+    // Before scan, counters are zero
+    assert_eq!(*app.drill_scan_count.lock().unwrap(), 0);
+    assert_eq!(*app.drill_scan_total.lock().unwrap(), 0);
+
+    // Start a scan of /tmp
+    app.selected = Some(0);
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_path = vec!["/tmp".into()];
+    // Simulate by directly calling start_drill_scan
+    app.start_drill_scan("/tmp");
+    assert!(app.drill_scanning);
+
+    // Wait for scan to complete
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    app.refresh_data();
+
+    // After completion, scanning should be false
+    assert!(!app.drill_scanning);
+    // Total should have been set (may be 0 if /tmp is empty)
+    let total = *app.drill_scan_total.lock().unwrap();
+    let count = *app.drill_scan_count.lock().unwrap();
+    assert_eq!(count, total, "count should equal total after completion");
+}
+
+#[test]
 fn drill_sort_resets_selection() {
     let mut app = make_app_with_disks(sample_disks());
     app.view_mode = ViewMode::DrillDown;
