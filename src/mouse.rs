@@ -173,6 +173,14 @@ impl App {
                     self.hover.pos = Some(new_pos);
                     self.hover.since = Some(Instant::now());
                     self.hover.right_click = false;
+                    // Cancel hover timer if mouse left the hover detection zone
+                    if self.drill.mode == ViewMode::DrillDown {
+                        if self.hovered_drill_index().is_none() {
+                            self.hover.since = None;
+                        }
+                    } else if self.hovered_zone(term_h) == HoverZone::None {
+                        self.hover.since = None;
+                    }
                 }
             }
             MouseEventKind::ScrollDown => {
@@ -445,6 +453,42 @@ mod tests {
             80, 24,
         );
         assert!(app.hover.right_click);
+    }
+
+    // ── Hover timer cancellation outside detection zone ──────
+
+    #[test]
+    fn mouse_move_to_empty_zone_cancels_hover_timer() {
+        let mut app = test_app();
+        // Move to title bar (hover zone)
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.hover.since.is_some());
+        // Move to border row 0 (HoverZone::None)
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 0, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.hover.since.is_none());
+    }
+
+    #[test]
+    fn mouse_move_within_zone_keeps_hover_timer() {
+        let mut app = test_app();
+        // Move to a disk row (valid zone)
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.hover.since.is_some());
+        // Move to another disk row (still valid zone)
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 6, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.hover.since.is_some());
     }
 
     // ── Drag priority over header sort ────────────────────────
