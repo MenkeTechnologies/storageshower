@@ -14,7 +14,7 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
-use sysinfo::{DiskKind, Disks, System};
+use sysinfo::{DiskKind, System};
 
 // ─── Color Constants ───────────────────────────────────────────────────────
 
@@ -120,7 +120,11 @@ struct Prefs {
     compact: bool,
     show_used: bool,
     full_mount: bool,
+    #[serde(default = "default_true")]
+    show_all: bool,
 }
+
+fn default_true() -> bool { true }
 
 impl Default for Prefs {
     fn default() -> Self {
@@ -139,6 +143,7 @@ impl Default for Prefs {
             compact: false,
             show_used: true,
             full_mount: false,
+            show_all: true,
         }
     }
 }
@@ -208,19 +213,28 @@ impl App {
 
     fn sorted_disks(&self) -> Vec<DiskEntry> {
         let mut ds: Vec<DiskEntry> = self.disks.clone();
+        if !self.prefs.show_all {
+            // Hide virtual/pseudo filesystems when show_all is off
+            ds.retain(|d| {
+                d.total > 0
+                    && !d.mount.starts_with("/sys")
+                    && !d.mount.starts_with("/proc")
+                    && !d.mount.starts_with("/dev/shm")
+                    && !d.mount.starts_with("/run")
+                    && !d.mount.starts_with("/snap")
+                    && d.fs != "tmpfs"
+                    && d.fs != "devtmpfs"
+                    && d.fs != "squashfs"
+                    && d.fs != "overlay"
+                    && d.fs != "devfs"
+                    && d.fs != "map"
+                    && d.fs != "autofs"
+            });
+        }
         if self.prefs.show_local {
             ds.retain(|d| {
                 matches!(d.kind, DiskKind::HDD | DiskKind::SSD)
-                    || (!d.mount.starts_with("/sys")
-                        && !d.mount.starts_with("/proc")
-                        && !d.mount.starts_with("/dev/shm")
-                        && !d.mount.starts_with("/run")
-                        && !d.mount.starts_with("/snap")
-                        && d.fs != "tmpfs"
-                        && d.fs != "devtmpfs"
-                        && d.fs != "squashfs"
-                        && d.fs != "overlay"
-                        && d.total > 0)
+                    || d.total > 0
             });
         }
         if !self.filter.is_empty() {
@@ -286,6 +300,10 @@ impl App {
             }
             KeyCode::Char('l') | KeyCode::Char('L') => {
                 self.prefs.show_local = !self.prefs.show_local;
+                self.save();
+            }
+            KeyCode::Char('a') | KeyCode::Char('A') => {
+                self.prefs.show_all = !self.prefs.show_all;
                 self.save();
             }
             KeyCode::Char('r') | KeyCode::Char('R') => {
@@ -636,6 +654,9 @@ fn draw(frame: &mut Frame, app: &App) {
         }
         if app.prefs.show_local {
             title.push_str(" [local]");
+        }
+        if app.prefs.show_all {
+            title.push_str(" [all]");
         }
         if !app.filter.is_empty() {
             title.push_str(&format!(" [filter:{}]", app.filter));
@@ -1052,6 +1073,7 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         HelpEntry { key: "p/P", desc: "Pause/resume", val_fn: |a| format!("[{}]", if a.paused {"paused"} else {"running"}), is_section: false },
         HelpEntry { key: "f/F", desc: "Cycle refresh rate", val_fn: |a| format!("[{}s]", a.prefs.refresh_rate), is_section: false },
         HelpEntry { key: "l/L", desc: "Local disks only", val_fn: |a| format!("[{}]", if a.prefs.show_local {"on"} else {"off"}), is_section: false },
+        HelpEntry { key: "a/A", desc: "All filesystems", val_fn: |a| format!("[{}]", if a.prefs.show_all {"on"} else {"off"}), is_section: false },
         HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
         HelpEntry { key: "SORT", desc: "", val_fn: empty_val, is_section: true },
         HelpEntry { key: "n/N", desc: "Sort by name", val_fn: |a| if a.prefs.sort_mode == SortMode::Name {"[active]".into()} else {String::new()}, is_section: false },
