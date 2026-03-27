@@ -14,7 +14,7 @@ use crate::types::*;
 pub struct Cli {
     /// Sort mode for disk entries
     #[arg(short = 's', long = "sort", value_name = "MODE")]
-    pub sort_mode: Option<CliSortMode>,
+    pub sort_mode: Option<SortMode>,
 
     /// Reverse sort order
     #[arg(short = 'R', long = "reverse")]
@@ -30,11 +30,11 @@ pub struct Cli {
 
     /// Bar visualization style
     #[arg(short = 'b', long = "bar-style", value_name = "STYLE")]
-    pub bar_style: Option<CliBarStyle>,
+    pub bar_style: Option<BarStyle>,
 
     /// Color palette
     #[arg(short = 'c', long = "color", value_name = "PALETTE")]
-    pub color_mode: Option<CliColorMode>,
+    pub color_mode: Option<ColorMode>,
 
     /// Warning threshold percentage
     #[arg(short = 'w', long = "warn", value_name = "PCT")]
@@ -74,7 +74,7 @@ pub struct Cli {
 
     /// Unit display mode
     #[arg(short = 'u', long = "units", value_name = "MODE")]
-    pub unit_mode: Option<CliUnitMode>,
+    pub unit_mode: Option<UnitMode>,
 
     /// Mount column width (0 = auto)
     #[arg(long = "col-mount", value_name = "WIDTH")]
@@ -101,38 +101,7 @@ pub struct Cli {
     pub version: bool,
 }
 
-#[derive(Clone, Copy, Debug, clap::ValueEnum)]
-pub enum CliSortMode {
-    Name,
-    Pct,
-    Size,
-}
-
-#[derive(Clone, Copy, Debug, clap::ValueEnum)]
-pub enum CliBarStyle {
-    Gradient,
-    Solid,
-    Thin,
-    Ascii,
-}
-
-#[derive(Clone, Copy, Debug, clap::ValueEnum)]
-pub enum CliColorMode {
-    Default,
-    Green,
-    Blue,
-    Purple,
-}
-
-#[derive(Clone, Copy, Debug, clap::ValueEnum)]
-pub enum CliUnitMode {
-    Human,
-    Gib,
-    Mib,
-    Bytes,
-}
-
-// ANSI color helpers
+// ANSI color constants
 const RST: &str = "\x1b[0m";
 const CYAN: &str = "\x1b[36m";
 const MAGENTA: &str = "\x1b[35m";
@@ -236,81 +205,24 @@ pub fn print_version() {
 impl Cli {
     /// Apply CLI overrides on top of loaded prefs. CLI flags take priority.
     pub fn apply_to(&self, prefs: &mut Prefs) {
-        if let Some(m) = self.sort_mode {
-            prefs.sort_mode = match m {
-                CliSortMode::Name => SortMode::Name,
-                CliSortMode::Pct => SortMode::Pct,
-                CliSortMode::Size => SortMode::Size,
-            };
-        }
-        if self.sort_rev {
-            prefs.sort_rev = true;
-        }
-        if self.show_local {
-            prefs.show_local = true;
-        }
-        if let Some(v) = self.refresh_rate {
-            prefs.refresh_rate = v;
-        }
-        if let Some(s) = self.bar_style {
-            prefs.bar_style = match s {
-                CliBarStyle::Gradient => BarStyle::Gradient,
-                CliBarStyle::Solid => BarStyle::Solid,
-                CliBarStyle::Thin => BarStyle::Thin,
-                CliBarStyle::Ascii => BarStyle::Ascii,
-            };
-        }
-        if let Some(c) = self.color_mode {
-            prefs.color_mode = match c {
-                CliColorMode::Default => ColorMode::Default,
-                CliColorMode::Green => ColorMode::Green,
-                CliColorMode::Blue => ColorMode::Blue,
-                CliColorMode::Purple => ColorMode::Purple,
-            };
-        }
-        if let Some(v) = self.thresh_warn {
-            prefs.thresh_warn = v;
-        }
-        if let Some(v) = self.thresh_crit {
-            prefs.thresh_crit = v;
-        }
-        if self.no_bars {
-            prefs.show_bars = false;
-        }
-        if self.no_border {
-            prefs.show_border = false;
-        }
-        if self.no_header {
-            prefs.show_header = false;
-        }
-        if self.compact {
-            prefs.compact = true;
-        }
-        if self.no_used {
-            prefs.show_used = false;
-        }
-        if self.full_mount {
-            prefs.full_mount = true;
-        }
-        if self.no_virtual {
-            prefs.show_all = false;
-        }
-        if let Some(u) = self.unit_mode {
-            prefs.unit_mode = match u {
-                CliUnitMode::Human => UnitMode::Human,
-                CliUnitMode::Gib => UnitMode::GiB,
-                CliUnitMode::Mib => UnitMode::MiB,
-                CliUnitMode::Bytes => UnitMode::Bytes,
-            };
-        }
-        if let Some(v) = self.col_mount_w {
-            prefs.col_mount_w = v;
-        }
-        if let Some(v) = self.col_bar_end_w {
-            prefs.col_bar_end_w = v;
-        }
-        if let Some(v) = self.col_pct_w {
-            prefs.col_pct_w = v;
-        }
+        if let Some(v) = self.sort_mode { prefs.sort_mode = v; }
+        if let Some(v) = self.refresh_rate { prefs.refresh_rate = v; }
+        if let Some(v) = self.bar_style { prefs.bar_style = v; }
+        if let Some(v) = self.color_mode { prefs.color_mode = v; }
+        if let Some(v) = self.thresh_warn { prefs.thresh_warn = v; }
+        if let Some(v) = self.thresh_crit { prefs.thresh_crit = v; }
+        if let Some(v) = self.unit_mode { prefs.unit_mode = v; }
+        if let Some(v) = self.col_mount_w { prefs.col_mount_w = v; }
+        if let Some(v) = self.col_bar_end_w { prefs.col_bar_end_w = v; }
+        if let Some(v) = self.col_pct_w { prefs.col_pct_w = v; }
+        if self.sort_rev { prefs.sort_rev = true; }
+        if self.show_local { prefs.show_local = true; }
+        if self.compact { prefs.compact = true; }
+        if self.full_mount { prefs.full_mount = true; }
+        if self.no_bars { prefs.show_bars = false; }
+        if self.no_border { prefs.show_border = false; }
+        if self.no_header { prefs.show_header = false; }
+        if self.no_used { prefs.show_used = false; }
+        if self.no_virtual { prefs.show_all = false; }
     }
 }

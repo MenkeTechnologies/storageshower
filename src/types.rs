@@ -13,14 +13,14 @@ pub enum DragTarget {
     PctSep,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
 pub enum SortMode {
     Name,
     Pct,
     Size,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
 pub enum BarStyle {
     Gradient,
     Solid,
@@ -28,7 +28,7 @@ pub enum BarStyle {
     Ascii,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
 pub enum ColorMode {
     Default,
     Green,
@@ -36,11 +36,13 @@ pub enum ColorMode {
     Purple,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
 pub enum UnitMode {
     #[default]
     Human,
+    #[value(name = "gib")]
     GiB,
+    #[value(name = "mib")]
     MiB,
     Bytes,
 }

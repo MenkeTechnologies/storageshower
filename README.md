@@ -107,6 +107,7 @@ TARGET_OS     == macOS || Linux
 | `ratatui` 0.29 | TUI rendering framework |
 | `crossterm` 0.28 | Terminal events + manipulation |
 | `sysinfo` 0.32 | Disk / memory / CPU / proc intel |
+| `clap` 4 | CLI argument parsing |
 | `dirs` 5 | Home directory detection |
 | `serde` 1 | Config serialization |
 | `toml` 0.8 | Config file format |
@@ -127,6 +128,73 @@ cargo build --release
 cargo run --release
 # or go direct:
 ./target/release/storageshower
+```
+
+---
+
+### `> CLI_OPTIONS.exe`
+
+```
+ ┌──────────────────────────────────────────────────┐
+ │           ◈◈◈  COMMAND LINE DECK  ◈◈◈            │
+ └──────────────────────────────────────────────────┘
+```
+
+#### `// SORTING`
+
+| `FLAG` | `DESCRIPTION` |
+|:---|:---|
+| `-s, --sort MODE` | Sort disk entries — `name`, `pct`, `size` |
+| `-R, --reverse` | Reverse sort order |
+| `-l, --local-only` | Show only local disks (HDD/SSD) |
+| `--no-virtual` | Hide virtual filesystems (tmpfs, devfs, etc.) |
+
+#### `// DISPLAY`
+
+| `FLAG` | `DESCRIPTION` |
+|:---|:---|
+| `-b, --bar-style STYLE` | Bar visualization — `gradient`, `solid`, `thin`, `ascii` |
+| `-c, --color PALETTE` | Color palette — `default`, `green`, `blue`, `purple` |
+| `-u, --units MODE` | Unit display — `human`, `gib`, `mib`, `bytes` |
+| `-k, --compact` | Compact mount names |
+| `-f, --full-mount` | Show full mount paths |
+| `--no-bars` | Hide usage bars |
+| `--no-border` | Hide border chrome |
+| `--no-header` | Hide column headers |
+| `--no-used` | Hide used/total size display |
+
+#### `// THRESHOLDS`
+
+| `FLAG` | `DESCRIPTION` |
+|:---|:---|
+| `-w, --warn PCT` | Warning threshold (default: 70%) |
+| `-C, --crit PCT` | Critical threshold (default: 90%) |
+
+#### `// COLUMNS`
+
+| `FLAG` | `DESCRIPTION` |
+|:---|:---|
+| `--col-mount WIDTH` | Mount column width (0 = auto) |
+| `--col-bar-end WIDTH` | Bar-end column width (0 = auto) |
+| `--col-pct WIDTH` | Percentage column width (0 = auto) |
+
+#### `// SYSTEM`
+
+| `FLAG` | `DESCRIPTION` |
+|:---|:---|
+| `-r, --refresh SECS` | Data refresh interval (default: 1s) |
+| `--config PATH` | Config file path (default: `~/.storageshower.conf`) |
+| `-h, --help` | Display help transmission |
+| `-V, --version` | Display version information |
+
+#### `// EXAMPLES`
+
+```bash
+storageshower -c purple -b ascii     # purple palette with ascii bars
+storageshower -s pct -R              # sort by usage%, reversed
+storageshower -l --no-virtual        # local physical disks only
+storageshower -u gib -w 60 -C 85    # GiB units, custom thresholds
+storageshower --config /tmp/ss.conf  # use alternate config
 ```
 
 ---
