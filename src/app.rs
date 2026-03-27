@@ -281,7 +281,13 @@ impl App {
 
     pub fn hover_ready(&self) -> bool {
         self.hover.since
-            .map(|t| t.elapsed().as_millis() >= 1000)
+            .map(|t| {
+                let elapsed = t.elapsed().as_millis();
+                let visible = elapsed >= 1000;
+                // Auto-hide after 4s (3s visible) unless triggered by right-click
+                let expired = !self.hover.right_click && elapsed >= 4000;
+                visible && !expired
+            })
             .unwrap_or(false)
     }
 

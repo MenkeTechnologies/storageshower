@@ -7,6 +7,22 @@ use crate::types::*;
 
 impl App {
     pub fn handle_mouse(&mut self, event: MouseEvent, term_w: u16, term_h: u16) {
+        // Cancel hover timer whenever mouse moves to a new position.
+        // Specific handlers below re-enable it only for valid hover zones.
+        let hover_moved = if matches!(event.kind, MouseEventKind::Moved) {
+            let new_pos = (event.column, event.row);
+            if self.hover.pos != Some(new_pos) {
+                self.hover.pos = Some(new_pos);
+                self.hover.since = None;
+                self.hover.right_click = false;
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
         // Theme chooser mouse handling
         if self.theme_chooser.active {
             let themes = self.all_themes();
@@ -168,18 +184,15 @@ impl App {
                 self.hover.right_click = true;
             }
             MouseEventKind::Moved => {
-                let new_pos = (event.column, event.row);
-                if self.hover.pos != Some(new_pos) {
-                    self.hover.pos = Some(new_pos);
-                    self.hover.since = Some(Instant::now());
-                    self.hover.right_click = false;
-                    // Cancel hover timer if mouse left the hover detection zone
+                // Pos/flags already updated at top of handle_mouse.
+                // Re-enable timer only when position landed in a valid hover zone.
+                if hover_moved {
                     if self.drill.mode == ViewMode::DrillDown {
-                        if self.hovered_drill_index().is_none() {
-                            self.hover.since = None;
+                        if self.hovered_drill_index().is_some() {
+                            self.hover.since = Some(Instant::now());
                         }
-                    } else if self.hovered_zone(term_h) == HoverZone::None {
-                        self.hover.since = None;
+                    } else if self.hovered_zone(term_h) != HoverZone::None {
+                        self.hover.since = Some(Instant::now());
                     }
                 }
             }
@@ -453,6 +466,87 @@ mod tests {
             80, 24,
         );
         assert!(app.hover.right_click);
+    }
+
+    // ── Hover timer early cancellation on move ──────────────
+
+    #[test]
+    fn mouse_move_cancels_hover_before_theme_chooser() {
+        let mut app = test_app();
+        // Move to title bar to start hover timer
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.hover.since.is_some());
+
+        // Open theme chooser
+        app.handle_key(make_key(KeyCode::Char('c')));
+        assert!(app.theme_chooser.active);
+
+        // Move mouse while theme chooser is open — hover timer must be cancelled
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 10, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.hover.since.is_none());
+        assert_eq!(app.hover.pos, Some((20, 10)));
+    }
+
+    #[test]
+    fn mouse_move_in_theme_chooser_same_pos_preserves_hover() {
+        let mut app = test_app();
+        // Set up hover at a position, then open theme chooser
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        let since_before = app.hover.since;
+        app.handle_key(make_key(KeyCode::Char('c')));
+
+        // Move to SAME position — should not reset
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert_eq!(app.hover.since, since_before);
+    }
+
+    // ── Hover auto-hide (non-right-click) ─────────────────
+
+    #[test]
+    fn hover_ready_false_before_delay() {
+        let mut app = test_app();
+        app.hover.since = Some(std::time::Instant::now());
+        app.hover.right_click = false;
+        assert!(!app.hover_ready());
+    }
+
+    #[test]
+    fn hover_auto_hides_after_4s() {
+        let mut app = test_app();
+        // Simulate hover started 5 seconds ago (past the 4s auto-hide window)
+        app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_secs(5));
+        app.hover.right_click = false;
+        assert!(!app.hover_ready());
+    }
+
+    #[test]
+    fn hover_visible_within_window() {
+        let mut app = test_app();
+        // Simulate hover started 2 seconds ago (past 1s delay, within 4s auto-hide)
+        app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_millis(2000));
+        app.hover.right_click = false;
+        assert!(app.hover_ready());
+    }
+
+    #[test]
+    fn right_click_hover_does_not_auto_hide() {
+        let mut app = test_app();
+        // Simulate right-click hover started 10 seconds ago
+        app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_secs(10));
+        app.hover.right_click = true;
+        assert!(app.hover_ready());
     }
 
     // ── Hover timer cancellation outside detection zone ──────

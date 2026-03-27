@@ -1970,3 +1970,123 @@ fn drag_on_header_row_takes_priority_over_sort() {
     assert!(matches!(app.drag, Some(DragTarget::PctSep)));
     assert_eq!(app.prefs.sort_mode, sort_before);
 }
+
+// ─── Hover early cancellation on mouse move ──────────────────────────────
+
+#[test]
+fn hover_cancelled_on_move_before_any_handler() {
+    let mut app = make_app_with_disks(sample_disks());
+
+    // Start hover timer on title bar
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.since.is_some());
+
+    // Move to empty zone — timer should be cancelled
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 0, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.since.is_none());
+}
+
+#[test]
+fn hover_cancelled_during_theme_chooser() {
+    let mut app = make_app_with_disks(sample_disks());
+
+    // Start hover on disk row
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 5, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.since.is_some());
+
+    // Open theme chooser
+    app.handle_key(make_key(KeyCode::Char('c')));
+    assert!(app.theme_chooser.active);
+
+    // Mouse move inside theme chooser — hover timer must be cancelled
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 30, row: 12, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.since.is_none());
+    assert!(!app.hover.right_click);
+}
+
+#[test]
+fn hover_restarted_on_valid_zone_after_cancel() {
+    let mut app = make_app_with_disks(sample_disks());
+
+    // Move to empty zone — no timer
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 0, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.since.is_none());
+
+    // Move to title bar — timer should restart
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.since.is_some());
+}
+
+// ─── Hover auto-hide ─────────────────────────────────────────────────────
+
+#[test]
+fn hover_auto_hides_after_display_window() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover.pos = Some((10, 1));
+
+    // Set hover start to 5s ago — past 1s delay and 4s auto-hide window
+    app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_secs(5));
+    app.hover.right_click = false;
+    assert!(!app.hover_ready(), "auto-hover should hide after 4s");
+}
+
+#[test]
+fn hover_visible_during_display_window() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover.pos = Some((10, 1));
+
+    // Set hover start to 2s ago — past 1s delay, within 4s auto-hide
+    app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_millis(2000));
+    app.hover.right_click = false;
+    assert!(app.hover_ready(), "auto-hover should be visible between 1-4s");
+}
+
+#[test]
+fn right_click_hover_persists_indefinitely() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover.pos = Some((10, 5));
+
+    // Set right-click hover start to 60s ago
+    app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_secs(60));
+    app.hover.right_click = true;
+    assert!(app.hover_ready(), "right-click hover should not auto-hide");
+}
+
+#[test]
+fn hover_workflow_move_wait_autohide() {
+    let mut app = make_app_with_disks(sample_disks());
+
+    // Move to title bar
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.since.is_some());
+    assert!(!app.hover_ready(), "should not be ready immediately");
+
+    // Simulate time passing — replace since with 2s ago (visible window)
+    app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_millis(2000));
+    assert!(app.hover_ready(), "should be visible after 1s delay");
+
+    // Simulate more time — replace since with 5s ago (past auto-hide)
+    app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_secs(5));
+    assert!(!app.hover_ready(), "should auto-hide after 4s");
+}

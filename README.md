@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v22.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v23.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -382,8 +382,8 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `Left-drag` column separator | Resize mount / pct / right columns |
 | `Right-click` disk row | Verbose tooltip: capacity, rank, headroom, SMART, I/O |
 | `Right-click` drill-down entry | Verbose tooltip: size, rank, share bar, depth, sort |
-| `Hover` title segment | Per-segment tooltip: node, date, load, mem, cpu, etc. |
-| `Hover` footer segment | Per-segment tooltip: sort, theme, units, uptime, etc. |
+| `Hover` title segment | Per-segment tooltip: node, date, load, mem, cpu, etc. (auto-hides after 3s) |
+| `Hover` footer segment | Per-segment tooltip: sort, theme, units, uptime, etc. (auto-hides after 3s) |
 | `Scroll wheel` | Select next/prev disk (or drill-down / theme entry) |
 
 ---
