@@ -817,12 +817,37 @@ impl App {
                     }
                 }
 
+                // Column separator drag detection (checked before row click)
                 if x.abs_diff(mount_sep_x) <= 1 {
                     self.drag = Some(DragTarget::MountSep);
                 } else if self.prefs.show_used && x.abs_diff(pct_sep_x) <= 1 {
                     self.drag = Some(DragTarget::PctSep);
                 } else if x.abs_diff(bar_end_x) <= 1 {
                     self.drag = Some(DragTarget::BarEndSep);
+                } else {
+                    // Click on disk row to select
+                    let first_disk_row: u16 = if show_border { 1 } else { 0 }
+                        + 2 // title + separator
+                        + if self.prefs.show_header { 2 } else { 0 };
+                    if y >= first_disk_row {
+                        let disk_idx = (y - first_disk_row) as usize;
+                        let count = self.sorted_disks().len();
+                        if disk_idx < count {
+                            if self.selected == Some(disk_idx) {
+                                // Click again on selected: drill down
+                                let disks = self.sorted_disks();
+                                if let Some(disk) = disks.get(disk_idx) {
+                                    let mount = disk.mount.clone();
+                                    self.view_mode = ViewMode::DrillDown;
+                                    self.drill_path = vec![mount.clone()];
+                                    self.drill_selected = 0;
+                                    self.start_drill_scan(&mount);
+                                }
+                            } else {
+                                self.selected = Some(disk_idx);
+                            }
+                        }
+                    }
                 }
             }
             MouseEventKind::Drag(MouseButton::Left) => {
@@ -2315,6 +2340,60 @@ mod tests {
             80,
         );
         assert_eq!(app.show_help, prev_help);
+    }
+
+    // ── Mouse click to select disk ────────────────────────
+
+    #[test]
+    fn mouse_click_selects_disk_row() {
+        let mut app = test_app();
+        assert!(app.selected.is_none());
+        // With border + header, first disk row is at y=5
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 5, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert_eq!(app.selected, Some(0));
+    }
+
+    #[test]
+    fn mouse_click_selects_second_disk() {
+        let mut app = test_app();
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 6, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert_eq!(app.selected, Some(1));
+    }
+
+    #[test]
+    fn mouse_click_out_of_range_no_select() {
+        let mut app = test_app();
+        // Click far below disk rows (row 50 is way past the 4 disks)
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 50, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert!(app.selected.is_none());
+    }
+
+    #[test]
+    fn mouse_click_already_selected_enters_drilldown() {
+        let mut app = test_app();
+        // First click selects
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 5, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert_eq!(app.selected, Some(0));
+        assert_eq!(app.view_mode, ViewMode::Disks);
+
+        // Second click on same row enters drill-down
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 5, modifiers: KeyModifiers::NONE },
+            80,
+        );
+        assert_eq!(app.view_mode, ViewMode::DrillDown);
     }
 
     // ── Slash in filter preserves prev filter ─────────────

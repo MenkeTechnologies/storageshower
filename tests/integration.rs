@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use clap::Parser;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use storageshower::app::{mount_col_width, right_col_width, right_col_width_static, App};
 use storageshower::cli::Cli;
 use storageshower::helpers::{format_bytes, format_latency, format_rate, format_uptime, truncate_mount};
@@ -990,4 +990,45 @@ fn color_mode_cycles_through_custom_themes() {
     app.handle_key(make_key(KeyCode::Char('c')));
     assert!(app.prefs.active_theme.is_none());
     assert_eq!(app.prefs.color_mode, ColorMode::ALL[0]);
+}
+
+// ─── Mouse click selection ───────────────────────────────────────────────
+
+#[test]
+fn mouse_click_selects_and_drills_down() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert!(app.selected.is_none());
+
+    // Click on first disk row (border=true, header=true → first disk at row 5)
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 5, modifiers: KeyModifiers::NONE },
+        80,
+    );
+    assert_eq!(app.selected, Some(0));
+    assert_eq!(app.view_mode, ViewMode::Disks);
+
+    // Click same row again → drill down
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 5, modifiers: KeyModifiers::NONE },
+        80,
+    );
+    assert_eq!(app.view_mode, ViewMode::DrillDown);
+}
+
+#[test]
+fn mouse_click_different_row_changes_selection() {
+    let mut app = make_app_with_disks(sample_disks());
+
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 5, modifiers: KeyModifiers::NONE },
+        80,
+    );
+    assert_eq!(app.selected, Some(0));
+
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 6, modifiers: KeyModifiers::NONE },
+        80,
+    );
+    assert_eq!(app.selected, Some(1));
+    assert_eq!(app.view_mode, ViewMode::Disks); // did not drill down
 }
