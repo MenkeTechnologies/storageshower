@@ -1386,3 +1386,79 @@ fn export_theme_with_theme_flag() {
     assert!(cli.export_theme);
     assert_eq!(cli.theme, Some("mytest".into()));
 }
+
+// ─── HoverZone detection ─────────────────────────────────────────────────
+
+#[test]
+fn hover_zone_title_bar() {
+    let mut app = make_app_with_disks(sample_disks());
+    // Title bar is at row 1 with border
+    app.hover_pos = Some((10, 1));
+    assert_eq!(app.hovered_zone(40), HoverZone::TitleBar);
+}
+
+#[test]
+fn hover_zone_footer_bar() {
+    let mut app = make_app_with_disks(sample_disks());
+    // Footer is near the bottom: h - footer_rows + 1
+    // With border, footer_rows = 3, so footer_row = 40 - 3 + 1 = 38
+    app.hover_pos = Some((10, 38));
+    assert_eq!(app.hovered_zone(40), HoverZone::FooterBar);
+}
+
+#[test]
+fn hover_zone_disk_row() {
+    let mut app = make_app_with_disks(sample_disks());
+    // First disk at row 5 (border + title + sep + header + sep)
+    app.hover_pos = Some((10, 5));
+    assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(0));
+    app.hover_pos = Some((10, 6));
+    assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(1));
+}
+
+#[test]
+fn hover_zone_none_on_separator() {
+    let mut app = make_app_with_disks(sample_disks());
+    // Row 0 is border, not title
+    app.hover_pos = Some((10, 0));
+    assert_eq!(app.hovered_zone(40), HoverZone::None);
+}
+
+#[test]
+fn hover_zone_none_when_no_hover() {
+    let app = make_app_with_disks(sample_disks());
+    assert_eq!(app.hovered_zone(40), HoverZone::None);
+}
+
+// ─── Hover delay ─────────────────────────────────────────────────────────
+
+#[test]
+fn hover_not_ready_immediately() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover_pos = Some((10, 5));
+    app.hover_since = Some(std::time::Instant::now());
+    assert!(!app.hover_ready(), "Hover should not be ready immediately");
+}
+
+#[test]
+fn hover_ready_after_delay() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover_pos = Some((10, 5));
+    app.hover_since = Some(std::time::Instant::now() - std::time::Duration::from_secs(3));
+    assert!(app.hover_ready(), "Hover should be ready after 2+ seconds");
+}
+
+#[test]
+fn hover_resets_on_move() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover_pos = Some((10, 5));
+    app.hover_since = Some(std::time::Instant::now() - std::time::Duration::from_secs(3));
+    assert!(app.hover_ready());
+
+    // Move to different position
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 6, modifiers: KeyModifiers::NONE },
+        80,
+    );
+    assert!(!app.hover_ready(), "Hover delay should reset on move");
+}

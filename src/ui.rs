@@ -716,13 +716,22 @@ pub fn draw(frame: &mut Frame, app: &App) {
         draw_theme_editor(buf, w, h, app);
     }
 
-    // ─── Hover tooltip ───
-    if !app.show_help && !app.theme_editor && !app.filter_mode {
-        if let Some(idx) = app.hovered_disk_index() {
-            let disks = app.sorted_disks();
-            if let Some(disk) = disks.get(idx) {
-                draw_hover_tooltip(buf, w, h, app, disk);
+    // ─── Hover tooltip (2s delay) ───
+    if !app.show_help && !app.theme_editor && !app.filter_mode && app.hover_ready() {
+        match app.hovered_zone(h) {
+            HoverZone::DiskRow(idx) => {
+                let disks = app.sorted_disks();
+                if let Some(disk) = disks.get(idx) {
+                    draw_hover_tooltip(buf, w, h, app, disk);
+                }
             }
+            HoverZone::TitleBar => {
+                draw_hover_bar_tooltip(buf, w, h, app, true);
+            }
+            HoverZone::FooterBar => {
+                draw_hover_bar_tooltip(buf, w, h, app, false);
+            }
+            HoverZone::None => {}
         }
     }
 }
@@ -1169,6 +1178,122 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
     }
 }
 
+fn draw_hover_bar_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, is_title: bool) {
+    let (hover_x, hover_y) = match app.hover_pos {
+        Some(pos) => pos,
+        None => return,
+    };
+
+    let (_, pal_green, _, pal_lpurple, _, _) = palette_for_prefs(&app.prefs);
+    let bc = border_color(app);
+    let border_s = Style::default().fg(bc);
+    let label_s = Style::default().fg(pal_lpurple).bg(HELP_BG);
+    let val_s = Style::default().fg(pal_green).bg(HELP_BG);
+
+    let mut lines: Vec<(String, String)> = Vec::new();
+
+    if is_title {
+        lines.push(("\u{25B6} SYSTEM INFO".into(), String::new()));
+        lines.push(("  Hostname".into(), app.stats.hostname.clone()));
+        lines.push(("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)));
+        lines.push(("  Kernel".into(), app.stats.kernel.clone()));
+        lines.push(("  Arch".into(), app.stats.arch.clone()));
+        let load = app.stats.load_avg;
+        lines.push(("  Load avg".into(), format!("{:.2} / {:.2} / {:.2}  (1m/5m/15m)", load.0, load.1, load.2)));
+        let mem_pct = if app.stats.mem_total > 0 {
+            (app.stats.mem_used as f64 / app.stats.mem_total as f64) * 100.0
+        } else { 0.0 };
+        lines.push(("  Memory".into(), format!("{} / {} ({:.1}%)",
+            format_bytes(app.stats.mem_used, UnitMode::Human),
+            format_bytes(app.stats.mem_total, UnitMode::Human), mem_pct)));
+        if app.stats.swap_total > 0 {
+            lines.push(("  Swap".into(), format!("{} / {}",
+                format_bytes(app.stats.swap_used, UnitMode::Human),
+                format_bytes(app.stats.swap_total, UnitMode::Human))));
+        }
+        lines.push(("  CPUs".into(), format!("{}", app.stats.cpu_count)));
+        lines.push(("  Processes".into(), format!("{}", app.stats.process_count)));
+        lines.push(("  Uptime".into(), format_uptime(app.stats.uptime)));
+        if app.paused {
+            lines.push(("  \u{23F8} Status".into(), "PAUSED".into()));
+        }
+    } else {
+        lines.push(("\u{25B6} SETTINGS".into(), String::new()));
+        lines.push(("  Sort mode".into(), format!("{:?} {}", app.prefs.sort_mode,
+            if app.prefs.sort_rev { "\u{25BC}desc" } else { "\u{25B2}asc" })));
+        lines.push(("  Bar style".into(), format!("{:?}", app.prefs.bar_style)));
+        let color_name = if let Some(ref n) = app.prefs.active_theme {
+            n.clone()
+        } else {
+            app.prefs.color_mode.name().into()
+        };
+        lines.push(("  Theme".into(), color_name));
+        lines.push(("  Units".into(), format!("{:?}", app.prefs.unit_mode)));
+        lines.push(("  Refresh".into(), format!("{}s", app.prefs.refresh_rate)));
+        lines.push(("  Warn \u{26A0}".into(), format!("{}%", app.prefs.thresh_warn)));
+        lines.push(("  Crit \u{2716}".into(), format!("{}%", app.prefs.thresh_crit)));
+        lines.push(("  Bars".into(), if app.prefs.show_bars { "on" } else { "off" }.into()));
+        lines.push(("  Border".into(), if app.prefs.show_border { "on" } else { "off" }.into()));
+        lines.push(("  Headers".into(), if app.prefs.show_header { "on" } else { "off" }.into()));
+        lines.push(("  Compact".into(), if app.prefs.compact { "on" } else { "off" }.into()));
+        lines.push(("  Used/Total".into(), if app.prefs.show_used { "on" } else { "off" }.into()));
+        lines.push(("  Full paths".into(), if app.prefs.full_mount { "on" } else { "off" }.into()));
+        lines.push(("  Show all".into(), if app.prefs.show_all { "on" } else { "off" }.into()));
+        lines.push(("  Local only".into(), if app.prefs.show_local { "on" } else { "off" }.into()));
+        if !app.prefs.bookmarks.is_empty() {
+            lines.push(("  \u{2605} Bookmarks".into(), format!("{}", app.prefs.bookmarks.len())));
+        }
+        if !app.filter.is_empty() {
+            lines.push(("  Filter".into(), app.filter.clone()));
+        }
+    }
+
+    // Compute box dimensions
+    let max_label_w = lines.iter().map(|(l, _)| l.chars().count()).max().unwrap_or(10);
+    let max_val_w = lines.iter().map(|(_, v)| v.chars().count()).max().unwrap_or(10);
+    let box_w = (max_label_w + max_val_w + 5).min(w as usize - 4) as u16;
+    let box_h = (lines.len() + 2) as u16;
+
+    let x0 = if hover_x + box_w + 2 < w { hover_x + 2 } else { w.saturating_sub(box_w + 2) };
+    let y0 = if hover_y + box_h + 1 < h { hover_y + 1 } else { h.saturating_sub(box_h + 1) };
+
+    // Draw box background
+    for y in y0..y0 + box_h {
+        for x in x0..x0 + box_w {
+            if x < w && y < h {
+                set_cell(buf, x, y, " ", Style::default().bg(HELP_BG));
+            }
+        }
+    }
+
+    // Draw border
+    set_cell(buf, x0, y0, "\u{256D}", border_s);
+    set_cell(buf, x0 + box_w - 1, y0, "\u{256E}", border_s);
+    set_cell(buf, x0, y0 + box_h - 1, "\u{2570}", border_s);
+    set_cell(buf, x0 + box_w - 1, y0 + box_h - 1, "\u{256F}", border_s);
+    for x in x0 + 1..x0 + box_w - 1 {
+        set_cell(buf, x, y0, "\u{2500}", border_s);
+        set_cell(buf, x, y0 + box_h - 1, "\u{2500}", border_s);
+    }
+    for y in y0 + 1..y0 + box_h - 1 {
+        set_cell(buf, x0, y, "\u{2502}", border_s);
+        set_cell(buf, x0 + box_w - 1, y, "\u{2502}", border_s);
+    }
+
+    // Draw content
+    for (i, (label, val)) in lines.iter().enumerate() {
+        let y = y0 + 1 + i as u16;
+        if y >= y0 + box_h - 1 { break; }
+        let lw = max_label_w + 1;
+        set_str(buf, x0 + 1, y, label, label_s, lw as u16);
+        if !val.is_empty() {
+            let vx = x0 + 1 + lw as u16 + 1;
+            let remaining = box_w.saturating_sub(lw as u16 + 3);
+            set_str(buf, vx, y, val, val_s, remaining);
+        }
+    }
+}
+
 fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     let box_w: u16 = 56u16.min(w.saturating_sub(4));
     let box_h: u16 = if app.theme_edit_naming { 16 } else { 15 };
@@ -1279,8 +1404,8 @@ fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
 }
 
 fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
-    let box_w: u16 = 100u16.min(w.saturating_sub(4));
-    let box_h: u16 = 46u16.min(h.saturating_sub(4));
+    let box_w: u16 = 120u16.min(w.saturating_sub(4));
+    let box_h: u16 = 48u16.min(h.saturating_sub(4));
     let x0 = (w.saturating_sub(box_w)) / 2;
     let y0 = (h.saturating_sub(box_h)) / 2;
     let bc = border_color(app);
@@ -1321,6 +1446,11 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     let tx = x0 + (box_w.saturating_sub(tlen)) / 2;
     set_str(buf, tx, y0 + 1, title, title_s, box_w - 2);
 
+    let byline = "by MenkeTechnologies";
+    let byline_s = Style::default().fg(Color::Indexed(240)).bg(HELP_BG);
+    let bx = x0 + (box_w.saturating_sub(byline.len() as u16)) / 2;
+    set_str(buf, bx, y0 + 2, byline, byline_s, box_w - 2);
+
     struct HelpEntry {
         key: &'static str,
         desc: &'static str,
@@ -1330,99 +1460,90 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
 
     fn empty_val(_: &App) -> String { String::new() }
 
-    let entries: Vec<HelpEntry> = vec![
+    // Organize entries into 3 columns for better visibility
+    let col1 = vec![
         HelpEntry { key: "GENERAL", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "q/Q", desc: "Quit (close help first)", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "h/H", desc: "Toggle help overlay", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "p/P", desc: "Pause/resume", val_fn: |a| format!("[{}]", if a.paused {"paused"} else {"running"}), is_section: false },
-        HelpEntry { key: "f/F", desc: "Cycle refresh rate", val_fn: |a| format!("[{}s]", a.prefs.refresh_rate), is_section: false },
-        HelpEntry { key: "l/L", desc: "Local disks only", val_fn: |a| format!("[{}]", if a.prefs.show_local {"on"} else {"off"}), is_section: false },
+        HelpEntry { key: "q/Q", desc: "Quit", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "h/H/?", desc: "Toggle help", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "p/P", desc: "Pause/resume", val_fn: |a| format!("[{}]", if a.paused {"on"} else {"off"}), is_section: false },
+        HelpEntry { key: "f/F", desc: "Cycle refresh", val_fn: |a| format!("[{}s]", a.prefs.refresh_rate), is_section: false },
+        HelpEntry { key: "l/L", desc: "Local only", val_fn: |a| format!("[{}]", if a.prefs.show_local {"on"} else {"off"}), is_section: false },
         HelpEntry { key: "a/A", desc: "All filesystems", val_fn: |a| format!("[{}]", if a.prefs.show_all {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
         HelpEntry { key: "SORT", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "n/N", desc: "Sort by name", val_fn: |a| if a.prefs.sort_mode == SortMode::Name {"[active]".into()} else {String::new()}, is_section: false },
-        HelpEntry { key: "u/U", desc: "Sort by usage %", val_fn: |a| if a.prefs.sort_mode == SortMode::Pct {"[active]".into()} else {String::new()}, is_section: false },
-        HelpEntry { key: "s/S", desc: "Sort by size", val_fn: |a| if a.prefs.sort_mode == SortMode::Size {"[active]".into()} else {String::new()}, is_section: false },
-        HelpEntry { key: "r/R", desc: "Reverse sort", val_fn: |a| format!("[{}]", if a.prefs.sort_rev {"\u{25BC}"} else {"\u{25B2}"}), is_section: false },
-        HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "DISPLAY", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "b", desc: "Cycle bar style", val_fn: |a| format!("[{}]", match a.prefs.bar_style { BarStyle::Gradient=>"gradient", BarStyle::Solid=>"solid", BarStyle::Thin=>"thin", BarStyle::Ascii=>"ascii" }), is_section: false },
-        HelpEntry { key: "c", desc: "Cycle color mode", val_fn: |a| { let n = if let Some(ref t) = a.prefs.active_theme { t.clone() } else { a.prefs.color_mode.name().into() }; format!("[{}]", n) }, is_section: false },
-        HelpEntry { key: "C", desc: "Theme editor", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "v/V", desc: "Toggle bars", val_fn: |a| format!("[{}]", if a.prefs.show_bars {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "d/D", desc: "Toggle used/size", val_fn: |a| format!("[{}]", if a.prefs.show_used {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "g", desc: "Toggle col headers", val_fn: |a| format!("[{}]", if a.prefs.show_header {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "x/X", desc: "Toggle border", val_fn: |a| format!("[{}]", if a.prefs.show_border {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "m/M", desc: "Compact mounts", val_fn: |a| format!("[{}]", if a.prefs.compact {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "w/W", desc: "Full mount paths", val_fn: |a| format!("[{}]", if a.prefs.full_mount {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "i/I", desc: "Cycle units", val_fn: |a| format!("[{}]", match a.prefs.unit_mode { UnitMode::Human=>"human", UnitMode::GiB=>"GiB", UnitMode::MiB=>"MiB", UnitMode::Bytes=>"bytes" }), is_section: false },
-        HelpEntry { key: "t", desc: "Cycle warn threshold", val_fn: |a| format!("[{}%]", a.prefs.thresh_warn), is_section: false },
-        HelpEntry { key: "T", desc: "Cycle crit threshold", val_fn: |a| format!("[{}%]", a.prefs.thresh_crit), is_section: false },
-        HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "n/N", desc: "By name", val_fn: |a| if a.prefs.sort_mode == SortMode::Name {"[\u{2713}]".into()} else {String::new()}, is_section: false },
+        HelpEntry { key: "u/U", desc: "By usage %", val_fn: |a| if a.prefs.sort_mode == SortMode::Pct {"[\u{2713}]".into()} else {String::new()}, is_section: false },
+        HelpEntry { key: "s/S", desc: "By size", val_fn: |a| if a.prefs.sort_mode == SortMode::Size {"[\u{2713}]".into()} else {String::new()}, is_section: false },
+        HelpEntry { key: "r/R", desc: "Reverse", val_fn: |a| format!("[{}]", if a.prefs.sort_rev {"\u{25BC}"} else {"\u{25B2}"}), is_section: false },
         HelpEntry { key: "FILTER", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "/", desc: "Filter (vim-style edit)", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "0", desc: "Clear filter", val_fn: |a| if a.filter.is_empty() {String::new()} else {format!("[{}]", a.filter)}, is_section: false },
-        HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "/", desc: "Filter mode", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "0", desc: "Clear filter", val_fn: empty_val, is_section: false },
         HelpEntry { key: "NAV", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "j/\u{2193}", desc: "Select next disk", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "k/\u{2191}", desc: "Select prev disk", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "G/End", desc: "Jump to last disk", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "^G/Home", desc: "Jump to first disk", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "^D/^U", desc: "Half-page down/up", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "j/k", desc: "Select next/prev", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "G/End", desc: "Jump to last", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "^G/Home", desc: "Jump to first", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "^D/^U", desc: "Half-page dn/up", val_fn: empty_val, is_section: false },
         HelpEntry { key: "Esc", desc: "Deselect", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "ACTIONS", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "Enter", desc: "Drill down into mount", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "o/O", desc: "Open in file manager", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "y/Y", desc: "Copy mount to clipboard", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "e/E", desc: "Export to file", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "B", desc: "Toggle bookmark \u{2605}", val_fn: |a| format!("[{}]", a.prefs.bookmarks.len()), is_section: false },
-        HelpEntry { key: "?", desc: "Show help", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "DRILL DOWN", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "Enter", desc: "Into subdirectory", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Bksp", desc: "Up one level", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Esc", desc: "Back to disk list", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "s/n", desc: "Sort by size/name", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "r", desc: "Reverse sort", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "o/O", desc: "Open directory", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "MOUSE", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "Click", desc: "Select disk row", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Click\u{00D7}2", desc: "Drill into selected", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Drag", desc: "Resize columns", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "R-Click", desc: "Toggle help", val_fn: empty_val, is_section: false },
     ];
 
-    let content_h = (box_h as usize).saturating_sub(4);
-    let half = content_h.div_ceil(2);
-    let col_w = ((box_w as usize).saturating_sub(4)) / 2;
+    let col2 = vec![
+        HelpEntry { key: "DISPLAY", desc: "", val_fn: empty_val, is_section: true },
+        HelpEntry { key: "b", desc: "Bar style", val_fn: |a| format!("[{}]", match a.prefs.bar_style { BarStyle::Gradient=>"grad", BarStyle::Solid=>"solid", BarStyle::Thin=>"thin", BarStyle::Ascii=>"ascii" }), is_section: false },
+        HelpEntry { key: "c", desc: "Color theme", val_fn: |a| { let n = if let Some(ref t) = a.prefs.active_theme { t.clone() } else { a.prefs.color_mode.name().into() }; format!("[{}]", n) }, is_section: false },
+        HelpEntry { key: "C", desc: "Theme editor", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "v/V", desc: "Toggle bars", val_fn: |a| format!("[{}]", if a.prefs.show_bars {"on"} else {"off"}), is_section: false },
+        HelpEntry { key: "d/D", desc: "Used/size cols", val_fn: |a| format!("[{}]", if a.prefs.show_used {"on"} else {"off"}), is_section: false },
+        HelpEntry { key: "g", desc: "Col headers", val_fn: |a| format!("[{}]", if a.prefs.show_header {"on"} else {"off"}), is_section: false },
+        HelpEntry { key: "x/X", desc: "Border", val_fn: |a| format!("[{}]", if a.prefs.show_border {"on"} else {"off"}), is_section: false },
+        HelpEntry { key: "m/M", desc: "Compact mounts", val_fn: |a| format!("[{}]", if a.prefs.compact {"on"} else {"off"}), is_section: false },
+        HelpEntry { key: "w/W", desc: "Full paths", val_fn: |a| format!("[{}]", if a.prefs.full_mount {"on"} else {"off"}), is_section: false },
+        HelpEntry { key: "i/I", desc: "Cycle units", val_fn: |a| format!("[{}]", match a.prefs.unit_mode { UnitMode::Human=>"human", UnitMode::GiB=>"GiB", UnitMode::MiB=>"MiB", UnitMode::Bytes=>"B" }), is_section: false },
+        HelpEntry { key: "t", desc: "Warn threshold", val_fn: |a| format!("[{}%]", a.prefs.thresh_warn), is_section: false },
+        HelpEntry { key: "T", desc: "Crit threshold", val_fn: |a| format!("[{}%]", a.prefs.thresh_crit), is_section: false },
+    ];
 
-    for (i, entry) in entries.iter().enumerate() {
-        let (col, local_idx) = if i < half.min(entries.len()) {
-            (0u16, i)
-        } else {
-            (1u16, i - half.min(entries.len()))
-        };
-        let ey = y0 + 3 + local_idx as u16;
-        if ey >= y0 + box_h - 1 {
-            continue;
-        }
-        let cx = x0 + 2 + col * col_w as u16;
+    let col3 = vec![
+        HelpEntry { key: "ACTIONS", desc: "", val_fn: empty_val, is_section: true },
+        HelpEntry { key: "Enter", desc: "Drill down", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "o/O", desc: "Open in finder", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "y/Y", desc: "Copy path", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "e/E", desc: "Export to file", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "B", desc: "Bookmark \u{2605}", val_fn: |a| format!("[{}]", a.prefs.bookmarks.len()), is_section: false },
+        HelpEntry { key: "DRILL DOWN", desc: "", val_fn: empty_val, is_section: true },
+        HelpEntry { key: "Enter", desc: "Into subdir", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "Bksp", desc: "Up one level", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "Esc", desc: "Back to disks", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "s/n", desc: "Sort size/name", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "r", desc: "Reverse sort", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "o/O", desc: "Open directory", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "MOUSE", desc: "", val_fn: empty_val, is_section: true },
+        HelpEntry { key: "Click", desc: "Select row", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "Click\u{00D7}2", desc: "Drill into", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "Drag", desc: "Resize cols", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "R-Click", desc: "Toggle help", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "Hover", desc: "Tooltip (2s)", val_fn: empty_val, is_section: false },
+    ];
 
-        if entry.key.is_empty() && !entry.is_section {
-            continue;
-        }
+    let columns = [col1, col2, col3];
+    let col_w = ((box_w as usize).saturating_sub(4)) / 3;
 
-        if entry.is_section {
-            set_str(buf, cx, ey, entry.key, section_s, col_w as u16);
-        } else {
-            set_str(buf, cx, ey, entry.key, key_s, 6);
-            set_str(buf, cx + 7, ey, entry.desc, bg_s, 20);
-            let val = (entry.val_fn)(app);
-            if !val.is_empty() {
-                let vw = col_w.saturating_sub(28);
-                set_str(buf, cx + 28, ey, &val, val_s, vw as u16);
+    for (ci, col_entries) in columns.iter().enumerate() {
+        let cx = x0 + 2 + (ci as u16) * col_w as u16;
+        for (ri, entry) in col_entries.iter().enumerate() {
+            let ey = y0 + 4 + ri as u16;
+            if ey >= y0 + box_h - 1 {
+                break;
+            }
+            if entry.is_section {
+                set_str(buf, cx, ey, entry.key, section_s, col_w as u16);
+            } else {
+                set_str(buf, cx, ey, entry.key, key_s, 8);
+                set_str(buf, cx + 9, ey, entry.desc, bg_s, 15);
+                let val = (entry.val_fn)(app);
+                if !val.is_empty() {
+                    let vx = cx + 25;
+                    let vw = col_w.saturating_sub(26);
+                    set_str(buf, vx, ey, &val, val_s, vw as u16);
+                }
             }
         }
     }

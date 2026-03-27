@@ -31,6 +31,7 @@ pub struct App {
     pub status_msg: Option<(String, Instant)>,
     // Hover state
     pub hover_pos: Option<(u16, u16)>,
+    pub hover_since: Option<Instant>,
     // Theme editor state
     pub theme_editor: bool,
     pub theme_edit_colors: [u8; 6],
@@ -76,6 +77,7 @@ impl App {
             status_msg: None,
             drag: None,
             hover_pos: None,
+            hover_since: None,
             theme_editor: false,
             theme_edit_colors: [0; 6],
             theme_edit_slot: 0,
@@ -118,6 +120,7 @@ impl App {
             status_msg: None,
             drag: None,
             hover_pos: None,
+            hover_since: None,
             theme_editor: false,
             theme_edit_colors: [0; 6],
             theme_edit_slot: 0,
@@ -192,6 +195,39 @@ impl App {
             let entries = scan_directory_with_progress(&path, Some(count), Some(total));
             *result.lock().unwrap() = Some(entries);
         });
+    }
+
+    pub fn hover_ready(&self) -> bool {
+        self.hover_since
+            .map(|t| t.elapsed().as_millis() >= 2000)
+            .unwrap_or(false)
+    }
+
+    pub fn hovered_zone(&self, term_h: u16) -> HoverZone {
+        let (_, y) = match self.hover_pos {
+            Some(pos) => pos,
+            None => return HoverZone::None,
+        };
+        let title_row: u16 = if self.prefs.show_border { 1 } else { 0 };
+        let first_disk_row = title_row + 2
+            + if self.prefs.show_header { 2 } else { 0 };
+        let footer_rows: u16 = 2 + if self.prefs.show_border { 1 } else { 0 };
+        let footer_row = term_h.saturating_sub(footer_rows) + 1;
+
+        if y == title_row {
+            return HoverZone::TitleBar;
+        }
+        if y >= footer_row && y < term_h.saturating_sub(if self.prefs.show_border { 1 } else { 0 }) {
+            return HoverZone::FooterBar;
+        }
+        if y >= first_disk_row {
+            let idx = (y - first_disk_row) as usize;
+            let count = self.sorted_disks().len();
+            if idx < count {
+                return HoverZone::DiskRow(idx);
+            }
+        }
+        HoverZone::None
     }
 
     pub fn hovered_disk_index(&self) -> Option<usize> {
@@ -998,7 +1034,11 @@ impl App {
                 self.show_help = !self.show_help;
             }
             MouseEventKind::Moved => {
-                self.hover_pos = Some((event.column, event.row));
+                let new_pos = (event.column, event.row);
+                if self.hover_pos != Some(new_pos) {
+                    self.hover_pos = Some(new_pos);
+                    self.hover_since = Some(Instant::now());
+                }
             }
             _ => {}
         }

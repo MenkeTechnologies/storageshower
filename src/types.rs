@@ -127,6 +127,14 @@ pub enum DrillSortMode {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HoverZone {
+    None,
+    TitleBar,
+    FooterBar,
+    DiskRow(usize),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ViewMode {
     Disks,
     DrillDown,
