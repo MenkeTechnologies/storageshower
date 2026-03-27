@@ -38,3 +38,108 @@ pub fn mount_col_width(inner_w: u16, prefs: &Prefs) -> usize {
         (inner_w as usize / 3).max(12)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+    use crate::app::App;
+    use crate::types::SysStats;
+
+    #[test]
+    fn mount_col_width_default() {
+        let p = Prefs::default();
+        let w = mount_col_width(120, &p);
+        assert_eq!(w, 40); // 120/3
+    }
+
+    #[test]
+    fn mount_col_width_compact() {
+        let mut p = Prefs::default();
+        p.compact = true;
+        assert_eq!(mount_col_width(120, &p), 16);
+    }
+
+    #[test]
+    fn mount_col_width_custom() {
+        let mut p = Prefs::default();
+        p.col_mount_w = 25;
+        assert_eq!(mount_col_width(120, &p), 25);
+    }
+
+    #[test]
+    fn mount_col_width_custom_clamped() {
+        let mut p = Prefs::default();
+        p.col_mount_w = 200;
+        let w = mount_col_width(120, &p);
+        assert!(w <= 100); // clamped to inner_w - 20
+    }
+
+    #[test]
+    fn right_col_width_static_default() {
+        let p = Prefs::default();
+        assert_eq!(right_col_width_static(&p), 22); // show_used=true
+    }
+
+    #[test]
+    fn right_col_width_static_no_used() {
+        let mut p = Prefs::default();
+        p.show_used = false;
+        assert_eq!(right_col_width_static(&p), 7);
+    }
+
+    #[test]
+    fn right_col_width_static_custom() {
+        let mut p = Prefs::default();
+        p.col_bar_end_w = 30;
+        assert_eq!(right_col_width_static(&p), 30);
+    }
+
+    #[test]
+    fn right_col_width_static_custom_min() {
+        let mut p = Prefs::default();
+        p.col_bar_end_w = 2; // below min
+        assert_eq!(right_col_width_static(&p), 5);
+    }
+
+    #[test]
+    fn mount_col_width_small_terminal() {
+        let p = Prefs::default();
+        let w = mount_col_width(30, &p);
+        assert!(w >= 12); // max(30/3, 12) = 12
+    }
+
+    #[test]
+    fn mount_col_width_custom_below_min() {
+        let mut p = Prefs::default();
+        p.col_mount_w = 3; // below min of 8
+        assert_eq!(mount_col_width(120, &p), 8);
+    }
+
+    #[test]
+    fn right_col_width_no_used() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.prefs.show_used = false;
+        assert_eq!(right_col_width(&app), 7);
+    }
+
+    #[test]
+    fn right_col_width_custom_override() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.prefs.col_bar_end_w = 40;
+        assert_eq!(right_col_width(&app), 40);
+    }
+
+    #[test]
+    fn right_col_width_custom_min_clamp() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs = Prefs::default();
+        app.prefs.col_bar_end_w = 2;
+        assert_eq!(right_col_width(&app), 5); // min 5
+    }
+}
