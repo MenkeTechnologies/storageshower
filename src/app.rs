@@ -216,6 +216,10 @@ impl App {
         if self.prefs.sort_rev {
             ds.reverse();
         }
+        // Pin bookmarks to the top
+        if !self.prefs.bookmarks.is_empty() {
+            ds.sort_by_key(|d| if self.prefs.bookmarks.contains(&d.mount) { 0 } else { 1 });
+        }
         ds
     }
 
@@ -787,6 +791,24 @@ impl App {
                             Ok(_) => self.status_msg = Some((format!("Copied: {}", mount), Instant::now())),
                             Err(_) => self.status_msg = Some(("Copy failed (pbcopy not found)".into(), Instant::now())),
                         }
+                    }
+                } else {
+                    self.status_msg = Some(("Select a disk first (j/k)".into(), Instant::now()));
+                }
+            }
+            KeyCode::Char('B') => {
+                if let Some(idx) = self.selected {
+                    let disks = self.sorted_disks();
+                    if let Some(disk) = disks.get(idx) {
+                        let mount = disk.mount.clone();
+                        if let Some(pos) = self.prefs.bookmarks.iter().position(|b| *b == mount) {
+                            self.prefs.bookmarks.remove(pos);
+                            self.status_msg = Some((format!("Unpinned {}", mount), Instant::now()));
+                        } else {
+                            self.prefs.bookmarks.push(mount.clone());
+                            self.status_msg = Some((format!("Pinned \u{2605} {}", mount), Instant::now()));
+                        }
+                        self.save();
                     }
                 } else {
                     self.status_msg = Some(("Select a disk first (j/k)".into(), Instant::now()));
@@ -2423,6 +2445,44 @@ mod tests {
             80,
         );
         assert_eq!(app.view_mode, ViewMode::DrillDown);
+    }
+
+    // ── Bookmarks ──────────────────────────────────────────
+
+    #[test]
+    fn bookmark_toggle_on_selected() {
+        let mut app = test_app();
+        app.selected = Some(0);
+        assert!(app.prefs.bookmarks.is_empty());
+        app.handle_key(make_key(KeyCode::Char('B')));
+        assert_eq!(app.prefs.bookmarks, vec!["/"]);
+        // Toggle off
+        app.handle_key(make_key(KeyCode::Char('B')));
+        assert!(app.prefs.bookmarks.is_empty());
+    }
+
+    #[test]
+    fn bookmark_pins_to_top() {
+        let mut app = test_app();
+        app.prefs.sort_mode = SortMode::Name;
+        app.prefs.sort_rev = false;
+        // Without bookmark, "/" is first alphabetically
+        let disks = app.sorted_disks();
+        assert_eq!(disks[0].mount, "/");
+
+        // Bookmark "/home" — it should appear first
+        app.prefs.bookmarks.push("/home".into());
+        let disks = app.sorted_disks();
+        assert_eq!(disks[0].mount, "/home");
+    }
+
+    #[test]
+    fn bookmark_no_selection_shows_message() {
+        let mut app = test_app();
+        app.selected = None;
+        app.handle_key(make_key(KeyCode::Char('B')));
+        assert!(app.prefs.bookmarks.is_empty());
+        assert!(app.status_msg.is_some());
     }
 
     // ── Slash in filter preserves prev filter ─────────────

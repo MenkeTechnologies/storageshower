@@ -34,6 +34,8 @@ pub struct Prefs {
     pub custom_themes: HashMap<String, ThemeColors>,
     #[serde(default)]
     pub active_theme: Option<String>,
+    #[serde(default)]
+    pub bookmarks: Vec<String>,
 }
 
 fn default_true() -> bool { true }
@@ -62,6 +64,7 @@ impl Default for Prefs {
             col_pct_w: 0,
             custom_themes: HashMap::new(),
             active_theme: None,
+            bookmarks: Vec::new(),
         }
     }
 }

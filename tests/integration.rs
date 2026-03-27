@@ -1110,3 +1110,35 @@ fn alert_clears_when_disk_drops_below_threshold() {
     app.refresh_data();
     assert!(!app.alert_mounts.contains("/"), "Mount should be cleared from alert set");
 }
+
+// ─── Bookmarks ───────────────────────────────────────────────────────────
+
+#[test]
+fn bookmark_persists_in_prefs_roundtrip() {
+    let mut prefs = Prefs::default();
+    prefs.bookmarks = vec!["/".into(), "/home".into()];
+    let serialized = toml::to_string_pretty(&prefs).unwrap();
+    let deserialized: Prefs = toml::from_str(&serialized).unwrap();
+    assert_eq!(deserialized.bookmarks, vec!["/", "/home"]);
+}
+
+#[test]
+fn bookmarked_disks_appear_first() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.sort_mode = SortMode::Name;
+    app.prefs.bookmarks = vec!["/home".into()];
+    let disks = app.sorted_disks();
+    assert_eq!(disks[0].mount, "/home", "Bookmarked disk should be first");
+}
+
+#[test]
+fn multiple_bookmarks_all_pinned() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.sort_mode = SortMode::Name;
+    app.prefs.bookmarks = vec!["/home".into(), "/data".into()];
+    let disks = app.sorted_disks();
+    // Both bookmarked disks should be in top 2
+    let top2: Vec<&str> = disks.iter().take(2).map(|d| d.mount.as_str()).collect();
+    assert!(top2.contains(&"/home"));
+    assert!(top2.contains(&"/data"));
+}

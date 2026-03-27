@@ -433,13 +433,18 @@ pub fn draw(frame: &mut Frame, app: &App) {
             }
         }
 
+        let is_bookmarked = app.prefs.bookmarks.contains(&disk.mount);
         let icon_str = if is_selected {
             format!("\u{25B8}{} ", icon)
+        } else if is_bookmarked {
+            format!("\u{2605}{} ", icon)
         } else {
             format!(" {} ", icon)
         };
         let icon_style = if is_selected {
             Style::default().fg(fg_color).bg(Color::Indexed(237))
+        } else if is_bookmarked {
+            Style::default().fg(Color::Indexed(220)) // gold star
         } else {
             Style::default().fg(fg_color)
         };
@@ -1215,6 +1220,7 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         HelpEntry { key: "Enter", desc: "Open mount in finder", val_fn: empty_val, is_section: false },
         HelpEntry { key: "y/Y", desc: "Copy mount to clipboard", val_fn: empty_val, is_section: false },
         HelpEntry { key: "e/E", desc: "Export to file", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "B", desc: "Toggle bookmark", val_fn: |a| format!("[{}]", a.prefs.bookmarks.len()), is_section: false },
         HelpEntry { key: "?", desc: "Show help", val_fn: empty_val, is_section: false },
     ];
 

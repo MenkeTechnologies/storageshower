@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v9.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v10.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -339,6 +339,7 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `o` `O` | Open selected mount in file manager |
 | `y` `Y` | Copy mount path to clipboard |
 | `e` `E` | Export disk matrix to file |
+| `B` | Toggle bookmark (pin to top) |
 
 #### `// DRILL_DOWN_MODE`
 
@@ -475,6 +476,7 @@ cargo bench
  │  >> show used    >> show local       >> custom widths   │
  │  >> mount col w  >> right col w      >> pct col w       │
  │  >> custom themes (HashMap)         >> active theme    │
+ │  >> bookmarks (Vec<String>)                           │
  └──────────────────────────────────────────────────────┘
 ```
 
