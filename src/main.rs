@@ -27,6 +27,12 @@ fn main() -> io::Result<()> {
         cli::print_colors();
         return Ok(());
     }
+    if cli.export_theme {
+        let mut prefs = storageshower::prefs::load_prefs_from(cli.config.as_deref());
+        cli.apply_to(&mut prefs);
+        cli::print_export_theme(&prefs);
+        return Ok(());
+    }
 
     let sys = System::new_all();
     let initial_stats = collect_sys_stats(&sys);

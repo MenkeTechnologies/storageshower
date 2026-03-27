@@ -1326,3 +1326,25 @@ fn drill_sort_resets_selection() {
     app.handle_key(make_key(KeyCode::Char('n')));
     assert_eq!(app.drill_selected, 0, "Sort should reset selection to 0");
 }
+
+// ─── Export theme CLI ────────────────────────────────────────────────────
+
+#[test]
+fn export_theme_flag_parses() {
+    let cli = Cli::parse_from(["storageshower", "--export-theme"]);
+    assert!(cli.export_theme);
+}
+
+#[test]
+fn export_theme_with_color_flag() {
+    let cli = Cli::parse_from(["storageshower", "--export-theme", "-c", "purple"]);
+    assert!(cli.export_theme);
+    assert_eq!(cli.color_mode, Some(ColorMode::Purple));
+}
+
+#[test]
+fn export_theme_with_theme_flag() {
+    let cli = Cli::parse_from(["storageshower", "--export-theme", "--theme", "mytest"]);
+    assert!(cli.export_theme);
+    assert_eq!(cli.theme, Some("mytest".into()));
+}

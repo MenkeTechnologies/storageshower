@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v13.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v14.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -207,6 +207,7 @@ to force-override in either direction.
 | `-c, --color PALETTE` | Color palette — `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset` |
 | `--theme NAME` | Activate a custom theme by name (defined in config) |
 | `--list-colors` | List all builtin color schemes with preview |
+| `--export-theme` | Export current palette as TOML (combine with `-c` or `--theme`) |
 | `-u, --units MODE` | Unit display — `human`, `gib`, `mib`, `bytes` |
 | `-k, --compact` / `--no-compact` | Compact mount names |
 | `-f, --full-mount` / `--no-full-mount` | Show full mount paths |
@@ -248,6 +249,7 @@ storageshower -l --no-virtual        # local physical disks only
 storageshower -u gib -w 60 -C 85    # GiB units, custom thresholds
 storageshower --theme neonpink       # activate custom theme
 storageshower --list-colors          # preview all builtin palettes
+storageshower --export-theme -c blue # export blue palette as TOML
 storageshower --config /tmp/ss.conf  # use alternate config
 ```
 

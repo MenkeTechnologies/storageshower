@@ -143,6 +143,10 @@ pub struct Cli {
     /// Activate a custom theme by name (defined in config file)
     #[arg(long = "theme", value_name = "NAME")]
     pub theme: Option<String>,
+
+    /// Export the current or named theme as TOML
+    #[arg(long = "export-theme")]
+    pub export_theme: bool,
 }
 
 // ANSI color constants
@@ -187,6 +191,8 @@ pub fn print_help() {
 {B_GREEN}   -b, --bar-style STYLE {RST}bar visualization {B_MAGENTA}(gradient, solid, thin, ascii){RST}
 {B_GREEN}   -c, --color PALETTE   {RST}color palette {B_MAGENTA}(default, green, blue, purple, ...){RST}
 {B_GREEN}       --list-colors      {RST}list all builtin color schemes
+{B_GREEN}       --export-theme     {RST}export current palette as TOML
+{B_GREEN}       --theme NAME       {RST}activate a custom theme by name
 {B_GREEN}   -u, --units MODE      {RST}unit display {B_MAGENTA}(human, gib, mib, bytes){RST}
 {B_GREEN}   -k, --compact         {RST}compact mount names
 {B_GREEN}   -f, --full-mount      {RST}show full mount paths
@@ -274,6 +280,43 @@ pub fn print_colors() {
     }
     println!("\n  {B_YELLOW}Usage:{RST} storageshower {B_GREEN}-c{RST} {B_MAGENTA}<flag>{RST}");
     println!("  {B_YELLOW}Cycle:{RST} press {B_GREEN}c{RST} in the TUI\n");
+}
+
+pub fn print_export_theme(prefs: &Prefs) {
+    use crate::ui::{palette, palette_for_prefs};
+    use ratatui::style::Color;
+
+    fn idx(c: Color) -> u8 {
+        match c { Color::Indexed(n) => n, _ => 0 }
+    }
+
+    let (name, colors) = if let Some(ref theme_name) = prefs.active_theme {
+        if let Some(theme) = prefs.custom_themes.get(theme_name) {
+            (theme_name.clone(), [theme.blue, theme.green, theme.purple, theme.light_purple, theme.royal, theme.dark_purple])
+        } else {
+            let (a, b, c, d, e, f) = palette(prefs.color_mode);
+            (prefs.color_mode.name().to_string(), [idx(a), idx(b), idx(c), idx(d), idx(e), idx(f)])
+        }
+    } else {
+        let (a, b, c, d, e, f) = palette_for_prefs(prefs);
+        (prefs.color_mode.name().to_string(), [idx(a), idx(b), idx(c), idx(d), idx(e), idx(f)])
+    };
+
+    let safe_name: String = name.chars()
+        .map(|c| if c.is_alphanumeric() || c == '_' { c.to_ascii_lowercase() } else { '_' })
+        .collect();
+
+    println!("# {} — exported from storageshower", name);
+    println!("[custom_themes.{}]", safe_name);
+    println!("blue         = {}", colors[0]);
+    println!("green        = {}", colors[1]);
+    println!("purple       = {}", colors[2]);
+    println!("light_purple = {}", colors[3]);
+    println!("royal        = {}", colors[4]);
+    println!("dark_purple  = {}", colors[5]);
+    println!();
+    println!("# Paste into ~/.storageshower.conf and set:");
+    println!("# active_theme = \"{}\"", safe_name);
 }
 
 impl Cli {
