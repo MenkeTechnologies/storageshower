@@ -2,7 +2,8 @@ pub mod app;
 pub mod cli;
 pub mod columns;
 pub mod helpers;
-mod input;
+mod keys;
+mod mouse;
 pub mod prefs;
 pub mod system;
 #[cfg(test)]
