@@ -79,20 +79,20 @@ pub fn get_local_ip() -> String {
 }
 
 #[cfg(unix)]
-pub fn get_tty() -> Result<String, ()> {
+pub fn get_tty() -> Option<String> {
     unsafe {
         let name = libc::ttyname(0);
         if name.is_null() {
-            Err(())
+            None
         } else {
-            Ok(std::ffi::CStr::from_ptr(name).to_string_lossy().into_owned())
+            Some(std::ffi::CStr::from_ptr(name).to_string_lossy().into_owned())
         }
     }
 }
 
 #[cfg(not(unix))]
-pub fn get_tty() -> Result<String, ()> {
-    Err(())
+pub fn get_tty() -> Option<String> {
+    None
 }
 
 pub fn get_battery() -> Option<u8> {

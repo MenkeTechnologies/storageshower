@@ -520,7 +520,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
                 }
             }
             if inner_w > 140 {
-                if let Ok(tty) = get_tty() {
+                if let Some(tty) = get_tty() {
                     footer.push_str(&format!(" \u{2502} tty:{}", tty));
                 }
             }
@@ -771,7 +771,7 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     ];
 
     let content_h = (box_h as usize).saturating_sub(4);
-    let half = (content_h + 1) / 2;
+    let half = content_h.div_ceil(2);
     let col_w = ((box_w as usize).saturating_sub(4)) / 2;
 
     for (i, entry) in entries.iter().enumerate() {
