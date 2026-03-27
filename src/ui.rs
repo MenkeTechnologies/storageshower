@@ -504,7 +504,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
     let (max_used_w, max_total_w) = if app.prefs.show_used {
         let mut mu = 4usize;
         let mut mt = 4usize;
-        for d in &disks {
+        for d in disks {
             mu = mu.max(format_bytes(d.used, app.prefs.unit_mode).len());
             mt = mt.max(format_bytes(d.total, app.prefs.unit_mode).len());
         }

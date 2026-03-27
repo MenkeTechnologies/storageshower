@@ -52,17 +52,20 @@ fn copy_to_clipboard(text: &str) -> Result<(), String> {
     Err("no clipboard tool found (pbcopy/wl-copy/xclip/xsel)".into())
 }
 
+#[derive(Default)]
 pub struct AlertState {
     pub mounts: HashSet<String>,
     pub flash: Option<Instant>,
 }
 
+#[derive(Default)]
 pub struct HoverState {
     pub pos: Option<(u16, u16)>,
     pub since: Option<Instant>,
     pub right_click: bool,
 }
 
+#[derive(Default)]
 pub struct ThemeEditState {
     pub active: bool,
     pub colors: [u8; 6],
@@ -72,6 +75,7 @@ pub struct ThemeEditState {
     pub cursor: usize,
 }
 
+#[derive(Default)]
 pub struct FilterState {
     pub text: String,
     pub active: bool,
@@ -94,11 +98,40 @@ pub struct DrillState {
     pub scan_total: Arc<Mutex<usize>>,
 }
 
+impl Default for DrillState {
+    fn default() -> Self {
+        Self {
+            mode: ViewMode::Disks,
+            sort: DrillSortMode::Size,
+            sort_rev: false,
+            path: Vec::new(),
+            entries: Vec::new(),
+            selected: 0,
+            scroll_offset: 0,
+            scanning: false,
+            scan_result: Arc::new(Mutex::new(None)),
+            scan_count: Arc::new(Mutex::new(0)),
+            scan_total: Arc::new(Mutex::new(0)),
+        }
+    }
+}
+
 pub struct ThemeChooser {
     pub active: bool,
     pub selected: usize,
     pub orig_color_mode: ColorMode,
     pub orig_active_theme: Option<String>,
+}
+
+impl Default for ThemeChooser {
+    fn default() -> Self {
+        Self {
+            active: false,
+            selected: 0,
+            orig_color_mode: ColorMode::Default,
+            orig_active_theme: None,
+        }
+    }
 }
 
 pub struct App {
@@ -120,72 +153,24 @@ pub struct App {
     pub drill: DrillState,
     pub theme_chooser: ThemeChooser,
     pub test_mode: bool,
+    pub sorted_cache: Vec<DiskEntry>,
 }
 
 impl App {
     pub fn new(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>, cli: &Cli) -> Self {
         let mut prefs = load_prefs_from(cli.config.as_deref());
         cli.apply_to(&mut prefs);
-        let (stats, disks) = shared.lock().unwrap().clone();
-        Self {
-            prefs,
-            disks,
-            stats,
-            shared_stats: shared,
-            paused: false,
-            show_help: false,
-            quit: false,
-            selected: None,
-            scroll_offset: 0,
-            status_msg: None,
-            drag: None,
-            filter: FilterState {
-                text: String::new(),
-                active: false,
-                buf: String::new(),
-                prev: String::new(),
-                cursor: 0,
-            },
-            hover: HoverState {
-                pos: None,
-                since: None,
-                right_click: false,
-            },
-            theme_edit: ThemeEditState {
-                active: false,
-                colors: [0; 6],
-                slot: 0,
-                naming: false,
-                name: String::new(),
-                cursor: 0,
-            },
-            alert: AlertState {
-                mounts: HashSet::new(),
-                flash: None,
-            },
-            drill: DrillState {
-                mode: ViewMode::Disks,
-                sort: DrillSortMode::Size,
-                sort_rev: false,
-                path: Vec::new(),
-                entries: Vec::new(),
-                selected: 0,
-                scroll_offset: 0,
-                scanning: false,
-                scan_result: Arc::new(Mutex::new(None)),
-                scan_count: Arc::new(Mutex::new(0)),
-                scan_total: Arc::new(Mutex::new(0)),
-            },
-            theme_chooser: ThemeChooser { active: false, selected: 0, orig_color_mode: ColorMode::Default, orig_active_theme: None },
-            test_mode: false,
-        }
+        Self::with_prefs(shared, prefs)
     }
 
     /// Create with default prefs (no CLI overrides).
     pub fn new_default(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>) -> Self {
-        let prefs = Prefs::default();
+        Self::with_prefs(shared, Prefs::default())
+    }
+
+    fn with_prefs(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>, prefs: Prefs) -> Self {
         let (stats, disks) = shared.lock().unwrap().clone();
-        Self {
+        let mut app = Self {
             prefs,
             disks,
             stats,
@@ -197,46 +182,17 @@ impl App {
             scroll_offset: 0,
             status_msg: None,
             drag: None,
-            filter: FilterState {
-                text: String::new(),
-                active: false,
-                buf: String::new(),
-                prev: String::new(),
-                cursor: 0,
-            },
-            hover: HoverState {
-                pos: None,
-                since: None,
-                right_click: false,
-            },
-            theme_edit: ThemeEditState {
-                active: false,
-                colors: [0; 6],
-                slot: 0,
-                naming: false,
-                name: String::new(),
-                cursor: 0,
-            },
-            alert: AlertState {
-                mounts: HashSet::new(),
-                flash: None,
-            },
-            drill: DrillState {
-                mode: ViewMode::Disks,
-                sort: DrillSortMode::Size,
-                sort_rev: false,
-                path: Vec::new(),
-                entries: Vec::new(),
-                selected: 0,
-                scroll_offset: 0,
-                scanning: false,
-                scan_result: Arc::new(Mutex::new(None)),
-                scan_count: Arc::new(Mutex::new(0)),
-                scan_total: Arc::new(Mutex::new(0)),
-            },
-            theme_chooser: ThemeChooser { active: false, selected: 0, orig_color_mode: ColorMode::Default, orig_active_theme: None },
+            filter: FilterState::default(),
+            hover: HoverState::default(),
+            theme_edit: ThemeEditState::default(),
+            alert: AlertState::default(),
+            drill: DrillState::default(),
+            theme_chooser: ThemeChooser::default(),
             test_mode: false,
-        }
+            sorted_cache: Vec::new(),
+        };
+        app.update_sorted();
+        app
     }
 
     pub fn refresh_data(&mut self) {
@@ -256,6 +212,7 @@ impl App {
         let (stats, disks) = self.shared_stats.lock().unwrap().clone();
         self.stats = stats;
         self.disks = disks;
+        self.update_sorted();
 
         // Check for newly crossed thresholds
         let warn = self.prefs.thresh_warn as f64;
@@ -420,7 +377,9 @@ impl App {
         }
     }
 
-    pub fn sorted_disks(&self) -> Vec<DiskEntry> {
+    /// Recompute the cached sorted/filtered disk list.
+    /// Call this after changing disks, prefs, or filter state.
+    pub fn update_sorted(&mut self) {
         let mut ds: Vec<DiskEntry> = self.disks.clone();
         if !self.prefs.show_all {
             ds.retain(|d| {
@@ -457,11 +416,15 @@ impl App {
         if self.prefs.sort_rev {
             ds.reverse();
         }
-        // Pin bookmarks to the top
         if !self.prefs.bookmarks.is_empty() {
             ds.sort_by_key(|d| if self.prefs.bookmarks.contains(&d.mount) { 0 } else { 1 });
         }
-        ds
+        self.sorted_cache = ds;
+    }
+
+    /// Return the cached sorted/filtered disk list.
+    pub fn sorted_disks(&self) -> &[DiskEntry] {
+        &self.sorted_cache
     }
 
     pub fn save(&self) {
@@ -1045,7 +1008,7 @@ impl App {
                 out.push_str(&format!("Host: {}  Date: {} {}\n\n", self.stats.hostname, chrono_now().0, chrono_now().1));
                 out.push_str(&format!("{:<30} {:>5} {:>10} {:>10}\n", "MOUNT", "PCT", "USED", "TOTAL"));
                 out.push_str(&format!("{}\n", "-".repeat(60)));
-                for d in &disks {
+                for d in disks {
                     out.push_str(&format!("{:<30} {:>4.0}% {:>10} {:>10}\n",
                         d.mount, d.pct,
                         format_bytes(d.used, self.prefs.unit_mode),
@@ -1320,7 +1283,7 @@ pub fn right_col_width(app: &App) -> u16 {
     let disks = app.sorted_disks();
     let mut mu = 4usize;
     let mut mt = 4usize;
-    for d in &disks {
+    for d in disks {
         mu = mu.max(format_bytes(d.used, app.prefs.unit_mode).len());
         mt = mt.max(format_bytes(d.total, app.prefs.unit_mode).len());
     }
@@ -1380,10 +1343,9 @@ mod tests {
         let mut app = App::new_default(shared);
         app.disks = disks;
         app.stats = stats;
-        // Reset prefs to defaults so tests are deterministic
-        // (load_prefs may read user's config from disk)
         app.prefs = Prefs::default();
         app.test_mode = true;
+        app.update_sorted();
         app
     }
 
@@ -1452,6 +1414,7 @@ mod tests {
         let mut app = test_app();
         app.prefs.sort_mode = SortMode::Name;
         app.prefs.sort_rev = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         let names: Vec<&str> = disks.iter().map(|d| d.mount.as_str()).collect();
         assert_eq!(names, vec!["/", "/data", "/home", "/tmp"]);
@@ -1462,6 +1425,7 @@ mod tests {
         let mut app = test_app();
         app.prefs.sort_mode = SortMode::Name;
         app.prefs.sort_rev = true;
+        app.update_sorted();
         let disks = app.sorted_disks();
         let names: Vec<&str> = disks.iter().map(|d| d.mount.as_str()).collect();
         assert_eq!(names, vec!["/tmp", "/home", "/data", "/"]);
@@ -1472,6 +1436,7 @@ mod tests {
         let mut app = test_app();
         app.prefs.sort_mode = SortMode::Pct;
         app.prefs.sort_rev = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         let pcts: Vec<f64> = disks.iter().map(|d| d.pct).collect();
         assert!(pcts.windows(2).all(|w| w[0] <= w[1]));
@@ -1482,6 +1447,7 @@ mod tests {
         let mut app = test_app();
         app.prefs.sort_mode = SortMode::Size;
         app.prefs.sort_rev = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         let sizes: Vec<u64> = disks.iter().map(|d| d.total).collect();
         assert!(sizes.windows(2).all(|w| w[0] <= w[1]));
@@ -1493,6 +1459,7 @@ mod tests {
     fn sorted_disks_filter() {
         let mut app = test_app();
         app.filter.text = "home".into();
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert_eq!(disks.len(), 1);
         assert_eq!(disks[0].mount, "/home");
@@ -1502,6 +1469,7 @@ mod tests {
     fn sorted_disks_filter_case_insensitive() {
         let mut app = test_app();
         app.filter.text = "HOME".into();
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert_eq!(disks.len(), 1);
         assert_eq!(disks[0].mount, "/home");
@@ -1511,6 +1479,7 @@ mod tests {
     fn sorted_disks_filter_no_match() {
         let mut app = test_app();
         app.filter.text = "nonexistent".into();
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(disks.is_empty());
     }
@@ -1519,6 +1488,7 @@ mod tests {
     fn sorted_disks_show_all_off_filters_tmpfs() {
         let mut app = test_app();
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.fs == "tmpfs"));
     }
@@ -2343,6 +2313,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.mount.starts_with("/sys")));
     }
@@ -2356,6 +2327,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.mount.starts_with("/proc")));
     }
@@ -2369,6 +2341,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.mount.starts_with("/dev/shm")));
     }
@@ -2382,6 +2355,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.mount.starts_with("/run")));
     }
@@ -2395,6 +2369,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.mount.starts_with("/snap")));
     }
@@ -2408,6 +2383,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.fs == "overlay"));
     }
@@ -2421,6 +2397,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.fs == "devtmpfs"));
     }
@@ -2434,6 +2411,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.fs == "devfs"));
     }
@@ -2447,6 +2425,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.fs == "autofs"));
     }
@@ -2460,6 +2439,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.fs == "map"));
     }
@@ -2473,6 +2453,7 @@ mod tests {
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
         app.prefs.show_all = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert!(!disks.iter().any(|d| d.mount == "/empty"));
     }
@@ -2600,6 +2581,7 @@ mod tests {
         let mut app = test_app();
         app.prefs.sort_mode = SortMode::Pct;
         app.prefs.sort_rev = true;
+        app.update_sorted();
         let disks = app.sorted_disks();
         let pcts: Vec<f64> = disks.iter().map(|d| d.pct).collect();
         assert!(pcts.windows(2).all(|w| w[0] >= w[1]));
@@ -2610,6 +2592,7 @@ mod tests {
         let mut app = test_app();
         app.prefs.sort_mode = SortMode::Size;
         app.prefs.sort_rev = true;
+        app.update_sorted();
         let disks = app.sorted_disks();
         let sizes: Vec<u64> = disks.iter().map(|d| d.total).collect();
         assert!(sizes.windows(2).all(|w| w[0] >= w[1]));
@@ -2629,6 +2612,7 @@ mod tests {
         app.filter.text = "data".into();
         app.prefs.sort_mode = SortMode::Size;
         app.prefs.sort_rev = false;
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert_eq!(disks.len(), 2);
         assert!(disks[0].total <= disks[1].total);
@@ -2851,12 +2835,14 @@ mod tests {
         let mut app = test_app();
         app.prefs.sort_mode = SortMode::Name;
         app.prefs.sort_rev = false;
+        app.update_sorted();
         // Without bookmark, "/" is first alphabetically
         let disks = app.sorted_disks();
         assert_eq!(disks[0].mount, "/");
 
         // Bookmark "/home" — it should appear first
         app.prefs.bookmarks.push("/home".into());
+        app.update_sorted();
         let disks = app.sorted_disks();
         assert_eq!(disks[0].mount, "/home");
     }

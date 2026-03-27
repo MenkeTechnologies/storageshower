@@ -79,6 +79,7 @@ fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<()> {
                 app.ensure_drill_visible(drill_visible.max(1));
             }
         }
+        app.update_sorted();
         terminal.draw(|f| draw(f, app))?;
 
         if event::poll(Duration::from_millis(200))? {

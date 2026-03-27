@@ -39,6 +39,7 @@ fn make_app_with_disks(disks: Vec<DiskEntry>) -> App {
     app.stats = stats;
     app.prefs = Prefs::default();
     app.test_mode = true;
+    app.update_sorted();
     app
 }
 
@@ -51,6 +52,7 @@ fn full_workflow_sort_filter_navigate() {
     // Sort by size
     app.handle_key(make_key(KeyCode::Char('s')));
     assert_eq!(app.prefs.sort_mode, SortMode::Size);
+    app.update_sorted();
     let disks = app.sorted_disks();
     assert!(disks[0].total <= disks[1].total);
 
@@ -66,6 +68,7 @@ fn full_workflow_sort_filter_navigate() {
     assert!(!app.filter.active);
     assert_eq!(app.filter.text, "data");
 
+    app.update_sorted();
     let filtered = app.sorted_disks();
     assert_eq!(filtered.len(), 1);
     assert_eq!(filtered[0].mount, "/data");
@@ -77,6 +80,7 @@ fn full_workflow_sort_filter_navigate() {
     // Clear filter
     app.handle_key(make_key(KeyCode::Char('0')));
     assert!(app.filter.text.is_empty());
+    app.update_sorted();
     assert_eq!(app.sorted_disks().len(), 3);
 }
 
@@ -289,6 +293,7 @@ fn filter_vim_editing_workflow() {
     assert_eq!(app.filter.cursor, 4);
 
     // Live filter should show 1 result
+    app.update_sorted();
     assert_eq!(app.sorted_disks().len(), 1);
 
     // Move cursor to start (Ctrl+A)
@@ -309,6 +314,7 @@ fn filter_vim_editing_workflow() {
     });
     assert_eq!(app.filter.buf, "");
     // Live filter: all disks visible again
+    app.update_sorted();
     assert_eq!(app.sorted_disks().len(), 3);
 
     // Esc cancels — but since we entered with empty filter_prev, it restores ""
@@ -585,6 +591,7 @@ fn sort_stability_equal_pct() {
     ];
     let mut app = make_app_with_disks(disks);
     app.prefs.sort_mode = SortMode::Pct;
+    app.update_sorted();
     let sorted = app.sorted_disks();
     // With equal pct, sort should not crash
     assert_eq!(sorted.len(), 3);
@@ -598,6 +605,7 @@ fn sort_stability_equal_size() {
     ];
     let mut app = make_app_with_disks(disks);
     app.prefs.sort_mode = SortMode::Size;
+    app.update_sorted();
     let sorted = app.sorted_disks();
     assert_eq!(sorted.len(), 2);
 }
@@ -625,12 +633,14 @@ fn sort_and_filter_many_disks() {
 
     // Sort by pct
     app.prefs.sort_mode = SortMode::Pct;
+    app.update_sorted();
     let sorted = app.sorted_disks();
     assert_eq!(sorted.len(), 500);
     assert!(sorted.windows(2).all(|w| w[0].pct <= w[1].pct));
 
     // Filter
     app.filter.text = "mount_00".into();
+    app.update_sorted();
     let filtered = app.sorted_disks();
     assert!(filtered.len() < 500);
     assert!(filtered.iter().all(|d| d.mount.contains("mount_00")));
@@ -729,6 +739,7 @@ fn workflow_change_all_settings_then_sort() {
 
     // Now sort and verify it still works
     app.handle_key(make_key(KeyCode::Char('s'))); // sort by size
+    app.update_sorted();
     let sorted = app.sorted_disks();
     assert!(sorted.windows(2).all(|w| w[0].total <= w[1].total));
 
@@ -1138,6 +1149,7 @@ fn bookmarked_disks_appear_first() {
     let mut app = make_app_with_disks(sample_disks());
     app.prefs.sort_mode = SortMode::Name;
     app.prefs.bookmarks = vec!["/home".into()];
+    app.update_sorted();
     let disks = app.sorted_disks();
     assert_eq!(disks[0].mount, "/home", "Bookmarked disk should be first");
 }
@@ -1147,6 +1159,7 @@ fn multiple_bookmarks_all_pinned() {
     let mut app = make_app_with_disks(sample_disks());
     app.prefs.sort_mode = SortMode::Name;
     app.prefs.bookmarks = vec!["/home".into(), "/data".into()];
+    app.update_sorted();
     let disks = app.sorted_disks();
     // Both bookmarked disks should be in top 2
     let top2: Vec<&str> = disks.iter().take(2).map(|d| d.mount.as_str()).collect();
