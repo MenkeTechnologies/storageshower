@@ -50,7 +50,6 @@ fn main() -> io::Result<()> {
     let result = run_app(&mut terminal, &mut app);
     crossterm::execute!(std::io::stdout(), DisableMouseCapture, DisableFocusChange)?;
     ratatui::restore();
-    app.save();
     result
 }
 
