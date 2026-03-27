@@ -1142,3 +1142,73 @@ fn multiple_bookmarks_all_pinned() {
     assert!(top2.contains(&"/home"));
     assert!(top2.contains(&"/data"));
 }
+
+// ─── Open in file manager (o key) ───────────────────────────────────────
+
+#[test]
+fn o_key_does_not_drill_down() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.selected = Some(0);
+    app.handle_key(make_key(KeyCode::Char('o')));
+    // Should NOT change view mode — just spawns open command
+    assert_eq!(app.view_mode, ViewMode::Disks);
+}
+
+// ─── Drill-down backspace navigation ─────────────────────────────────────
+
+#[test]
+fn drill_down_backspace_returns_to_disks() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_path = vec!["/".into()];
+    app.handle_key(make_key(KeyCode::Backspace));
+    assert_eq!(app.view_mode, ViewMode::Disks);
+    assert!(app.drill_path.is_empty());
+}
+
+#[test]
+fn drill_down_backspace_goes_up_one_level() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_path = vec!["/".into(), "/usr".into()];
+    app.handle_key(make_key(KeyCode::Backspace));
+    assert_eq!(app.view_mode, ViewMode::DrillDown);
+    assert_eq!(app.drill_path, vec!["/"]);
+}
+
+// ─── SmartHealth display values ──────────────────────────────────────────
+
+#[test]
+fn smart_health_copy_and_debug() {
+    let v = SmartHealth::Verified;
+    let c = v;
+    assert_eq!(c, SmartHealth::Verified);
+    assert_eq!(format!("{:?}", SmartHealth::Failing), "Failing");
+    assert_eq!(format!("{:?}", SmartHealth::Unknown), "Unknown");
+}
+
+// ─── DirEntry fields ────────────────────────────────────────────────────
+
+#[test]
+fn dir_entry_clone_and_fields() {
+    let e = DirEntry {
+        path: "/tmp/test".into(),
+        name: "test".into(),
+        size: 1024,
+        is_dir: true,
+    };
+    let c = e.clone();
+    assert_eq!(c.path, "/tmp/test");
+    assert_eq!(c.name, "test");
+    assert_eq!(c.size, 1024);
+    assert!(c.is_dir);
+}
+
+// ─── ViewMode enum ──────────────────────────────────────────────────────
+
+#[test]
+fn view_mode_equality() {
+    assert_eq!(ViewMode::Disks, ViewMode::Disks);
+    assert_eq!(ViewMode::DrillDown, ViewMode::DrillDown);
+    assert_ne!(ViewMode::Disks, ViewMode::DrillDown);
+}
