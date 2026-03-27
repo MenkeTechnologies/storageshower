@@ -1255,12 +1255,36 @@ fn draw_hover_drill_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, entry: 
     lines.push(("\u{25B6} Name".into(), entry.name.clone()));
     lines.push(("  Type".into(), kind.into()));
     lines.push(("  Size".into(), format_bytes(entry.size, app.prefs.unit_mode)));
+    // Show size in all unit modes for comparison
+    if app.prefs.unit_mode != UnitMode::Bytes {
+        lines.push(("  Size (bytes)".into(), format!("{} bytes", entry.size)));
+    }
+    if app.prefs.unit_mode != UnitMode::Human {
+        lines.push(("  Size (human)".into(), format_bytes(entry.size, UnitMode::Human)));
+    }
     lines.push(("  Path".into(), entry.path.clone()));
     let parent_total: u64 = app.drill.entries.iter().map(|e| e.size).sum();
     if parent_total > 0 {
         let pct = (entry.size as f64 / parent_total as f64) * 100.0;
         lines.push(("  Share".into(), format!("{:.1}% of directory", pct)));
+        // Visual share bar
+        let filled = (pct / 5.0).round() as usize;
+        let bar: String = "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
+        lines.push(("  Share bar".into(), bar));
     }
+    // Rank within siblings
+    let rank = app.drill.entries.iter().filter(|e| e.size > entry.size).count() + 1;
+    let total_siblings = app.drill.entries.len();
+    lines.push(("  Rank".into(), format!("#{} of {} entries", rank, total_siblings)));
+    // Current depth
+    let depth = app.drill.path.len();
+    lines.push(("  Depth".into(), format!("{} level{} deep", depth, if depth == 1 { "" } else { "s" })));
+    lines.push(("  Parent".into(), app.drill.path.last().cloned().unwrap_or_default()));
+    // Sort info
+    lines.push(("  Sort".into(), format!("{:?} {}", app.drill.sort,
+        if app.drill.sort_rev { "\u{25BC} desc" } else { "\u{25B2} asc" })));
+    lines.push(("  Scan src".into(), "recursive read_dir() with progress".into()));
+    lines.push(("  Actions".into(), "Enter=open  Bksp=up  s=sort  r=reverse".into()));
 
     render_tooltip(buf, w, h, hover_x, hover_y, app, &lines);
 }
@@ -1274,11 +1298,37 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
     let mut lines: Vec<(String, String)> = Vec::new();
     lines.push(("\u{25B6} Mount".into(), disk.mount.clone()));
     lines.push(("  Filesystem".into(), disk.fs.clone()));
+    // Separator
+    lines.push(("  \u{2500}\u{2500}\u{2500} Capacity".into(), "\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}".into()));
     lines.push(("  Used".into(), format_bytes(disk.used, app.prefs.unit_mode)));
     let free = disk.total.saturating_sub(disk.used);
     lines.push(("  Free".into(), format_bytes(free, app.prefs.unit_mode)));
     lines.push(("  Total".into(), format_bytes(disk.total, app.prefs.unit_mode)));
+    // Show raw bytes alongside human-readable
+    if app.prefs.unit_mode != UnitMode::Bytes {
+        lines.push(("  Used (bytes)".into(), format!("{}", disk.used)));
+        lines.push(("  Free (bytes)".into(), format!("{}", free)));
+        lines.push(("  Total (bytes)".into(), format!("{}", disk.total)));
+    }
+    if app.prefs.unit_mode != UnitMode::Human {
+        lines.push(("  Used (human)".into(), format_bytes(disk.used, UnitMode::Human)));
+        lines.push(("  Free (human)".into(), format_bytes(free, UnitMode::Human)));
+        lines.push(("  Total (human)".into(), format_bytes(disk.total, UnitMode::Human)));
+    }
     lines.push(("  Usage".into(), format!("{:.1}%", disk.pct)));
+    lines.push(("  Free %".into(), format!("{:.1}%", 100.0 - disk.pct)));
+    // Visual usage bar
+    let filled = (disk.pct / 5.0).round() as usize;
+    let bar: String = "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
+    lines.push(("  Usage bar".into(), format!("{} {:.1}%", bar, disk.pct)));
+    // Rank among all disks
+    let sorted = app.sorted_disks();
+    let rank_by_size = sorted.iter().filter(|d| d.total > disk.total).count() + 1;
+    let rank_by_usage = sorted.iter().filter(|d| d.pct > disk.pct).count() + 1;
+    let disk_count = sorted.len();
+    lines.push(("  Rank (size)".into(), format!("#{} of {} volumes", rank_by_size, disk_count)));
+    lines.push(("  Rank (usage)".into(), format!("#{} of {} volumes", rank_by_usage, disk_count)));
+    lines.push(("  \u{2500}\u{2500}\u{2500} Hardware".into(), "\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}".into()));
     lines.push(("  Kind".into(), match disk.kind {
         sysinfo::DiskKind::SSD => "SSD (Solid State Drive)".into(),
         sysinfo::DiskKind::HDD => "HDD (Hard Disk Drive)".into(),
@@ -1293,32 +1343,63 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
     };
     lines.push(("  Status".into(), thresh_status.into()));
     lines.push(("  Threshold".into(), thresh_desc));
+    let headroom_crit = (app.prefs.thresh_crit as f64 - disk.pct).max(0.0);
+    let headroom_warn = (app.prefs.thresh_warn as f64 - disk.pct).max(0.0);
+    if disk.pct < app.prefs.thresh_crit as f64 {
+        let bytes_to_crit = ((headroom_crit / 100.0) * disk.total as f64) as u64;
+        lines.push(("  Headroom (crit)".into(), format!("{:.1}% / {} until critical", headroom_crit, format_bytes(bytes_to_crit, UnitMode::Human))));
+    }
+    if disk.pct < app.prefs.thresh_warn as f64 {
+        let bytes_to_warn = ((headroom_warn / 100.0) * disk.total as f64) as u64;
+        lines.push(("  Headroom (warn)".into(), format!("{:.1}% / {} until warning", headroom_warn, format_bytes(bytes_to_warn, UnitMode::Human))));
+    }
     if let Some(smart) = disk.smart_status {
+        lines.push(("  \u{2500}\u{2500}\u{2500} Health".into(), "\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}".into()));
         let (smart_val, smart_src) = match smart {
-            SmartHealth::Verified => ("\u{2714} Verified", "diskutil info (macOS) or /sys/block (Linux)"),
-            SmartHealth::Failing => ("\u{2718} FAILING — replace drive!", "diskutil info (macOS) or /sys/block (Linux)"),
-            SmartHealth::Unknown => ("? Unknown", "SMART not available for this device"),
+            SmartHealth::Verified => ("\u{2714} Verified — drive healthy", "diskutil info (macOS) or /sys/block (Linux)"),
+            SmartHealth::Failing => ("\u{2718} FAILING — replace drive immediately!", "diskutil info (macOS) or /sys/block (Linux)"),
+            SmartHealth::Unknown => ("? Unknown — SMART not available", "SMART not supported or not available for this device"),
         };
         lines.push(("  SMART".into(), smart_val.into()));
         lines.push(("  SMART src".into(), smart_src.into()));
     }
+    if disk.latency_ms.is_some() || disk.io_read_rate.is_some() || disk.io_write_rate.is_some() {
+        lines.push(("  \u{2500}\u{2500}\u{2500} I/O".into(), "\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}".into()));
+    }
     if let Some(lat) = disk.latency_ms {
         lines.push(("  Latency".into(), format_latency(lat)));
-        lines.push(("  Lat src".into(), "timed read_dir with 2s timeout".into()));
+        let lat_rating = if lat < 1.0 { "Excellent" } else if lat < 10.0 { "Good" } else if lat < 100.0 { "Fair" } else if lat < 1000.0 { "Slow" } else { "Very slow" };
+        lines.push(("  Lat rating".into(), lat_rating.into()));
+        lines.push(("  Lat raw".into(), format!("{:.3} ms", lat)));
+        lines.push(("  Lat src".into(), "timed read_dir() with 2s timeout".into()));
     }
     if let Some(rd) = disk.io_read_rate {
-        if rd > 0.0 { lines.push(("  \u{25B2} Read".into(), format!("{}/s", format_rate(rd)))); }
+        lines.push(("  \u{25B2} Read".into(), format!("{}/s", format_rate(rd))));
+        lines.push(("  Read raw".into(), format!("{:.0} bytes/s", rd)));
     }
     if let Some(wr) = disk.io_write_rate {
-        if wr > 0.0 { lines.push(("  \u{25BC} Write".into(), format!("{}/s", format_rate(wr)))); }
+        lines.push(("  \u{25BC} Write".into(), format!("{}/s", format_rate(wr))));
+        lines.push(("  Write raw".into(), format!("{:.0} bytes/s", wr)));
     }
     if disk.io_read_rate.is_some() || disk.io_write_rate.is_some() {
+        let total_io = disk.io_read_rate.unwrap_or(0.0) + disk.io_write_rate.unwrap_or(0.0);
+        lines.push(("  \u{25C6} Total I/O".into(), format!("{}/s", format_rate(total_io))));
         lines.push(("  I/O src".into(), "IOKit (macOS) or /proc/diskstats (Linux)".into()));
     }
+    lines.push(("  \u{2500}\u{2500}\u{2500} Meta".into(), "\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}".into()));
     if app.prefs.bookmarks.contains(&disk.mount) {
         lines.push(("  \u{2605} Pinned".into(), "Bookmarked — appears at top of list".into()));
+    } else {
+        lines.push(("  \u{2606} Not pinned".into(), "Press B to bookmark this volume".into()));
+    }
+    // Show what percentage this volume is of total system storage
+    let global_total: u64 = app.disks.iter().map(|d| d.total).sum();
+    if global_total > 0 {
+        let vol_share = (disk.total as f64 / global_total as f64) * 100.0;
+        lines.push(("  System share".into(), format!("{:.1}% of total storage ({})", vol_share, format_bytes(global_total, UnitMode::Human))));
     }
     lines.push(("  Source".into(), "getmntinfo (macOS) / /proc/mounts (Linux)".into()));
+    lines.push(("  Data age".into(), format!("Refreshed every {}s", app.prefs.refresh_rate)));
     lines.push(("  Actions".into(), "Enter=drill  o=open  y=copy  B=bookmark".into()));
 
     render_tooltip(buf, w, h, hover_x, hover_y, app, &lines);
@@ -1396,65 +1477,132 @@ fn title_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
              ("  Desc".into(), "Cyberpunk disk usage TUI monitor".into()),
              ("  Author".into(), "MenkeTechnologies".into()),
              ("  Repo".into(), "github.com/MenkeTechnologies/storageshower".into()),
+             ("  Crate".into(), "crates.io/crates/storageshower".into()),
              ("  License".into(), "MIT".into()),
-             ("  Install".into(), "cargo install storageshower".into())]
+             ("  Install".into(), "cargo install storageshower".into()),
+             ("  Platform".into(), format!("{} {}", app.stats.os_name, app.stats.arch)),
+             ("  Built with".into(), "Rust + ratatui + sysinfo + crossterm".into()),
+             ("  Config".into(), "~/.storageshower.conf (TOML)".into()),
+             ("  Volumes".into(), format!("{} mounted", app.disks.len())),
+             ("  Uptime".into(), format_uptime(app.stats.uptime))]
     } else if seg_lower.starts_with("node:") {
         vec![("\u{25B6} Hostname".into(), app.stats.hostname.clone()),
              ("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
              ("  Kernel".into(), app.stats.kernel.clone()),
              ("  Arch".into(), app.stats.arch.clone()),
+             ("  CPU cores".into(), format!("{} logical", app.stats.cpu_count)),
+             ("  RAM".into(), format_bytes(app.stats.mem_total, UnitMode::Human)),
+             ("  Load".into(), format!("{:.2} / {:.2} / {:.2}", app.stats.load_avg.0, app.stats.load_avg.1, app.stats.load_avg.2)),
+             ("  Processes".into(), format!("{}", app.stats.process_count)),
+             ("  Uptime".into(), format_uptime(app.stats.uptime)),
              ("  Source".into(), "sysinfo::System::host_name()".into())]
     } else if seg_lower.starts_with("date:") || seg_lower.starts_with("clock:") {
         let now = chrono_now();
         vec![("\u{25B6} Date".into(), now.0),
              ("  Time".into(), now.1),
+             ("  Uptime".into(), format_uptime(app.stats.uptime)),
+             ("  Raw uptime".into(), format!("{} seconds", app.stats.uptime)),
+             ("  Timezone".into(), "System local timezone".into()),
              ("  Source".into(), "libc::localtime_r (UNIX epoch)".into())]
     } else if seg_lower.starts_with("load:") {
         let l = app.stats.load_avg;
+        let cpus = app.stats.cpu_count as f64;
+        let sat_1 = if cpus > 0.0 { l.0 / cpus * 100.0 } else { 0.0 };
+        let sat_5 = if cpus > 0.0 { l.1 / cpus * 100.0 } else { 0.0 };
+        let sat_15 = if cpus > 0.0 { l.2 / cpus * 100.0 } else { 0.0 };
+        let trend = if l.0 > l.1 && l.1 > l.2 { "\u{25B2} Increasing" }
+                    else if l.0 < l.1 && l.1 < l.2 { "\u{25BC} Decreasing" }
+                    else { "\u{25C6} Stable" };
         vec![("\u{25B6} Load Average".into(), String::new()),
-             ("  1 min".into(), format!("{:.2}", l.0)),
-             ("  5 min".into(), format!("{:.2}", l.1)),
-             ("  15 min".into(), format!("{:.2}", l.2)),
+             ("  1 min".into(), format!("{:.2} ({:.0}% of {} cores)", l.0, sat_1, app.stats.cpu_count)),
+             ("  5 min".into(), format!("{:.2} ({:.0}% of {} cores)", l.1, sat_5, app.stats.cpu_count)),
+             ("  15 min".into(), format!("{:.2} ({:.0}% of {} cores)", l.2, sat_15, app.stats.cpu_count)),
+             ("  Trend".into(), trend.into()),
              ("  Desc".into(), "Average runnable+uninterruptible processes".into()),
+             ("  Ideal".into(), format!("< {:.1} (1.0 per core)", cpus)),
              ("  Source".into(), "sysinfo::System::load_average()".into())]
     } else if seg_lower.starts_with("mem:") {
         let pct = if app.stats.mem_total > 0 { (app.stats.mem_used as f64 / app.stats.mem_total as f64) * 100.0 } else { 0.0 };
         let free = app.stats.mem_total.saturating_sub(app.stats.mem_used);
+        let filled = (pct / 5.0).round() as usize;
+        let bar: String = "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
+        let swap_pct = if app.stats.swap_total > 0 { (app.stats.swap_used as f64 / app.stats.swap_total as f64) * 100.0 } else { 0.0 };
         vec![("\u{25B6} Memory".into(), String::new()),
              ("  Used".into(), format_bytes(app.stats.mem_used, UnitMode::Human)),
              ("  Free".into(), format_bytes(free, UnitMode::Human)),
              ("  Total".into(), format_bytes(app.stats.mem_total, UnitMode::Human)),
              ("  Usage".into(), format!("{:.1}%", pct)),
+             ("  Usage bar".into(), format!("{} {:.1}%", bar, pct)),
+             ("  Used (bytes)".into(), format!("{}", app.stats.mem_used)),
+             ("  Total (bytes)".into(), format!("{}", app.stats.mem_total)),
+             ("  Per process".into(), format!("~{} across {} processes",
+                 format_bytes(if app.stats.process_count > 0 { app.stats.mem_used / app.stats.process_count as u64 } else { 0 }, UnitMode::Human),
+                 app.stats.process_count)),
+             ("  Swap used".into(), format!("{} / {} ({:.1}%)", format_bytes(app.stats.swap_used, UnitMode::Human), format_bytes(app.stats.swap_total, UnitMode::Human), swap_pct)),
              ("  Source".into(), "sysinfo::System::used_memory()".into())]
     } else if seg_lower.starts_with("cpu:") {
+        let l = app.stats.load_avg;
+        let cpus = app.stats.cpu_count;
         vec![("\u{25B6} CPU".into(), String::new()),
-             ("  Cores".into(), format!("{} logical", app.stats.cpu_count)),
+             ("  Cores".into(), format!("{} logical", cpus)),
+             ("  Arch".into(), app.stats.arch.clone()),
+             ("  Load (1m)".into(), format!("{:.2}", l.0)),
+             ("  Load (5m)".into(), format!("{:.2}", l.1)),
+             ("  Load (15m)".into(), format!("{:.2}", l.2)),
+             ("  Processes".into(), format!("{} running", app.stats.process_count)),
              ("  Source".into(), "sysinfo::System::cpus().len()".into())]
     } else if seg_lower.starts_with("procs:") {
+        let avg_mem = if app.stats.process_count > 0 { app.stats.mem_used / app.stats.process_count as u64 } else { 0 };
         vec![("\u{25B6} Processes".into(), format!("{}", app.stats.process_count)),
              ("  Desc".into(), "Total running system processes".into()),
+             ("  Avg memory".into(), format!("{} per process", format_bytes(avg_mem, UnitMode::Human))),
+             ("  CPU cores".into(), format!("{} logical", app.stats.cpu_count)),
+             ("  Load (1m)".into(), format!("{:.2}", app.stats.load_avg.0)),
              ("  Source".into(), "sysinfo::System::processes().len()".into())]
     } else if seg_lower.starts_with("swap:") {
         let swap_free = app.stats.swap_total.saturating_sub(app.stats.swap_used);
+        let swap_pct = if app.stats.swap_total > 0 { (app.stats.swap_used as f64 / app.stats.swap_total as f64) * 100.0 } else { 0.0 };
+        let filled = (swap_pct / 5.0).round() as usize;
+        let bar: String = "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
+        let mem_pct = if app.stats.mem_total > 0 { (app.stats.mem_used as f64 / app.stats.mem_total as f64) * 100.0 } else { 0.0 };
         vec![("\u{25B6} Swap".into(), String::new()),
              ("  Used".into(), format_bytes(app.stats.swap_used, UnitMode::Human)),
              ("  Free".into(), format_bytes(swap_free, UnitMode::Human)),
              ("  Total".into(), format_bytes(app.stats.swap_total, UnitMode::Human)),
+             ("  Usage".into(), format!("{:.1}%", swap_pct)),
+             ("  Usage bar".into(), format!("{} {:.1}%", bar, swap_pct)),
+             ("  Used (bytes)".into(), format!("{}", app.stats.swap_used)),
+             ("  Total (bytes)".into(), format!("{}", app.stats.swap_total)),
+             ("  RAM usage".into(), format!("{:.1}% ({} / {})", mem_pct, format_bytes(app.stats.mem_used, UnitMode::Human), format_bytes(app.stats.mem_total, UnitMode::Human))),
+             ("  Desc".into(), "Virtual memory on disk when RAM is full".into()),
              ("  Source".into(), "sysinfo::System::used_swap()".into())]
     } else if seg_lower.starts_with("kern:") {
         vec![("\u{25B6} Kernel".into(), app.stats.kernel.clone()),
+             ("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
+             ("  Arch".into(), app.stats.arch.clone()),
+             ("  Uptime".into(), format_uptime(app.stats.uptime)),
+             ("  Hostname".into(), app.stats.hostname.clone()),
              ("  Source".into(), "sysinfo::System::kernel_version()".into())]
     } else if seg_lower.starts_with("arch:") {
         vec![("\u{25B6} Architecture".into(), app.stats.arch.clone()),
+             ("  Kernel".into(), app.stats.kernel.clone()),
+             ("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
+             ("  CPU cores".into(), format!("{} logical", app.stats.cpu_count)),
              ("  Source".into(), "sysinfo::System::cpu_arch()".into())]
     } else if seg_lower.contains("paused") {
         vec![("\u{25B6} \u{23F8} PAUSED".into(), String::new()),
              ("  Desc".into(), "Data refresh is paused".into()),
+             ("  Effect".into(), "Disk and system stats are frozen".into()),
+             ("  Refresh rate".into(), format!("{}s (when active)", app.prefs.refresh_rate)),
+             ("  Volumes".into(), format!("{} mounted", app.disks.len())),
              ("  Resume".into(), "Press p to resume live data".into())]
     } else if seg_lower.contains("h=help") {
         vec![("\u{25B6} Help".into(), String::new()),
              ("  Open".into(), "Press h / H / ? to show keybinds".into()),
-             ("  Close".into(), "Same keys or Esc to dismiss".into())]
+             ("  Close".into(), "Same keys or Esc to dismiss".into()),
+             ("  Layout".into(), "3-column keybind reference".into()),
+             ("  Categories".into(), "Navigation, Display, Sort, I/O, Theme".into()),
+             ("  Mouse".into(), "Click headers, scroll, hover for tips".into())]
     } else {
         vec![("\u{25B6} Info".into(), segment.to_string())]
     }
@@ -1464,82 +1612,204 @@ fn title_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
 fn footer_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
     let seg_lower = segment.to_lowercase();
     if seg_lower.contains("cyberdeck") || seg_lower.contains("zpwr") {
+        let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
+        let total_used: u64 = app.disks.iter().map(|d| d.used).sum();
+        let total_free = total_storage.saturating_sub(total_used);
+        let overall_pct = if total_storage > 0 { (total_used as f64 / total_storage as f64) * 100.0 } else { 0.0 };
         vec![("\u{25B6} App".into(), "STORAGESHOWER".into()),
              ("  Version".into(), format!("v{}", env!("CARGO_PKG_VERSION"))),
+             ("  Desc".into(), "Cyberpunk disk usage TUI monitor".into()),
              ("  Author".into(), "MenkeTechnologies".into()),
-             ("  Config".into(), "~/.storageshower.conf".into()),
-             ("  Desc".into(), "Settings auto-saved on change".into())]
+             ("  Repo".into(), "github.com/MenkeTechnologies/storageshower".into()),
+             ("  Crate".into(), "crates.io/crates/storageshower".into()),
+             ("  Config".into(), "~/.storageshower.conf (auto-saved)".into()),
+             ("  License".into(), "MIT".into()),
+             ("  Storage".into(), format!("{} used / {} total ({:.1}%)", format_bytes(total_used, UnitMode::Human), format_bytes(total_storage, UnitMode::Human), overall_pct)),
+             ("  Free".into(), format_bytes(total_free, UnitMode::Human)),
+             ("  Volumes".into(), format!("{} mounted", app.disks.len())),
+             ("  Refresh".into(), format!("Every {}s", app.prefs.refresh_rate)),
+             ("  Uptime".into(), format_uptime(app.stats.uptime))]
     } else if seg_lower.starts_with("vol:") {
         let total = app.disks.len();
         let visible: usize = segment.trim_start_matches("vol:").parse().unwrap_or(0);
+        let hidden = total.saturating_sub(visible);
+        let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
+        let total_used: u64 = app.disks.iter().map(|d| d.used).sum();
+        let overall_pct = if total_storage > 0 { (total_used as f64 / total_storage as f64) * 100.0 } else { 0.0 };
+        let ssd_count = app.disks.iter().filter(|d| matches!(d.kind, sysinfo::DiskKind::SSD)).count();
+        let hdd_count = app.disks.iter().filter(|d| matches!(d.kind, sysinfo::DiskKind::HDD)).count();
+        let other_count = total.saturating_sub(ssd_count + hdd_count);
+        let fs_types: Vec<String> = {
+            let mut fss: Vec<String> = app.disks.iter().map(|d| d.fs.clone()).collect();
+            fss.sort(); fss.dedup(); fss
+        };
         vec![("\u{25B6} Volumes".into(), format!("{} visible", visible)),
-             ("  Total".into(), format!("{} mounted filesystems", total)),
-             ("  Hidden".into(), format!("{}", total.saturating_sub(visible))),
-             ("  Desc".into(), "Filtered by show_all/show_local/filter".into())]
+             ("  Total mounted".into(), format!("{} filesystems", total)),
+             ("  Hidden".into(), format!("{} (filtered out)", hidden)),
+             ("  SSDs".into(), format!("{}", ssd_count)),
+             ("  HDDs".into(), format!("{}", hdd_count)),
+             ("  Other".into(), format!("{}", other_count)),
+             ("  FS types".into(), fs_types.join(", ")),
+             ("  Total storage".into(), format_bytes(total_storage, UnitMode::Human)),
+             ("  Total used".into(), format!("{} ({:.1}%)", format_bytes(total_used, UnitMode::Human), overall_pct)),
+             ("  Total free".into(), format_bytes(total_storage.saturating_sub(total_used), UnitMode::Human)),
+             ("  Filters".into(), "show_all / show_local / filter text".into()),
+             ("  Keys".into(), "a=show all  l=local only  /=filter".into())]
     } else if seg_lower.starts_with("sort:") {
+        let sorted = app.sorted_disks();
+        let first = sorted.first().map(|d| d.mount.as_str()).unwrap_or("(none)");
+        let last = sorted.last().map(|d| d.mount.as_str()).unwrap_or("(none)");
         vec![("\u{25B6} Sort Mode".into(), format!("{:?}", app.prefs.sort_mode)),
              ("  Direction".into(), if app.prefs.sort_rev { "Descending \u{25BC}" } else { "Ascending \u{25B2}" }.into()),
+             ("  First".into(), first.into()),
+             ("  Last".into(), last.into()),
+             ("  Volumes".into(), format!("{} sorted", sorted.len())),
              ("  Keys".into(), "n=name  u=usage%  s=size".into()),
-             ("  Reverse".into(), "r or press same key again".into()),
-             ("  Mouse".into(), "Click column header to sort".into()),
+             ("  Reverse".into(), "r or press same sort key again".into()),
+             ("  Mouse".into(), "Click column header to sort/reverse".into()),
              ("  Config".into(), "sort_mode / sort_rev in prefs".into())]
     } else if seg_lower.ends_with('s') && seg_lower.chars().next().is_some_and(|c| c.is_ascii_digit()) {
-        vec![("\u{25B6} Refresh Rate".into(), format!("{}s", app.prefs.refresh_rate)),
+        let rates = [1u64, 2, 5, 10];
+        let current = app.prefs.refresh_rate;
+        let idx = rates.iter().position(|&r| r == current).unwrap_or(0);
+        let next = rates[(idx + 1) % rates.len()];
+        let prev = rates[(idx + rates.len() - 1) % rates.len()];
+        vec![("\u{25B6} Refresh Rate".into(), format!("{}s", current)),
              ("  Desc".into(), "How often disk data is re-collected".into()),
-             ("  Key".into(), "f/F to cycle (1→2→5→10)".into()),
+             ("  Next (f)".into(), format!("{}s", next)),
+             ("  Prev (F)".into(), format!("{}s", prev)),
+             ("  Cycle".into(), "1s \u{2192} 2s \u{2192} 5s \u{2192} 10s".into()),
+             ("  Paused".into(), if app.paused { "Yes (press p)" } else { "No — live updates" }.into()),
              ("  Source".into(), "Background thread via Arc<Mutex<>>".into()),
              ("  Config".into(), "refresh_rate in prefs".into())]
     } else if seg_lower == "gradient" || seg_lower == "solid" || seg_lower == "thin" || seg_lower == "ascii" {
+        let styles = ["Gradient", "Solid", "Thin", "Ascii"];
+        let current_idx = match app.prefs.bar_style {
+            BarStyle::Gradient => 0, BarStyle::Solid => 1, BarStyle::Thin => 2, BarStyle::Ascii => 3,
+        };
+        let next_idx = (current_idx + 1) % styles.len();
         vec![("\u{25B6} Bar Style".into(), format!("{:?}", app.prefs.bar_style)),
-             ("  Options".into(), "gradient / solid / thin / ascii".into()),
-             ("  Key".into(), "b to cycle through styles".into()),
-             ("  Config".into(), "bar_style in prefs".into())]
+             ("  Desc".into(), "Visual style of usage progress bars".into()),
+             ("  Gradient".into(), "\u{2588}\u{2593}\u{2592}\u{2591} color-graded fill".into()),
+             ("  Solid".into(), "\u{2588}\u{2588}\u{2588}\u{2588} single-color fill".into()),
+             ("  Thin".into(), "\u{2501}\u{2501}\u{2501}\u{2501} horizontal line".into()),
+             ("  Ascii".into(), "#### portable ASCII chars".into()),
+             ("  Next (b)".into(), styles[next_idx].into()),
+             ("  Config".into(), "bar_style in prefs".into()),
+             ("  CLI".into(), "--bar-style <gradient|solid|thin|ascii>".into())]
     } else if seg_lower.starts_with("up:") {
-        vec![("\u{25B6} System Uptime".into(), format_uptime(app.stats.uptime)),
-             ("  Raw".into(), format!("{} seconds", app.stats.uptime)),
+        let secs = app.stats.uptime;
+        let days = secs / 86400;
+        let hours = (secs % 86400) / 3600;
+        let mins = (secs % 3600) / 60;
+        vec![("\u{25B6} System Uptime".into(), format_uptime(secs)),
+             ("  Days".into(), format!("{}", days)),
+             ("  Hours".into(), format!("{}", hours)),
+             ("  Minutes".into(), format!("{}", mins)),
+             ("  Raw".into(), format!("{} seconds", secs)),
+             ("  Hostname".into(), app.stats.hostname.clone()),
+             ("  Kernel".into(), app.stats.kernel.clone()),
              ("  Source".into(), "sysinfo::System::uptime()".into())]
     } else if seg_lower.starts_with("user:") {
-        vec![("\u{25B6} User".into(), segment.trim_start_matches("user:").into()),
+        let username = segment.trim_start_matches("user:");
+        vec![("\u{25B6} User".into(), username.into()),
+             ("  Hostname".into(), app.stats.hostname.clone()),
+             ("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
+             ("  Arch".into(), app.stats.arch.clone()),
+             ("  Shell".into(), std::env::var("SHELL").unwrap_or_else(|_| "unknown".into())),
              ("  Source".into(), "$USER or $USERNAME env var".into())]
     } else if seg_lower.starts_with("ip:") {
-        vec![("\u{25B6} Local IP".into(), segment.trim_start_matches("ip:").into()),
-             ("  Desc".into(), "Primary interface address".into()),
-             ("  Source".into(), "UDP socket bind to 8.8.8.8:80".into())]
+        let ip = segment.trim_start_matches("ip:");
+        vec![("\u{25B6} Local IP".into(), ip.into()),
+             ("  Desc".into(), "Primary network interface address".into()),
+             ("  Method".into(), "UDP socket bind to 8.8.8.8:80".into()),
+             ("  Note".into(), "No data is sent — only local addr probed".into()),
+             ("  Hostname".into(), app.stats.hostname.clone()),
+             ("  Source".into(), "std::net::UdpSocket::connect()".into())]
     } else if seg_lower.starts_with("os:") {
         vec![("\u{25B6} OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
+             ("  Kernel".into(), app.stats.kernel.clone()),
+             ("  Arch".into(), app.stats.arch.clone()),
+             ("  Hostname".into(), app.stats.hostname.clone()),
+             ("  CPU cores".into(), format!("{} logical", app.stats.cpu_count)),
+             ("  RAM".into(), format_bytes(app.stats.mem_total, UnitMode::Human)),
+             ("  Uptime".into(), format_uptime(app.stats.uptime)),
              ("  Source".into(), "sysinfo::System::name() + os_version()".into())]
     } else if seg_lower.starts_with("sh:") {
-        vec![("\u{25B6} Shell".into(), segment.trim_start_matches("sh:").into()),
+        let shell = segment.trim_start_matches("sh:");
+        vec![("\u{25B6} Shell".into(), shell.into()),
+             ("  Desc".into(), "Login shell for current user".into()),
+             ("  Env var".into(), "$SHELL".into()),
+             ("  User".into(), std::env::var("USER").unwrap_or_else(|_| "unknown".into())),
              ("  Source".into(), "$SHELL environment variable".into())]
     } else if seg_lower.starts_with("tty:") {
-        vec![("\u{25B6} TTY".into(), segment.trim_start_matches("tty:").into()),
-             ("  Source".into(), "libc::ttyname(0) (stdin fd)".into())]
+        let tty = segment.trim_start_matches("tty:");
+        vec![("\u{25B6} TTY".into(), tty.into()),
+             ("  Desc".into(), "Terminal device for this session".into()),
+             ("  FD".into(), "stdin (fd 0)".into()),
+             ("  Source".into(), "libc::ttyname(0)".into())]
     } else if seg_lower.starts_with("bat:") {
-        vec![("\u{25B6} Battery".into(), segment.trim_start_matches("bat:").into()),
+        let bat_str = segment.trim_start_matches("bat:");
+        let bat_val: u8 = bat_str.trim_end_matches('%').parse().unwrap_or(0);
+        let status = if bat_val > 80 { "\u{2714} Good" } else if bat_val > 20 { "\u{25C8} OK" } else { "\u{26A0} Low" };
+        let filled = (bat_val as usize) / 5;
+        let bar: String = "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
+        vec![("\u{25B6} Battery".into(), bat_str.into()),
+             ("  Status".into(), status.into()),
+             ("  Level bar".into(), format!("{} {}%", bar, bat_val)),
              ("  Source".into(), "pmset (macOS) or /sys/class/power_supply (Linux)".into())]
     } else if seg_lower.starts_with("disks:") {
-        vec![("\u{25B6} Disk Count".into(), segment.trim_start_matches("disks:").into()),
-             ("  Desc".into(), "Total visible filesystems".into())]
+        let count_str = segment.trim_start_matches("disks:");
+        let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
+        let total_used: u64 = app.disks.iter().map(|d| d.used).sum();
+        let overall_pct = if total_storage > 0 { (total_used as f64 / total_storage as f64) * 100.0 } else { 0.0 };
+        vec![("\u{25B6} Disk Count".into(), count_str.into()),
+             ("  Desc".into(), "Total visible filesystems".into()),
+             ("  Total mounted".into(), format!("{}", app.disks.len())),
+             ("  Total storage".into(), format_bytes(total_storage, UnitMode::Human)),
+             ("  Overall usage".into(), format!("{:.1}%", overall_pct)),
+             ("  Source".into(), "getmntinfo (macOS) / /proc/mounts (Linux)".into())]
     } else if seg_lower.contains("filter>") {
+        let filter_len = app.filter.buf.len();
+        let matched = app.sorted_disks().len();
+        let total = app.disks.len();
         vec![("\u{25B6} Filter Active".into(), app.filter.buf.clone()),
-             ("  Desc".into(), "Case-insensitive mount path substring".into()),
-             ("  Keys".into(), "Enter=confirm  Esc=cancel".into()),
-             ("  Edit".into(), "Ctrl+w=word  Ctrl+u=line  Ctrl+k=end".into())]
+             ("  Length".into(), format!("{} chars", filter_len)),
+             ("  Matched".into(), format!("{} of {} volumes", matched, total)),
+             ("  Hidden".into(), format!("{} filtered out", total.saturating_sub(matched))),
+             ("  Type".into(), "Case-insensitive mount path substring".into()),
+             ("  Cursor".into(), format!("Position {} of {}", app.filter.cursor, filter_len)),
+             ("  Nav keys".into(), "Enter=confirm  Esc=cancel  /=open".into()),
+             ("  Edit keys".into(), "Ctrl+a/e=home/end  Ctrl+b/f=left/right".into()),
+             ("  Delete".into(), "Ctrl+w=word  Ctrl+u=line  Ctrl+k=to-end".into()),
+             ("  Clear".into(), "0 to clear filter (when not in filter mode)".into())]
     } else {
         let color_name = if let Some(ref n) = app.prefs.active_theme { n.clone() } else { app.prefs.color_mode.name().into() };
         if segment.trim() == color_name {
+            let (pal_b, pal_g, pal_p, pal_lp, pal_r, pal_dp) = palette_for_prefs(&app.prefs);
+            fn idx(c: Color) -> String { match c { Color::Indexed(n) => format!("{}", n), _ => "?".into() } }
             return vec![("\u{25B6} Color Theme".into(), color_name),
                         ("  Builtins".into(), format!("{} palettes", ColorMode::ALL.len())),
                         ("  Custom".into(), format!("{} user themes", app.prefs.custom_themes.len())),
-                        ("  Key".into(), "c=cycle  C=theme editor".into()),
+                        ("  Total".into(), format!("{} available themes", ColorMode::ALL.len() + app.prefs.custom_themes.len())),
+                        ("  Palette".into(), format!("blue={} green={} purple={}", idx(pal_b), idx(pal_g), idx(pal_p))),
+                        ("  Palette+".into(), format!("lpurple={} royal={} dark={}", idx(pal_lp), idx(pal_r), idx(pal_dp))),
+                        ("  Preview".into(), "c=chooser (live preview + mouse click)".into()),
+                        ("  Editor".into(), "C=create custom themes".into()),
                         ("  CLI".into(), "--color, --theme, --export-theme".into()),
                         ("  Config".into(), "color_mode / active_theme in prefs".into())];
         }
         let unit_name = match app.prefs.unit_mode { UnitMode::Human=>"human", UnitMode::GiB=>"GiB", UnitMode::MiB=>"MiB", UnitMode::Bytes=>"bytes" };
         if segment.trim() == unit_name {
+            let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
             return vec![("\u{25B6} Unit Mode".into(), unit_name.into()),
-                        ("  Options".into(), "Human / GiB / MiB / Bytes".into()),
-                        ("  Key".into(), "i/I to cycle".into()),
+                        ("  Desc".into(), "How byte sizes are formatted".into()),
+                        ("  Human".into(), format!("Auto-scale ({} example)", format_bytes(total_storage, UnitMode::Human))),
+                        ("  GiB".into(), format!("Gibibytes ({} example)", format_bytes(total_storage, UnitMode::GiB))),
+                        ("  MiB".into(), format!("Mebibytes ({} example)", format_bytes(total_storage, UnitMode::MiB))),
+                        ("  Bytes".into(), format!("Raw bytes ({} example)", format_bytes(total_storage, UnitMode::Bytes))),
+                        ("  Key".into(), "i to cycle forward, I to cycle backward".into()),
+                        ("  CLI".into(), "--unit <human|gib|mib|bytes>".into()),
                         ("  Config".into(), "unit_mode in prefs".into())];
         }
         vec![("Info".into(), segment.to_string())]
@@ -1688,7 +1958,7 @@ fn draw_theme_chooser(buf: &mut Buffer, w: u16, h: u16, app: &App) {
 
     // Footer hint
     let hint_y = y0 + box_h - 1;
-    let hint = " j/k:nav  Enter:select  Esc:cancel ";
+    let hint = " j/k/click:nav  Enter:select  Esc:cancel ";
     let hx = x0 + (box_w.saturating_sub(hint.len() as u16)) / 2;
     set_str(buf, hx, hint_y, hint, hint_s, box_w - 2);
 }

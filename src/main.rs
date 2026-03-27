@@ -93,7 +93,7 @@ fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<()> {
                 }
                 Event::Mouse(mouse) => {
                     let size = terminal.size()?;
-                    app.handle_mouse(mouse, size.width);
+                    app.handle_mouse(mouse, size.width, size.height);
                 }
                 Event::Resize(_, _) => {}
                 _ => {}

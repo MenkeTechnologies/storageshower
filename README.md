@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v19.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v20.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -71,7 +71,8 @@ cargo install storageshower
   ├── Sort ─── name / usage% / size / asc / desc
   ├── Filter ─── case-insensitive substring match
   ├── Units ─── human / GiB / MiB / raw bytes
-  ├── Themes ─── 10 builtin + custom user themes (TOML)
+  ├── Themes ─── 30 builtin + custom user themes (TOML)
+  ├── Theme chooser ─── live preview with mouse click + keyboard nav
   ├── Theme editor ─── live color picker with per-channel control
   └── Persistent config ─── ~/.storageshower.conf (TOML)
   │
@@ -204,7 +205,7 @@ to force-override in either direction.
 | `FLAG` | `DESCRIPTION` |
 |:---|:---|
 | `-b, --bar-style STYLE` | Bar visualization — `gradient`, `solid`, `thin`, `ascii` |
-| `-c, --color PALETTE` | Color palette — `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset` |
+| `-c, --color PALETTE` | Color palette — 30 builtins: `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset`, `neonnoir`, `chromeheart`, `bladerunner`, `voidwalker`, `toxicwaste`, `cyberfrost`, `plasmacore`, `steelnerve`, `darksignal`, `glitchpop`, `holoshift`, `nightcity`, `deepnet`, `lasergrid`, `quantumflux`, `biohazard`, `darkwave`, `overlock`, `megacorp`, `zaibatsu` |
 | `--theme NAME` | Activate a custom theme by name (defined in config) |
 | `--list-colors` | List all builtin color schemes with preview |
 | `--export-theme` | Export current palette as TOML (combine with `-c` or `--theme`) |
@@ -297,7 +298,7 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `KEY` | `ACTION` |
 |:---:|:---|
 | `b` | Cycle bar style — gradient / solid / thin / ascii |
-| `c` | Theme chooser popup — browse all themes with color swatches |
+| `c` | Theme chooser popup — live preview, mouse click, scroll |
 | `C` | Theme editor — live per-channel color picker |
 | `v` `V` | Toggle usage bars |
 | `d` `D` | Toggle used/size columns |
@@ -376,12 +377,15 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `Left-click` disk row | Select disk |
 | `Left-click` selected disk | Drill down into mount |
 | `Left-click` column header | Cycle sort on that column |
+| `Left-click` theme chooser row | Select and preview theme |
+| `Left-click` outside theme popup | Cancel and revert theme |
 | `Left-drag` column separator | Resize mount / right column |
 | `Right-click` | Instant tooltip at click position |
-| `Hover` disk row | Tooltip: mount, fs, usage, SMART, I/O, latency (1s delay) |
+| `Hover` disk row | Verbose tooltip: capacity, rank, headroom, SMART, I/O |
+| `Hover` drill-down entry | Verbose tooltip: size, rank, share bar, depth, sort |
 | `Hover` title segment | Per-segment tooltip: node, date, load, mem, cpu, etc. |
 | `Hover` footer segment | Per-segment tooltip: sort, theme, units, uptime, etc. |
-| `Scroll wheel` | Select next/prev disk (or drill-down entry) |
+| `Scroll wheel` | Select next/prev disk (or drill-down / theme entry) |
 
 ---
 
@@ -501,7 +505,7 @@ cargo bench
  └──────────────────────────────────────────────────┘
 ```
 
-10 builtin palettes: **Neon Sprawl** · **Acid Rain** · **Ice Breaker** · **Synth Wave** · **Rust Belt** · **Ghost Wire** · **Red Sector** · **Sakura Den** · **Data Stream** · **Solar Flare**
+30 builtin palettes including: **Neon Sprawl** · **Acid Rain** · **Ice Breaker** · **Synth Wave** · **Rust Belt** · **Ghost Wire** · **Red Sector** · **Sakura Den** · **Data Stream** · **Solar Flare** · **Neon Noir** · **Chrome Heart** · **Blade Runner** · **Void Walker** · **Toxic Waste** · **Cyber Frost** · **Plasma Core** · **Steel Nerve** · **Dark Signal** · **Glitch Pop** + 10 more
 
 Create your own by adding to `~/.storageshower.conf`:
 

@@ -96,6 +96,8 @@ pub struct DrillState {
 pub struct ThemeChooser {
     pub active: bool,
     pub selected: usize,
+    pub orig_color_mode: ColorMode,
+    pub orig_active_theme: Option<String>,
 }
 
 pub struct App {
@@ -171,7 +173,7 @@ impl App {
                 scan_count: Arc::new(Mutex::new(0)),
                 scan_total: Arc::new(Mutex::new(0)),
             },
-            theme_chooser: ThemeChooser { active: false, selected: 0 },
+            theme_chooser: ThemeChooser { active: false, selected: 0, orig_color_mode: ColorMode::Default, orig_active_theme: None },
         }
     }
 
@@ -227,7 +229,7 @@ impl App {
                 scan_count: Arc::new(Mutex::new(0)),
                 scan_total: Arc::new(Mutex::new(0)),
             },
-            theme_chooser: ThemeChooser { active: false, selected: 0 },
+            theme_chooser: ThemeChooser { active: false, selected: 0, orig_color_mode: ColorMode::Default, orig_active_theme: None },
         }
     }
 
@@ -298,6 +300,25 @@ impl App {
             themes.push((name.clone(), name));
         }
         themes
+    }
+
+    /// Apply the currently selected theme in the chooser (live preview).
+    fn apply_selected_theme(&mut self) {
+        let themes = self.all_themes();
+        if let Some((key, _)) = themes.get(self.theme_chooser.selected) {
+            let mut found_builtin = false;
+            for &mode in ColorMode::ALL {
+                if format!("{:?}", mode).to_lowercase() == *key {
+                    self.prefs.color_mode = mode;
+                    self.prefs.active_theme = None;
+                    found_builtin = true;
+                    break;
+                }
+            }
+            if !found_builtin {
+                self.prefs.active_theme = Some(key.clone());
+            }
+        }
     }
 
     pub fn hover_ready(&self) -> bool {
@@ -537,6 +558,9 @@ impl App {
         if self.theme_chooser.active {
             match key.code {
                 KeyCode::Esc | KeyCode::Char('q') => {
+                    // Revert to original theme
+                    self.prefs.color_mode = self.theme_chooser.orig_color_mode;
+                    self.prefs.active_theme = self.theme_chooser.orig_active_theme.clone();
                     self.theme_chooser.active = false;
                 }
                 KeyCode::Char('j') | KeyCode::Down => {
@@ -544,38 +568,30 @@ impl App {
                     if count > 0 {
                         self.theme_chooser.selected = (self.theme_chooser.selected + 1).min(count - 1);
                     }
+                    self.apply_selected_theme();
                 }
                 KeyCode::Char('k') | KeyCode::Up => {
                     self.theme_chooser.selected = self.theme_chooser.selected.saturating_sub(1);
+                    self.apply_selected_theme();
                 }
                 KeyCode::Home | KeyCode::Char('g') => {
                     self.theme_chooser.selected = 0;
+                    self.apply_selected_theme();
                 }
                 KeyCode::End | KeyCode::Char('G') => {
                     let count = self.all_themes().len();
                     if count > 0 {
                         self.theme_chooser.selected = count - 1;
                     }
+                    self.apply_selected_theme();
                 }
                 KeyCode::Enter => {
+                    self.apply_selected_theme();
                     let themes = self.all_themes();
-                    if let Some((key, display)) = themes.get(self.theme_chooser.selected) {
-                        // Check if it's a builtin
-                        let mut found_builtin = false;
-                        for &mode in ColorMode::ALL {
-                            if format!("{:?}", mode).to_lowercase() == *key {
-                                self.prefs.color_mode = mode;
-                                self.prefs.active_theme = None;
-                                found_builtin = true;
-                                break;
-                            }
-                        }
-                        if !found_builtin {
-                            self.prefs.active_theme = Some(key.clone());
-                        }
+                    if let Some((_, display)) = themes.get(self.theme_chooser.selected) {
                         self.status_msg = Some((format!("\u{25C6} {}", display), Instant::now()));
-                        self.save();
                     }
+                    self.save();
                     self.theme_chooser.active = false;
                 }
                 _ => {}
@@ -876,6 +892,8 @@ impl App {
                 self.theme_chooser.selected = themes.iter()
                     .position(|(k, _)| *k == current_key)
                     .unwrap_or(0);
+                self.theme_chooser.orig_color_mode = self.prefs.color_mode;
+                self.theme_chooser.orig_active_theme = self.prefs.active_theme.clone();
                 self.theme_chooser.active = true;
             }
             KeyCode::Char('C') => {
@@ -1070,7 +1088,57 @@ impl App {
         }
     }
 
-    pub fn handle_mouse(&mut self, event: MouseEvent, term_w: u16) {
+    pub fn handle_mouse(&mut self, event: MouseEvent, term_w: u16, term_h: u16) {
+        // Theme chooser mouse handling
+        if self.theme_chooser.active {
+            let themes = self.all_themes();
+            let box_w: u16 = 50u16.min(term_w.saturating_sub(4));
+            let box_h: u16 = (themes.len() as u16 + 4).min(term_h.saturating_sub(4));
+            let x0 = (term_w.saturating_sub(box_w)) / 2;
+            let y0 = (term_h.saturating_sub(box_h)) / 2;
+            let content_start = y0 + 2;
+            let content_end = y0 + box_h - 2;
+            let visible = (content_end - content_start) as usize;
+            let scroll = if self.theme_chooser.selected >= visible {
+                self.theme_chooser.selected - visible + 1
+            } else {
+                0
+            };
+
+            match event.kind {
+                MouseEventKind::Down(MouseButton::Left) => {
+                    let x = event.column;
+                    let y = event.row;
+                    // Click inside content area
+                    if x > x0 && x < x0 + box_w - 1 && y >= content_start && y < content_end {
+                        let clicked_idx = scroll + (y - content_start) as usize;
+                        if clicked_idx < themes.len() {
+                            self.theme_chooser.selected = clicked_idx;
+                            self.apply_selected_theme();
+                        }
+                    } else if x < x0 || x >= x0 + box_w || y < y0 || y >= y0 + box_h {
+                        // Click outside popup: cancel
+                        self.prefs.color_mode = self.theme_chooser.orig_color_mode;
+                        self.prefs.active_theme = self.theme_chooser.orig_active_theme.clone();
+                        self.theme_chooser.active = false;
+                    }
+                }
+                MouseEventKind::ScrollDown => {
+                    let count = themes.len();
+                    if count > 0 {
+                        self.theme_chooser.selected = (self.theme_chooser.selected + 1).min(count - 1);
+                        self.apply_selected_theme();
+                    }
+                }
+                MouseEventKind::ScrollUp => {
+                    self.theme_chooser.selected = self.theme_chooser.selected.saturating_sub(1);
+                    self.apply_selected_theme();
+                }
+                _ => {}
+            }
+            return;
+        }
+
         let show_border = self.prefs.show_border;
         let lm: u16 = if show_border { 1 } else { 0 };
         let rm: u16 = if show_border { 1 } else { 0 };
@@ -2641,7 +2709,7 @@ mod tests {
         assert!(app.hover.pos.is_none());
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         assert_eq!(app.hover.pos, Some((15, 5)));
         // Should be instantly ready (timestamp set in the past)
@@ -2657,21 +2725,21 @@ mod tests {
         // Click near mount separator
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: mount_sep_x, row: 5, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         assert!(matches!(app.drag, Some(DragTarget::MountSep)));
 
         // Drag to new position
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: 30, row: 5, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         assert!(app.prefs.col_mount_w > 0);
 
         // Release
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: 30, row: 5, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         assert!(app.drag.is_none());
     }
@@ -2682,7 +2750,7 @@ mod tests {
         assert!(app.drag.is_none());
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: 10, row: 10, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         // No crash, drag is still None
         assert!(app.drag.is_none());
@@ -2694,7 +2762,7 @@ mod tests {
         let prev_help = app.show_help;
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::ScrollUp, column: 10, row: 10, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         assert_eq!(app.show_help, prev_help);
     }
@@ -2708,7 +2776,7 @@ mod tests {
         // With border + header, first disk row is at y=5
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 5, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         assert_eq!(app.selected, Some(0));
     }
@@ -2718,7 +2786,7 @@ mod tests {
         let mut app = test_app();
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 6, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         assert_eq!(app.selected, Some(1));
     }
@@ -2729,7 +2797,7 @@ mod tests {
         // Click far below disk rows (row 50 is way past the 4 disks)
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 50, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         assert!(app.selected.is_none());
     }
@@ -2740,7 +2808,7 @@ mod tests {
         // First click selects
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 5, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         assert_eq!(app.selected, Some(0));
         assert_eq!(app.drill.mode, ViewMode::Disks);
@@ -2748,7 +2816,7 @@ mod tests {
         // Second click on same row enters drill-down
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 5, modifiers: KeyModifiers::NONE },
-            80,
+            80, 24,
         );
         assert_eq!(app.drill.mode, ViewMode::DrillDown);
     }
@@ -2872,5 +2940,119 @@ mod tests {
         app.prefs.col_mount_w = 25;
         app.handle_key(make_key(KeyCode::Char('m')));
         assert_eq!(app.prefs.col_mount_w, 0);
+    }
+
+    // ── Theme chooser live preview ────────────────────────
+
+    #[test]
+    fn theme_chooser_nav_auto_applies() {
+        let mut app = test_app();
+        assert_eq!(app.prefs.color_mode, ColorMode::Default);
+        app.handle_key(make_key(KeyCode::Char('c'))); // open
+        // Navigate down — should auto-apply
+        app.handle_key(make_key(KeyCode::Char('j')));
+        assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
+        // Navigate down again
+        app.handle_key(make_key(KeyCode::Char('j')));
+        assert_eq!(app.prefs.color_mode, ColorMode::ALL[2]);
+    }
+
+    #[test]
+    fn theme_chooser_esc_reverts_to_original() {
+        let mut app = test_app();
+        assert_eq!(app.prefs.color_mode, ColorMode::Default);
+        app.handle_key(make_key(KeyCode::Char('c')));
+        // Navigate to change theme
+        app.handle_key(make_key(KeyCode::Char('j')));
+        app.handle_key(make_key(KeyCode::Char('j')));
+        assert_ne!(app.prefs.color_mode, ColorMode::Default);
+        // Esc should revert
+        app.handle_key(make_key(KeyCode::Esc));
+        assert!(!app.theme_chooser.active);
+        assert_eq!(app.prefs.color_mode, ColorMode::Default);
+    }
+
+    #[test]
+    fn theme_chooser_stores_original() {
+        let mut app = test_app();
+        app.prefs.color_mode = ColorMode::Purple;
+        app.handle_key(make_key(KeyCode::Char('c')));
+        assert_eq!(app.theme_chooser.orig_color_mode, ColorMode::Purple);
+        assert!(app.theme_chooser.orig_active_theme.is_none());
+    }
+
+    #[test]
+    fn theme_chooser_home_end_auto_apply() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('c')));
+        // Jump to end
+        app.handle_key(make_key(KeyCode::Char('G')));
+        let last_idx = app.all_themes().len() - 1;
+        assert_eq!(app.theme_chooser.selected, last_idx);
+        // Theme should have changed from Default
+        assert_ne!(app.prefs.color_mode, ColorMode::Default);
+        // Jump to start
+        app.handle_key(make_key(KeyCode::Char('g')));
+        assert_eq!(app.theme_chooser.selected, 0);
+        assert_eq!(app.prefs.color_mode, ColorMode::Default);
+    }
+
+    // ── Theme chooser mouse interaction ───────────────────
+
+    #[test]
+    fn theme_chooser_mouse_click_selects() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('c')));
+        assert!(app.theme_chooser.active);
+        // Popup is centered. For 80x24 term, box_w=50, x0=15, y0 depends on theme count
+        // Content starts at y0+2. Click on content area row 0 → first theme
+        let themes = app.all_themes();
+        let box_h = (themes.len() as u16 + 4).min(20); // 24 - 4 = 20
+        let y0 = (24u16.saturating_sub(box_h)) / 2;
+        let content_y = y0 + 2;
+        // Click second row in content
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 30, row: content_y + 1, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert_eq!(app.theme_chooser.selected, 1);
+        assert!(app.theme_chooser.active); // Still open after single click
+    }
+
+    #[test]
+    fn theme_chooser_mouse_click_outside_cancels() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('c')));
+        assert!(app.theme_chooser.active);
+        // Click far outside popup
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 0, row: 0, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(!app.theme_chooser.active);
+        // Should revert to original
+        assert_eq!(app.prefs.color_mode, ColorMode::Default);
+    }
+
+    #[test]
+    fn theme_chooser_mouse_scroll_navigates() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('c')));
+        assert_eq!(app.theme_chooser.selected, 0);
+        // Scroll down
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::ScrollDown, column: 40, row: 12, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert_eq!(app.theme_chooser.selected, 1);
+        // Auto-applied
+        assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
+        // Scroll up
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::ScrollUp, column: 40, row: 12, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert_eq!(app.theme_chooser.selected, 0);
+        assert_eq!(app.prefs.color_mode, ColorMode::ALL[0]);
     }
 }

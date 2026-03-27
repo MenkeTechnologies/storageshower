@@ -1012,7 +1012,7 @@ fn mouse_click_selects_and_drills_down() {
     // Click on first disk row (border=true, header=true → first disk at row 5)
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-        80,
+        80, 24,
     );
     assert_eq!(app.selected, Some(0));
     assert_eq!(app.drill.mode, ViewMode::Disks);
@@ -1020,7 +1020,7 @@ fn mouse_click_selects_and_drills_down() {
     // Click same row again → drill down
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-        80,
+        80, 24,
     );
     assert_eq!(app.drill.mode, ViewMode::DrillDown);
 }
@@ -1031,13 +1031,13 @@ fn mouse_click_different_row_changes_selection() {
 
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-        80,
+        80, 24,
     );
     assert_eq!(app.selected, Some(0));
 
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 6, modifiers: KeyModifiers::NONE },
-        80,
+        80, 24,
     );
     assert_eq!(app.selected, Some(1));
     assert_eq!(app.drill.mode, ViewMode::Disks); // did not drill down
@@ -1346,7 +1346,7 @@ fn hover_sets_position() {
     assert!(app.hover.pos.is_none());
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 6, modifiers: KeyModifiers::NONE },
-        80,
+        80, 24,
     );
     assert_eq!(app.hover.pos, Some((20, 6)));
 }
@@ -1468,7 +1468,7 @@ fn hover_resets_on_move() {
     // Move to different position
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 6, modifiers: KeyModifiers::NONE },
-        80,
+        80, 24,
     );
     assert!(!app.hover_ready(), "Hover delay should reset on move");
 }
@@ -1519,12 +1519,12 @@ fn mouse_scroll_down_selects_next() {
     assert!(app.selected.is_none());
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::ScrollDown, column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80,
+        80, 24,
     );
     assert_eq!(app.selected, Some(0));
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::ScrollDown, column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80,
+        80, 24,
     );
     assert_eq!(app.selected, Some(1));
 }
@@ -1535,7 +1535,7 @@ fn mouse_scroll_up_selects_prev() {
     app.selected = Some(2);
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::ScrollUp, column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80,
+        80, 24,
     );
     assert_eq!(app.selected, Some(1));
 }
@@ -1547,7 +1547,7 @@ fn right_click_sets_hover_instantly() {
     let mut app = make_app_with_disks(sample_disks());
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 30, row: 7, modifiers: KeyModifiers::NONE },
-        80,
+        80, 24,
     );
     assert_eq!(app.hover.pos, Some((30, 7)));
     assert!(app.hover_ready());
@@ -1710,4 +1710,128 @@ fn all_themes_includes_builtins_and_custom() {
     // Custom themes sorted alphabetically after builtins
     assert_eq!(themes[ColorMode::ALL.len()].0, "alpha");
     assert_eq!(themes[ColorMode::ALL.len() + 1].0, "zeta");
+}
+
+// ─── Theme chooser live preview ──────────────────────────────────────────
+
+#[test]
+fn theme_chooser_live_preview_on_navigate() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert_eq!(app.prefs.color_mode, ColorMode::Default);
+    app.handle_key(make_key(KeyCode::Char('c')));
+    // Navigate down should auto-apply
+    app.handle_key(make_key(KeyCode::Down));
+    assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
+    app.handle_key(make_key(KeyCode::Down));
+    assert_eq!(app.prefs.color_mode, ColorMode::ALL[2]);
+    // Up arrow goes back
+    app.handle_key(make_key(KeyCode::Up));
+    assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
+}
+
+#[test]
+fn theme_chooser_esc_reverts_after_preview() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.color_mode = ColorMode::Blue;
+    app.handle_key(make_key(KeyCode::Char('c')));
+    // Navigate around
+    for _ in 0..5 {
+        app.handle_key(make_key(KeyCode::Char('j')));
+    }
+    assert_ne!(app.prefs.color_mode, ColorMode::Blue);
+    // Esc reverts
+    app.handle_key(make_key(KeyCode::Esc));
+    assert!(!app.theme_chooser.active);
+    assert_eq!(app.prefs.color_mode, ColorMode::Blue);
+}
+
+#[test]
+fn theme_chooser_enter_confirms_preview() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('c')));
+    // Navigate to index 4
+    for _ in 0..4 {
+        app.handle_key(make_key(KeyCode::Char('j')));
+    }
+    let expected = ColorMode::ALL[4];
+    assert_eq!(app.prefs.color_mode, expected);
+    app.handle_key(make_key(KeyCode::Enter));
+    assert!(!app.theme_chooser.active);
+    // Theme stays applied after confirm
+    assert_eq!(app.prefs.color_mode, expected);
+    assert!(app.status_msg.is_some());
+}
+
+#[test]
+fn theme_chooser_enter_applies_custom_theme() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.custom_themes.insert("mytest".into(), ThemeColors {
+        blue: 100, green: 101, purple: 102, light_purple: 103, royal: 104, dark_purple: 105,
+    });
+    app.handle_key(make_key(KeyCode::Char('c')));
+    // Custom themes appear after builtins
+    let custom_idx = ColorMode::ALL.len();
+    app.theme_chooser.selected = custom_idx;
+    app.handle_key(make_key(KeyCode::Enter));
+    assert_eq!(app.prefs.active_theme, Some("mytest".into()));
+}
+
+// ─── Theme chooser mouse interaction ─────────────────────────────────────
+
+#[test]
+fn theme_chooser_mouse_click_applies_theme() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('c')));
+    let themes = app.all_themes();
+    let box_h = (themes.len() as u16 + 4).min(20u16); // 24 - 4 = 20
+    let y0 = (24u16.saturating_sub(box_h)) / 2;
+    // Click third row in content area
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 30, row: y0 + 2 + 2, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert_eq!(app.theme_chooser.selected, 2);
+    assert_eq!(app.prefs.color_mode, ColorMode::ALL[2]);
+    assert!(app.theme_chooser.active); // Still open
+}
+
+#[test]
+fn theme_chooser_click_outside_reverts() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.color_mode = ColorMode::Purple;
+    app.handle_key(make_key(KeyCode::Char('c')));
+    // Navigate to change theme
+    app.handle_key(make_key(KeyCode::Char('j')));
+    assert_ne!(app.prefs.color_mode, ColorMode::Purple);
+    // Click outside
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 0, row: 0, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(!app.theme_chooser.active);
+    assert_eq!(app.prefs.color_mode, ColorMode::Purple);
+}
+
+#[test]
+fn theme_chooser_scroll_auto_applies() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('c')));
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::ScrollDown, column: 40, row: 12, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert_eq!(app.theme_chooser.selected, 1);
+    assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::ScrollDown, column: 40, row: 12, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert_eq!(app.theme_chooser.selected, 2);
+    assert_eq!(app.prefs.color_mode, ColorMode::ALL[2]);
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::ScrollUp, column: 40, row: 12, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert_eq!(app.theme_chooser.selected, 1);
+    assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
 }
