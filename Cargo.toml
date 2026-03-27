@@ -1,8 +1,13 @@
 [package]
 name = "storageshower"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Cyberpunk disk usage TUI"
+license = "MIT"
+repository = "https://github.com/MenkeTechnologies/storageshower"
+homepage = "https://github.com/MenkeTechnologies/storageshower"
+keywords = ["tui", "disk", "cyberpunk", "terminal", "monitoring"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 ratatui = "0.29"
