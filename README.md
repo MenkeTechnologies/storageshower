@@ -140,14 +140,17 @@ cargo run --release
  └──────────────────────────────────────────────────┘
 ```
 
+CLI flags **override** config file settings. Every `--flag` has a `--no-flag` inverse
+to force-override in either direction.
+
 #### `// SORTING`
 
 | `FLAG` | `DESCRIPTION` |
 |:---|:---|
 | `-s, --sort MODE` | Sort disk entries — `name`, `pct`, `size` |
-| `-R, --reverse` | Reverse sort order |
-| `-l, --local-only` | Show only local disks (HDD/SSD) |
-| `--no-virtual` | Hide virtual filesystems (tmpfs, devfs, etc.) |
+| `-R, --reverse` / `--no-reverse` | Reverse sort order |
+| `-l, --local-only` / `--no-local` | Show only local disks (HDD/SSD) |
+| `--no-virtual` / `--virtual` | Hide/show virtual filesystems (tmpfs, devfs, etc.) |
 
 #### `// DISPLAY`
 
@@ -156,12 +159,12 @@ cargo run --release
 | `-b, --bar-style STYLE` | Bar visualization — `gradient`, `solid`, `thin`, `ascii` |
 | `-c, --color PALETTE` | Color palette — `default`, `green`, `blue`, `purple` |
 | `-u, --units MODE` | Unit display — `human`, `gib`, `mib`, `bytes` |
-| `-k, --compact` | Compact mount names |
-| `-f, --full-mount` | Show full mount paths |
-| `--no-bars` | Hide usage bars |
-| `--no-border` | Hide border chrome |
-| `--no-header` | Hide column headers |
-| `--no-used` | Hide used/total size display |
+| `-k, --compact` / `--no-compact` | Compact mount names |
+| `-f, --full-mount` / `--no-full-mount` | Show full mount paths |
+| `--bars` / `--no-bars` | Show/hide usage bars |
+| `--border` / `--no-border` | Show/hide border chrome |
+| `--header` / `--no-header` | Show/hide column headers |
+| `--used` / `--no-used` | Show/hide used/total size display |
 
 #### `// THRESHOLDS`
 

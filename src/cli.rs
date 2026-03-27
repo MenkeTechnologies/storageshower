@@ -17,12 +17,20 @@ pub struct Cli {
     pub sort_mode: Option<SortMode>,
 
     /// Reverse sort order
-    #[arg(short = 'R', long = "reverse")]
+    #[arg(short = 'R', long = "reverse", overrides_with = "no_reverse")]
     pub sort_rev: bool,
 
+    /// Do not reverse sort order
+    #[arg(long = "no-reverse", overrides_with = "sort_rev", hide = true)]
+    pub no_reverse: bool,
+
     /// Show only local disks (HDD/SSD)
-    #[arg(short = 'l', long = "local-only")]
+    #[arg(short = 'l', long = "local-only", overrides_with = "no_local")]
     pub show_local: bool,
+
+    /// Show all disks (not just local)
+    #[arg(long = "no-local", overrides_with = "show_local", hide = true)]
+    pub no_local: bool,
 
     /// Data refresh interval in seconds
     #[arg(short = 'r', long = "refresh", value_name = "SECS")]
@@ -44,32 +52,60 @@ pub struct Cli {
     #[arg(short = 'C', long = "crit", value_name = "PCT")]
     pub thresh_crit: Option<u8>,
 
+    /// Show usage bars
+    #[arg(long = "bars", overrides_with = "no_bars", hide = true)]
+    pub bars: bool,
+
     /// Hide usage bars
-    #[arg(long = "no-bars")]
+    #[arg(long = "no-bars", overrides_with = "bars")]
     pub no_bars: bool,
 
+    /// Show border chrome
+    #[arg(long = "border", overrides_with = "no_border", hide = true)]
+    pub border: bool,
+
     /// Hide border chrome
-    #[arg(long = "no-border")]
+    #[arg(long = "no-border", overrides_with = "border")]
     pub no_border: bool,
 
+    /// Show column headers
+    #[arg(long = "header", overrides_with = "no_header", hide = true)]
+    pub header: bool,
+
     /// Hide column headers
-    #[arg(long = "no-header")]
+    #[arg(long = "no-header", overrides_with = "header")]
     pub no_header: bool,
 
     /// Compact mount names
-    #[arg(short = 'k', long = "compact")]
+    #[arg(short = 'k', long = "compact", overrides_with = "no_compact")]
     pub compact: bool,
 
+    /// Do not compact mount names
+    #[arg(long = "no-compact", overrides_with = "compact", hide = true)]
+    pub no_compact: bool,
+
+    /// Show used/total size display
+    #[arg(long = "used", overrides_with = "no_used", hide = true)]
+    pub used: bool,
+
     /// Hide used/total size display
-    #[arg(long = "no-used")]
+    #[arg(long = "no-used", overrides_with = "used")]
     pub no_used: bool,
 
     /// Show full mount paths
-    #[arg(short = 'f', long = "full-mount")]
+    #[arg(short = 'f', long = "full-mount", overrides_with = "no_full_mount")]
     pub full_mount: bool,
 
+    /// Do not show full mount paths
+    #[arg(long = "no-full-mount", overrides_with = "full_mount", hide = true)]
+    pub no_full_mount: bool,
+
+    /// Show virtual filesystems
+    #[arg(long = "virtual", overrides_with = "no_virtual", hide = true)]
+    pub show_virtual: bool,
+
     /// Hide virtual filesystems
-    #[arg(long = "no-virtual")]
+    #[arg(long = "no-virtual", overrides_with = "show_virtual")]
     pub no_virtual: bool,
 
     /// Unit display mode
@@ -189,6 +225,7 @@ pub fn print_help() {
 {B_CYAN}  ── INFO ──────────────────────────────────────────{RST}
 {B_MAGENTA}  v{ver} {RST}// {B_YELLOW}cyberpunk disk usage TUI{RST}
   Config synced to: ~/.storageshower.conf
+  CLI flags override config file. Every --flag has a --no-flag inverse.
 {B_MAGENTA}  Wake up, samurai. We have disks to monitor.{RST}
 "#,
         ver = env!("CARGO_PKG_VERSION"),
@@ -215,14 +252,24 @@ impl Cli {
         if let Some(v) = self.col_mount_w { prefs.col_mount_w = v; }
         if let Some(v) = self.col_bar_end_w { prefs.col_bar_end_w = v; }
         if let Some(v) = self.col_pct_w { prefs.col_pct_w = v; }
+        // Boolean pairs: --flag / --no-flag (last one wins via clap overrides_with)
         if self.sort_rev { prefs.sort_rev = true; }
+        if self.no_reverse { prefs.sort_rev = false; }
         if self.show_local { prefs.show_local = true; }
+        if self.no_local { prefs.show_local = false; }
         if self.compact { prefs.compact = true; }
+        if self.no_compact { prefs.compact = false; }
         if self.full_mount { prefs.full_mount = true; }
+        if self.no_full_mount { prefs.full_mount = false; }
+        if self.bars { prefs.show_bars = true; }
         if self.no_bars { prefs.show_bars = false; }
+        if self.border { prefs.show_border = true; }
         if self.no_border { prefs.show_border = false; }
+        if self.header { prefs.show_header = true; }
         if self.no_header { prefs.show_header = false; }
+        if self.used { prefs.show_used = true; }
         if self.no_used { prefs.show_used = false; }
+        if self.show_virtual { prefs.show_all = true; }
         if self.no_virtual { prefs.show_all = false; }
     }
 }
@@ -506,5 +553,88 @@ mod tests {
     fn invalid_unit_mode_errors() {
         let result = Cli::try_parse_from(["storageshower", "-u", "petabytes"]);
         assert!(result.is_err());
+    }
+
+    // ── Counter-flags override config values ──────────────
+
+    #[test]
+    fn no_reverse_overrides_config() {
+        let cli = Cli::parse_from(["storageshower", "--no-reverse"]);
+        let mut prefs = Prefs::default();
+        prefs.sort_rev = true; // config says reversed
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.sort_rev); // CLI overrides
+    }
+
+    #[test]
+    fn no_local_overrides_config() {
+        let cli = Cli::parse_from(["storageshower", "--no-local"]);
+        let mut prefs = Prefs::default();
+        prefs.show_local = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.show_local);
+    }
+
+    #[test]
+    fn no_compact_overrides_config() {
+        let cli = Cli::parse_from(["storageshower", "--no-compact"]);
+        let mut prefs = Prefs::default();
+        prefs.compact = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.compact);
+    }
+
+    #[test]
+    fn no_full_mount_overrides_config() {
+        let cli = Cli::parse_from(["storageshower", "--no-full-mount"]);
+        let mut prefs = Prefs::default();
+        prefs.full_mount = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.full_mount);
+    }
+
+    #[test]
+    fn bars_overrides_config_no_bars() {
+        let cli = Cli::parse_from(["storageshower", "--bars"]);
+        let mut prefs = Prefs::default();
+        prefs.show_bars = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_bars);
+    }
+
+    #[test]
+    fn border_overrides_config_no_border() {
+        let cli = Cli::parse_from(["storageshower", "--border"]);
+        let mut prefs = Prefs::default();
+        prefs.show_border = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_border);
+    }
+
+    #[test]
+    fn header_overrides_config_no_header() {
+        let cli = Cli::parse_from(["storageshower", "--header"]);
+        let mut prefs = Prefs::default();
+        prefs.show_header = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_header);
+    }
+
+    #[test]
+    fn used_overrides_config_no_used() {
+        let cli = Cli::parse_from(["storageshower", "--used"]);
+        let mut prefs = Prefs::default();
+        prefs.show_used = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_used);
+    }
+
+    #[test]
+    fn virtual_overrides_config_no_virtual() {
+        let cli = Cli::parse_from(["storageshower", "--virtual"]);
+        let mut prefs = Prefs::default();
+        prefs.show_all = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_all);
     }
 }
