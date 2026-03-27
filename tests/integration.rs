@@ -1330,6 +1330,44 @@ fn drill_sort_resets_selection() {
 // ─── Export theme CLI ────────────────────────────────────────────────────
 
 #[test]
+#[test]
+fn hover_sets_position() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert!(app.hover_pos.is_none());
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 6, modifiers: KeyModifiers::NONE },
+        80,
+    );
+    assert_eq!(app.hover_pos, Some((20, 6)));
+}
+
+#[test]
+fn hover_resolves_disk_index() {
+    let mut app = make_app_with_disks(sample_disks());
+    // With border + header, first disk row is at y=5
+    app.hover_pos = Some((10, 5));
+    assert_eq!(app.hovered_disk_index(), Some(0));
+    app.hover_pos = Some((10, 6));
+    assert_eq!(app.hovered_disk_index(), Some(1));
+}
+
+#[test]
+fn hover_out_of_range_returns_none() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover_pos = Some((10, 50));
+    assert!(app.hovered_disk_index().is_none());
+    app.hover_pos = Some((10, 0)); // title bar
+    assert!(app.hovered_disk_index().is_none());
+}
+
+#[test]
+fn hover_none_returns_none() {
+    let app = make_app_with_disks(sample_disks());
+    assert!(app.hover_pos.is_none());
+    assert!(app.hovered_disk_index().is_none());
+}
+
+#[test]
 fn export_theme_flag_parses() {
     let cli = Cli::parse_from(["storageshower", "--export-theme"]);
     assert!(cli.export_theme);

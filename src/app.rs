@@ -29,6 +29,8 @@ pub struct App {
     pub drag: Option<DragTarget>,
     pub selected: Option<usize>,
     pub status_msg: Option<(String, Instant)>,
+    // Hover state
+    pub hover_pos: Option<(u16, u16)>,
     // Theme editor state
     pub theme_editor: bool,
     pub theme_edit_colors: [u8; 6],
@@ -73,6 +75,7 @@ impl App {
             selected: None,
             status_msg: None,
             drag: None,
+            hover_pos: None,
             theme_editor: false,
             theme_edit_colors: [0; 6],
             theme_edit_slot: 0,
@@ -114,6 +117,7 @@ impl App {
             selected: None,
             status_msg: None,
             drag: None,
+            hover_pos: None,
             theme_editor: false,
             theme_edit_colors: [0; 6],
             theme_edit_slot: 0,
@@ -188,6 +192,19 @@ impl App {
             let entries = scan_directory_with_progress(&path, Some(count), Some(total));
             *result.lock().unwrap() = Some(entries);
         });
+    }
+
+    pub fn hovered_disk_index(&self) -> Option<usize> {
+        let (_, y) = self.hover_pos?;
+        let first_disk_row: u16 = if self.prefs.show_border { 1 } else { 0 }
+            + 2
+            + if self.prefs.show_header { 2 } else { 0 };
+        if y < first_disk_row {
+            return None;
+        }
+        let idx = (y - first_disk_row) as usize;
+        let count = self.sorted_disks().len();
+        if idx < count { Some(idx) } else { None }
     }
 
     pub fn drill_current_path(&self) -> String {
@@ -979,6 +996,9 @@ impl App {
             }
             MouseEventKind::Down(MouseButton::Right) => {
                 self.show_help = !self.show_help;
+            }
+            MouseEventKind::Moved => {
+                self.hover_pos = Some((event.column, event.row));
             }
             _ => {}
         }

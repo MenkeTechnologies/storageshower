@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v14.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v15.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -378,6 +378,7 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `Left-click` column header | Cycle sort on that column |
 | `Left-drag` column separator | Resize mount / right column |
 | `Right-click` | Toggle help overlay |
+| `Hover` disk row | Show detailed tooltip (mount, fs, usage, SMART, I/O, latency) |
 
 ---
 

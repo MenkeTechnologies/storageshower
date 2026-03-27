@@ -715,6 +715,16 @@ pub fn draw(frame: &mut Frame, app: &App) {
     if app.theme_editor {
         draw_theme_editor(buf, w, h, app);
     }
+
+    // ─── Hover tooltip ───
+    if !app.show_help && !app.theme_editor && !app.filter_mode {
+        if let Some(idx) = app.hovered_disk_index() {
+            let disks = app.sorted_disks();
+            if let Some(disk) = disks.get(idx) {
+                draw_hover_tooltip(buf, w, h, app, disk);
+            }
+        }
+    }
 }
 
 // ─── Sub-draw functions ────────────────────────────────────────────────────
@@ -1047,6 +1057,115 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
             let footer_display: String = footer.chars().take(inner_w as usize).collect();
             set_str(buf, lm, frow, &footer_display, footer_s, inner_w);
         }
+    }
+}
+
+fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEntry) {
+    let (hover_x, hover_y) = match app.hover_pos {
+        Some(pos) => pos,
+        None => return,
+    };
+
+    let (_, pal_green, _, pal_lpurple, _, _) = palette_for_prefs(&app.prefs);
+    let bc = border_color(app);
+    let border_s = Style::default().fg(bc);
+    let label_s = Style::default().fg(pal_lpurple).bg(HELP_BG);
+    let val_s = Style::default().fg(pal_green).bg(HELP_BG);
+
+    // Build tooltip lines
+    let mut lines: Vec<(String, String)> = Vec::new();
+    lines.push(("\u{25B6} Mount".into(), disk.mount.clone()));
+    lines.push(("  Filesystem".into(), disk.fs.clone()));
+    lines.push(("  Usage".into(), format!("{:.1}% ({}/{})",
+        disk.pct,
+        format_bytes(disk.used, app.prefs.unit_mode),
+        format_bytes(disk.total, app.prefs.unit_mode),
+    )));
+    let free = disk.total.saturating_sub(disk.used);
+    lines.push(("  Free".into(), format_bytes(free, app.prefs.unit_mode)));
+    lines.push(("  Kind".into(), match disk.kind {
+        sysinfo::DiskKind::SSD => "SSD".into(),
+        sysinfo::DiskKind::HDD => "HDD".into(),
+        _ => "Unknown".into(),
+    }));
+
+    // Status line
+    let thresh_status = if disk.pct >= app.prefs.thresh_crit as f64 {
+        "\u{2716} CRITICAL"
+    } else if disk.pct >= app.prefs.thresh_warn as f64 {
+        "\u{26A0} WARNING"
+    } else {
+        "\u{25C8} Nominal"
+    };
+    lines.push(("  Status".into(), thresh_status.into()));
+
+    if let Some(smart) = disk.smart_status {
+        lines.push(("  SMART".into(), match smart {
+            SmartHealth::Verified => "\u{2714} Verified".into(),
+            SmartHealth::Failing => "\u{2718} FAILING".into(),
+            SmartHealth::Unknown => "? Unknown".into(),
+        }));
+    }
+    if let Some(lat) = disk.latency_ms {
+        lines.push(("  Latency".into(), format_latency(lat)));
+    }
+    if let Some(rd) = disk.io_read_rate {
+        if rd > 0.0 {
+            lines.push(("  \u{25B2} Read".into(), format_rate(rd)));
+        }
+    }
+    if let Some(wr) = disk.io_write_rate {
+        if wr > 0.0 {
+            lines.push(("  \u{25BC} Write".into(), format_rate(wr)));
+        }
+    }
+    if app.prefs.bookmarks.contains(&disk.mount) {
+        lines.push(("  \u{2605} Bookmark".into(), "pinned".into()));
+    }
+
+    // Compute box dimensions
+    let max_label_w = lines.iter().map(|(l, _)| l.chars().count()).max().unwrap_or(10);
+    let max_val_w = lines.iter().map(|(_, v)| v.chars().count()).max().unwrap_or(10);
+    let box_w = (max_label_w + max_val_w + 5).min(w as usize - 4) as u16;
+    let box_h = (lines.len() + 2) as u16;
+
+    // Position: below and right of cursor, clamped to screen
+    let x0 = if hover_x + box_w + 2 < w { hover_x + 2 } else { w.saturating_sub(box_w + 2) };
+    let y0 = if hover_y + box_h + 1 < h { hover_y + 1 } else { h.saturating_sub(box_h + 1) };
+
+    // Draw box background
+    for y in y0..y0 + box_h {
+        for x in x0..x0 + box_w {
+            if x < w && y < h {
+                set_cell(buf, x, y, " ", Style::default().bg(HELP_BG));
+            }
+        }
+    }
+
+    // Draw border
+    set_cell(buf, x0, y0, "\u{256D}", border_s);
+    set_cell(buf, x0 + box_w - 1, y0, "\u{256E}", border_s);
+    set_cell(buf, x0, y0 + box_h - 1, "\u{2570}", border_s);
+    set_cell(buf, x0 + box_w - 1, y0 + box_h - 1, "\u{256F}", border_s);
+    for x in x0 + 1..x0 + box_w - 1 {
+        set_cell(buf, x, y0, "\u{2500}", border_s);
+        set_cell(buf, x, y0 + box_h - 1, "\u{2500}", border_s);
+    }
+    for y in y0 + 1..y0 + box_h - 1 {
+        set_cell(buf, x0, y, "\u{2502}", border_s);
+        set_cell(buf, x0 + box_w - 1, y, "\u{2502}", border_s);
+    }
+
+    // Draw content
+    let content_w = box_w.saturating_sub(2);
+    for (i, (label, val)) in lines.iter().enumerate() {
+        let y = y0 + 1 + i as u16;
+        if y >= y0 + box_h - 1 { break; }
+        let lw = max_label_w + 1;
+        set_str(buf, x0 + 1, y, label, label_s, lw as u16);
+        let vx = x0 + 1 + lw as u16 + 1;
+        let remaining = content_w.saturating_sub(lw as u16 + 2);
+        set_str(buf, vx, y, val, val_s, remaining);
     }
 }
 
