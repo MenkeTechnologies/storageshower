@@ -1,0 +1,42 @@
+#compdef storageshower
+
+_storageshower() {
+    local -a args
+    args=(
+        # Sorting
+        '(-s --sort)'{-s,--sort}'[Sort mode for disk entries]:mode:(name pct size)'
+        '(-R --reverse)'{-R,--reverse}'[Reverse sort order]'
+        '(-l --local-only)'{-l,--local-only}'[Show only local disks (HDD/SSD)]'
+        '--no-virtual[Hide virtual filesystems]'
+
+        # Display
+        '(-b --bar-style)'{-b,--bar-style}'[Bar visualization style]:style:(gradient solid thin ascii)'
+        '(-c --color)'{-c,--color}'[Color palette]:palette:(default green blue purple)'
+        '(-u --units)'{-u,--units}'[Unit display mode]:mode:(human gib mib bytes)'
+        '(-k --compact)'{-k,--compact}'[Compact mount names]'
+        '(-f --full-mount)'{-f,--full-mount}'[Show full mount paths]'
+        '--no-bars[Hide usage bars]'
+        '--no-border[Hide border chrome]'
+        '--no-header[Hide column headers]'
+        '--no-used[Hide used/total size display]'
+
+        # Thresholds
+        '(-w --warn)'{-w,--warn}'[Warning threshold percentage]:pct:'
+        '(-C --crit)'{-C,--crit}'[Critical threshold percentage]:pct:'
+
+        # Columns
+        '--col-mount[Mount column width (0 = auto)]:width:'
+        '--col-bar-end[Bar-end column width (0 = auto)]:width:'
+        '--col-pct[Percentage column width (0 = auto)]:width:'
+
+        # System
+        '(-r --refresh)'{-r,--refresh}'[Data refresh interval in seconds]:secs:'
+        '--config[Config file path]:path:_files'
+        '(-h --help)'{-h,--help}'[Display help]'
+        '(-V --version)'{-V,--version}'[Display version information]'
+    )
+
+    _arguments -s -S $args
+}
+
+_storageshower "$@"
