@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v8.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v9.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -94,6 +94,14 @@ cargo install storageshower
   │   ├── Linux: /proc/diskstats sector counters
   │   ├── auto device→mount mapping via getmntinfo / /proc/mounts
   │   └── overlay on bar: ▲1.2M/s ▼500K/s (shown when active)
+  │
+[ALERT_ENGINE]
+  ├── Disk free space alerts ─── threshold crossing detection
+  │   ├── terminal bell (\x07) on newly crossed thresholds
+  │   ├── pulsing red border flash for 2 seconds
+  │   ├── dark red row highlight on alerting disks
+  │   ├── status bar message: ⚠ ALERT: /mount 90%
+  │   └── auto-clears when disk drops below threshold
   │
 [SMART_HEALTH]
   ├── SMART drive health status ─── per-device monitoring

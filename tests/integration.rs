@@ -1032,3 +1032,81 @@ fn mouse_click_different_row_changes_selection() {
     assert_eq!(app.selected, Some(1));
     assert_eq!(app.view_mode, ViewMode::Disks); // did not drill down
 }
+
+// ─── Disk free space alerts ──────────────────────────────────────────────
+
+#[test]
+fn alert_triggers_on_threshold_crossing() {
+    let disks = vec![
+        DiskEntry { mount: "/".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+    ];
+    let shared = Arc::new(Mutex::new((SysStats::default(), disks)));
+    let mut app = App::new_default(shared.clone());
+    app.prefs = Prefs::default();
+    app.prefs.thresh_warn = 70;
+    app.alert_mounts.clear();
+
+    // First refresh: disk at 50% — no alert
+    app.refresh_data();
+    assert!(app.alert_flash.is_none());
+
+    // Push disk above warning threshold
+    {
+        let mut lock = shared.lock().unwrap();
+        lock.1 = vec![
+            DiskEntry { mount: "/".into(), used: 80, total: 100, pct: 80.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        ];
+    }
+    app.refresh_data();
+    assert!(app.alert_flash.is_some());
+    assert!(app.alert_mounts.contains("/"));
+    assert!(app.status_msg.is_some());
+    let msg = &app.status_msg.as_ref().unwrap().0;
+    assert!(msg.contains("ALERT"), "Expected alert message, got: {}", msg);
+}
+
+#[test]
+fn alert_does_not_re_trigger_for_same_mount() {
+    let disks = vec![
+        DiskEntry { mount: "/".into(), used: 80, total: 100, pct: 80.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+    ];
+    let shared = Arc::new(Mutex::new((SysStats::default(), disks)));
+    let mut app = App::new_default(shared.clone());
+    app.prefs = Prefs::default();
+    app.prefs.thresh_warn = 70;
+
+    // First refresh triggers alert
+    app.refresh_data();
+    assert!(app.alert_flash.is_some());
+
+    // Clear flash, refresh again — should NOT re-trigger
+    app.alert_flash = None;
+    app.status_msg = None;
+    app.refresh_data();
+    assert!(app.alert_flash.is_none(), "Alert should not re-trigger for same mount");
+}
+
+#[test]
+fn alert_clears_when_disk_drops_below_threshold() {
+    let disks = vec![
+        DiskEntry { mount: "/".into(), used: 80, total: 100, pct: 80.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+    ];
+    let shared = Arc::new(Mutex::new((SysStats::default(), disks)));
+    let mut app = App::new_default(shared.clone());
+    app.prefs = Prefs::default();
+    app.prefs.thresh_warn = 70;
+
+    // Trigger alert
+    app.refresh_data();
+    assert!(app.alert_mounts.contains("/"));
+
+    // Drop below threshold
+    {
+        let mut lock = shared.lock().unwrap();
+        lock.1 = vec![
+            DiskEntry { mount: "/".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        ];
+    }
+    app.refresh_data();
+    assert!(!app.alert_mounts.contains("/"), "Mount should be cleared from alert set");
+}

@@ -1,6 +1,7 @@
 use crossterm::event::{
     KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -35,6 +36,9 @@ pub struct App {
     pub theme_edit_naming: bool,
     pub theme_edit_name: String,
     pub theme_edit_cursor: usize,
+    // Alert state
+    pub alert_mounts: HashSet<String>,
+    pub alert_flash: Option<Instant>,
     // Drill-down state
     pub view_mode: ViewMode,
     pub drill_path: Vec<String>,
@@ -71,6 +75,8 @@ impl App {
             theme_edit_naming: false,
             theme_edit_name: String::new(),
             theme_edit_cursor: 0,
+            alert_mounts: HashSet::new(),
+            alert_flash: None,
             view_mode: ViewMode::Disks,
             drill_path: Vec::new(),
             drill_entries: Vec::new(),
@@ -106,6 +112,8 @@ impl App {
             theme_edit_naming: false,
             theme_edit_name: String::new(),
             theme_edit_cursor: 0,
+            alert_mounts: HashSet::new(),
+            alert_flash: None,
             view_mode: ViewMode::Disks,
             drill_path: Vec::new(),
             drill_entries: Vec::new(),
@@ -132,6 +140,27 @@ impl App {
         let (stats, disks) = self.shared_stats.lock().unwrap().clone();
         self.stats = stats;
         self.disks = disks;
+
+        // Check for newly crossed thresholds
+        let warn = self.prefs.thresh_warn as f64;
+        let mut new_alerts: Vec<String> = Vec::new();
+        let mut current_alert_mounts = HashSet::new();
+        for d in &self.disks {
+            if d.pct >= warn {
+                current_alert_mounts.insert(d.mount.clone());
+                if !self.alert_mounts.contains(&d.mount) {
+                    new_alerts.push(format!("{} {:.0}%", d.mount, d.pct));
+                }
+            }
+        }
+        if !new_alerts.is_empty() {
+            self.alert_flash = Some(Instant::now());
+            let msg = format!("\u{26A0} ALERT: {}", new_alerts.join(", "));
+            self.status_msg = Some((msg, Instant::now()));
+            // Terminal bell
+            print!("\x07");
+        }
+        self.alert_mounts = current_alert_mounts;
     }
 
     fn start_drill_scan(&mut self, path: &str) {

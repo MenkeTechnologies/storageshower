@@ -113,7 +113,16 @@ pub fn palette_for_prefs(prefs: &crate::prefs::Prefs) -> (Color, Color, Color, C
     palette(prefs.color_mode)
 }
 
+fn is_alert_flashing(app: &App) -> bool {
+    app.alert_flash
+        .map(|t| t.elapsed().as_millis() < 2000 && (t.elapsed().as_millis() / 300) % 2 == 0)
+        .unwrap_or(false)
+}
+
 fn border_color(app: &App) -> Color {
+    if is_alert_flashing(app) {
+        return Color::Indexed(196); // red flash
+    }
     let (blue, ..) = palette_for_prefs(&app.prefs);
     if app.paused { DIM_BORDER } else { blue }
 }
@@ -410,8 +419,14 @@ pub fn draw(frame: &mut Frame, app: &App) {
 
         let is_selected = app.selected == Some(di);
         let (fg_color, bg_pct, icon) = thresh_color(disk.pct, app);
+        let is_alert_row = is_alert_flashing(app) && app.alert_mounts.contains(&disk.mount);
 
-        if is_selected {
+        if is_alert_row {
+            let flash_bg = Style::default().bg(Color::Indexed(52)); // dark red flash
+            for x in lm..w.saturating_sub(rm) {
+                set_cell(buf, x, row, " ", flash_bg);
+            }
+        } else if is_selected {
             let sel_bg = Style::default().bg(Color::Indexed(237));
             for x in lm..w.saturating_sub(rm) {
                 set_cell(buf, x, row, " ", sel_bg);
