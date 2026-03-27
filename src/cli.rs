@@ -41,7 +41,7 @@ pub struct Cli {
     pub bar_style: Option<BarStyle>,
 
     /// Color palette
-    #[arg(short = 'c', long = "color", value_name = "PALETTE")]
+    #[arg(long = "color", value_name = "PALETTE")]
     pub color_mode: Option<ColorMode>,
 
     /// Warning threshold percentage
@@ -125,7 +125,7 @@ pub struct Cli {
     pub col_pct_w: Option<u16>,
 
     /// Config file path
-    #[arg(long = "config", value_name = "PATH")]
+    #[arg(short = 'c', long = "config", value_name = "PATH")]
     pub config: Option<String>,
 
     /// Display this transmission
@@ -189,7 +189,7 @@ pub fn print_help() {
 
 {B_CYAN}  ── DISPLAY ───────────────────────────────────────{RST}
 {B_GREEN}   -b, --bar-style STYLE {RST}bar visualization {B_MAGENTA}(gradient, solid, thin, ascii){RST}
-{B_GREEN}   -c, --color PALETTE   {RST}color palette {B_MAGENTA}(default, green, blue, purple, ...){RST}
+{B_GREEN}       --color PALETTE   {RST}color palette {B_MAGENTA}(default, green, blue, purple, ...){RST}
 {B_GREEN}       --list-colors      {RST}list all builtin color schemes
 {B_GREEN}       --export-theme     {RST}export current palette as TOML
 {B_GREEN}       --theme NAME       {RST}activate a custom theme by name
@@ -212,7 +212,7 @@ pub fn print_help() {
 
 {B_CYAN}  ── SYSTEM ────────────────────────────────────────{RST}
 {B_GREEN}   -r, --refresh SECS    {RST}data refresh interval {B_MAGENTA}(default: 1s){RST}
-{B_GREEN}       --config PATH     {RST}config file path {B_MAGENTA}(default: ~/.storageshower.conf){RST}
+{B_GREEN}   -c, --config PATH     {RST}config file path {B_MAGENTA}(default: ~/.storageshower.conf){RST}
 {B_GREEN}   -h, --help            {RST}display this transmission
 {B_GREEN}   -V, --version         {RST}display version information
 
@@ -231,7 +231,7 @@ pub fn print_help() {
 {B_GREEN}   ?                     {RST}open help overlay
 
 {B_CYAN}  ── EXAMPLES ──────────────────────────────────────{RST}
-{B_GREEN}   storageshower -c purple -b ascii   {RST}purple palette with ascii bars
+{B_GREEN}   storageshower --color purple -b ascii{RST}purple palette with ascii bars
 {B_GREEN}   storageshower -s pct -R            {RST}sort by usage%, reversed
 {B_GREEN}   storageshower -l --no-virtual      {RST}local physical disks only
 {B_GREEN}   storageshower -u gib -w 60 -C 85  {RST}GiB units, custom thresholds
@@ -451,7 +451,7 @@ mod tests {
 
     #[test]
     fn apply_color_mode() {
-        let cli = Cli::parse_from(["storageshower", "-c", "purple"]);
+        let cli = Cli::parse_from(["storageshower", "--color", "purple"]);
         let mut prefs = Prefs::default();
         cli.apply_to(&mut prefs);
         assert_eq!(prefs.color_mode, ColorMode::Purple);
@@ -576,7 +576,7 @@ mod tests {
     #[test]
     fn all_color_modes_parse() {
         for color in ["default", "green", "blue", "purple", "amber", "cyan", "red", "sakura", "matrix", "sunset"] {
-            let cli = Cli::parse_from(["storageshower", "-c", color]);
+            let cli = Cli::parse_from(["storageshower", "--color", color]);
             assert!(cli.color_mode.is_some());
         }
     }
@@ -601,7 +601,7 @@ mod tests {
     fn combined_flags() {
         let cli = Cli::parse_from([
             "storageshower", "-s", "pct", "-R", "-l", "-b", "thin",
-            "-c", "green", "-u", "gib", "-k", "-f", "-w", "50", "-C", "80",
+            "--color", "green", "-u", "gib", "-k", "-f", "-w", "50", "-C", "80",
             "-r", "2", "--no-bars", "--no-border",
         ]);
         let mut prefs = Prefs::default();
@@ -635,7 +635,7 @@ mod tests {
 
     #[test]
     fn invalid_color_mode_errors() {
-        let result = Cli::try_parse_from(["storageshower", "-c", "rainbow"]);
+        let result = Cli::try_parse_from(["storageshower", "--color", "rainbow"]);
         assert!(result.is_err());
     }
 

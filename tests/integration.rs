@@ -409,7 +409,7 @@ fn refresh_data_blocked_when_paused() {
 fn cli_overrides_applied_to_app() {
     let cli = Cli::parse_from([
         "storageshower", "-s", "size", "-R", "-b", "ascii",
-        "-c", "purple", "-u", "gib", "-w", "60", "-C", "85",
+        "--color", "purple", "-u", "gib", "-w", "60", "-C", "85",
         "-r", "5", "--no-bars", "--no-border",
     ]);
     let shared = Arc::new(Mutex::new((SysStats::default(), sample_disks())));
@@ -1397,7 +1397,7 @@ fn export_theme_flag_parses() {
 
 #[test]
 fn export_theme_with_color_flag() {
-    let cli = Cli::parse_from(["storageshower", "--export-theme", "-c", "purple"]);
+    let cli = Cli::parse_from(["storageshower", "--export-theme", "--color", "purple"]);
     assert!(cli.export_theme);
     assert_eq!(cli.color_mode, Some(ColorMode::Purple));
 }
