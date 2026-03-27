@@ -7,7 +7,8 @@ use std::time::Instant;
 use sysinfo::DiskKind;
 
 use crate::helpers::format_bytes;
-use crate::prefs::{load_prefs, save_prefs, Prefs};
+use crate::cli::Cli;
+use crate::prefs::{load_prefs_from, save_prefs, Prefs};
 use crate::system::chrono_now;
 use crate::types::*;
 
@@ -30,8 +31,32 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>) -> Self {
-        let prefs = load_prefs();
+    pub fn new(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>, cli: &Cli) -> Self {
+        let mut prefs = load_prefs_from(cli.config.as_deref());
+        cli.apply_to(&mut prefs);
+        let (stats, disks) = shared.lock().unwrap().clone();
+        Self {
+            prefs,
+            disks,
+            stats,
+            shared_stats: shared,
+            paused: false,
+            show_help: false,
+            filter: String::new(),
+            filter_mode: false,
+            filter_buf: String::new(),
+            filter_prev: String::new(),
+            filter_cursor: 0,
+            quit: false,
+            selected: None,
+            status_msg: None,
+            drag: None,
+        }
+    }
+
+    /// Create with default prefs (no CLI overrides).
+    pub fn new_default(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>) -> Self {
+        let prefs = Prefs::default();
         let (stats, disks) = shared.lock().unwrap().clone();
         Self {
             prefs,
@@ -644,7 +669,7 @@ mod tests {
         let stats = SysStats::default();
         let disks = test_disks();
         let shared = Arc::new(Mutex::new((stats.clone(), disks.clone())));
-        let mut app = App::new(shared);
+        let mut app = App::new_default(shared);
         app.disks = disks;
         app.stats = stats;
         // Reset prefs to defaults so tests are deterministic

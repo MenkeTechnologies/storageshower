@@ -31,7 +31,7 @@ fn sample_disks() -> Vec<DiskEntry> {
 fn make_app_with_disks(disks: Vec<DiskEntry>) -> App {
     let stats = SysStats::default();
     let shared = Arc::new(Mutex::new((stats.clone(), disks.clone())));
-    let mut app = App::new(shared);
+    let mut app = App::new_default(shared);
     app.disks = disks;
     app.stats = stats;
     app.prefs = Prefs::default();

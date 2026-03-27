@@ -880,7 +880,7 @@ mod tests {
         use crate::app::App;
 
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
-        let mut app = App::new(shared);
+        let mut app = App::new_default(shared);
 
         let normal = border_color(&app);
         app.paused = true;
@@ -895,7 +895,7 @@ mod tests {
         use crate::app::App;
 
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
-        let app = App::new(shared);
+        let app = App::new_default(shared);
 
         let (_, bg_low, icon_low) = thresh_color(30.0, &app);
         assert!(bg_low.is_none());

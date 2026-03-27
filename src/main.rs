@@ -1,3 +1,4 @@
+use clap::Parser;
 use crossterm::event::{self, EnableMouseCapture, DisableMouseCapture, Event};
 use ratatui::DefaultTerminal;
 use std::io;
@@ -6,11 +7,14 @@ use std::time::{Duration, Instant};
 use sysinfo::System;
 
 use storageshower::app::App;
+use storageshower::cli::Cli;
 use storageshower::system::{collect_disk_entries, collect_sys_stats, spawn_bg_collector};
 use storageshower::types::{DiskEntry, SysStats};
 use storageshower::ui::draw;
 
 fn main() -> io::Result<()> {
+    let cli = Cli::parse();
+
     let sys = System::new_all();
     let initial_stats = collect_sys_stats(&sys);
     let initial_disks = collect_disk_entries();
@@ -23,7 +27,7 @@ fn main() -> io::Result<()> {
 
     let mut terminal = ratatui::init();
     crossterm::execute!(std::io::stdout(), EnableMouseCapture)?;
-    let mut app = App::new(Arc::clone(&shared));
+    let mut app = App::new(Arc::clone(&shared), &cli);
     let result = run_app(&mut terminal, &mut app);
     crossterm::execute!(std::io::stdout(), DisableMouseCapture)?;
     ratatui::restore();

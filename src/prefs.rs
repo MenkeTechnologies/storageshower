@@ -68,8 +68,15 @@ fn prefs_path() -> PathBuf {
 const DEFAULT_CONF: &str = include_str!("../storageshower.default.conf");
 
 pub fn load_prefs() -> Prefs {
-    let path = prefs_path();
-    if !path.exists() {
+    load_prefs_from(None)
+}
+
+pub fn load_prefs_from(custom_path: Option<&str>) -> Prefs {
+    let path = match custom_path {
+        Some(p) => PathBuf::from(p),
+        None => prefs_path(),
+    };
+    if !path.exists() && custom_path.is_none() {
         let _ = std::fs::write(&path, DEFAULT_CONF);
     }
     std::fs::read_to_string(&path)
