@@ -465,6 +465,7 @@ impl App {
     }
 
     pub fn save(&self) {
+        if self.test_mode { return; }
         save_prefs(&self.prefs);
     }
 

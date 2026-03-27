@@ -1297,7 +1297,6 @@ fn drill_sort_toggle_same_mode_reverses() {
 }
 
 #[test]
-#[test]
 fn drill_scan_progress_counters() {
     let mut app = make_app_with_disks(sample_disks());
     // Before scan, counters are zero
@@ -1340,7 +1339,6 @@ fn drill_sort_resets_selection() {
 
 // ─── Export theme CLI ────────────────────────────────────────────────────
 
-#[test]
 #[test]
 fn hover_sets_position() {
     let mut app = make_app_with_disks(sample_disks());

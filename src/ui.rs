@@ -1297,12 +1297,13 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
         None => return,
     };
 
-    let mut lines: Vec<(String, String)> = Vec::new();
-    lines.push(("\u{25B6} Mount".into(), disk.mount.clone()));
-    lines.push(("  Filesystem".into(), disk.fs.clone()));
-    // Separator
-    lines.push(("  \u{2500}\u{2500}\u{2500} Capacity".into(), "\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}".into()));
-    lines.push(("  Used".into(), format_bytes(disk.used, app.prefs.unit_mode)));
+    let mut lines: Vec<(String, String)> = vec![
+        ("\u{25B6} Mount".into(), disk.mount.clone()),
+        ("  Filesystem".into(), disk.fs.clone()),
+        // Separator
+        ("  \u{2500}\u{2500}\u{2500} Capacity".into(), "\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}".into()),
+        ("  Used".into(), format_bytes(disk.used, app.prefs.unit_mode)),
+    ];
     let free = disk.total.saturating_sub(disk.used);
     lines.push(("  Free".into(), format_bytes(free, app.prefs.unit_mode)));
     lines.push(("  Total".into(), format_bytes(disk.total, app.prefs.unit_mode)));
