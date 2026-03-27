@@ -69,19 +69,23 @@
 
 ### `> RENDER_PREVIEW.dat`
 
-```
-╔═══════════════════════════════════════════════════════════════╗
-║ ▶▶▶  DISK MATRIX  ◀◀◀  node:HOST  date:2026.03.26  clock:…  ║
-╠═══════════════════════════════════════════════════════════════╣
-║   MOUNT▲        │ USAGE                    │  PCT  USED/SIZE  ║
-╠═══════════════════════════════════════════════════════════════╣
-║ ◈ /             │ ████▓▓▒▒░░▸              │  45%  200G/500G  ║
-║ ⚠ /home         │ ██████▓▓▒▒▒▒░░░▸         │  78%  195G/250G  ║
-║ ✖ /var          │ █████████████████████▸    │  95%   45G/ 50G  ║
-╠═══════════════════════════════════════════════════════════════╣
-║ ⟦zpwr⊷cyberdeck⟧ ◀◀◀ ▣3vol │ sort:name▲ │ 1s │ gradient …  ║
-╚═══════════════════════════════════════════════════════════════╝
-```
+#### `// DEFAULT_THEME`
+
+<p align="center">
+  <img src="screenshots/main-view.png" alt="Main View — Default Theme" width="800">
+</p>
+
+#### `// GREEN_THEME`
+
+<p align="center">
+  <img src="screenshots/green-theme.png" alt="Green Theme" width="800">
+</p>
+
+#### `// HELP_OVERLAY`
+
+<p align="center">
+  <img src="screenshots/help-view.png" alt="Help Overlay" width="800">
+</p>
 
 ---
 
@@ -133,22 +137,30 @@ cargo run --release
 
 | `KEY` | `ACTION` |
 |:---:|:---|
-| `q` | Disconnect (or close help overlay) |
-| `h` | Toggle help HUD |
-| `p` | Pause / resume data stream |
-| `l` | Local disks only |
-| `a` | Show all filesystems (incl. virtual) |
-| `r` | Reverse sort vector |
-| `/` | Filter mounts by text input |
-| `0` | Purge filter |
+| `q` `Q` | Disconnect (or close help overlay) |
+| `h` `H` `?` | Toggle help HUD |
+| `p` `P` | Pause / resume data stream |
+| `Esc` | Deselect current disk |
+
+#### `// NAVIGATION`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `j` `Down` | Select next disk |
+| `k` `Up` | Select previous disk |
+| `G` `End` | Jump to last disk |
+| `Home` `Ctrl+g` | Jump to first disk |
+| `Ctrl+d` | Half-page down |
+| `Ctrl+u` | Half-page up |
 
 #### `// SORT_PROTOCOL`
 
 | `KEY` | `ACTION` |
 |:---:|:---|
-| `n` | Sort by mount name (again to reverse) |
-| `u` | Sort by usage % |
-| `s` | Sort by size |
+| `n` `N` | Sort by mount name (again to reverse) |
+| `u` `U` | Sort by usage % (again to reverse) |
+| `s` `S` | Sort by size (again to reverse) |
+| `r` `R` | Reverse sort vector |
 
 #### `// DISPLAY_MODS`
 
@@ -156,31 +168,73 @@ cargo run --release
 |:---:|:---|
 | `b` | Cycle bar style — gradient / solid / thin / ascii |
 | `c` | Cycle color theme — default / green / blue / purple |
-| `v` | Toggle usage bars |
-| `d` | Toggle used/size columns |
+| `v` `V` | Toggle usage bars |
+| `d` `D` | Toggle used/size columns |
 | `g` | Toggle column headers |
-| `x` | Toggle border chrome |
-| `m` | Compact mount names (16 chars) |
-| `w` | Full mount paths |
-| `i` | Cycle units — human / GiB / MiB / bytes |
-| `f` | Cycle refresh rate — 1s / 2s / 5s / 10s |
+| `x` `X` | Toggle border chrome |
+| `m` `M` | Compact mount names |
+| `w` `W` | Full mount paths |
+| `i` `I` | Cycle units — human / GiB / MiB / bytes |
+| `f` `F` | Cycle refresh rate — 1s / 2s / 5s / 10s |
 | `t` | Cycle warn threshold — 50 / 60 / 70 / 80% |
 | `T` | Cycle crit threshold — 80 / 85 / 90 / 95% |
+
+#### `// FILTER_OPS`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `l` `L` | Local disks only |
+| `a` `A` | Show all filesystems (incl. virtual) |
+| `/` | Enter filter mode |
+| `0` | Purge filter |
+
+#### `// FILTER_EDIT_MODE`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `Enter` | Confirm filter |
+| `Esc` | Cancel filter |
+| `Backspace` `Ctrl+h` | Delete char before cursor |
+| `Delete` | Delete char at cursor |
+| `Ctrl+w` | Delete word backward |
+| `Ctrl+u` | Clear line before cursor |
+| `Ctrl+k` | Delete to end of line |
+| `Ctrl+a` `Home` | Cursor to start |
+| `Ctrl+e` `End` | Cursor to end |
+| `Ctrl+b` `Left` | Cursor left |
+| `Ctrl+f` `Right` | Cursor right |
+
+#### `// DISK_OPS`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `Enter` | Open selected mount in file manager |
+| `y` `Y` | Copy mount path to clipboard |
+| `e` `E` | Export disk matrix to file |
+
+#### `// MOUSE_INPUT`
+
+| `ACTION` | `EFFECT` |
+|:---:|:---|
+| `Left-drag` column separator | Resize mount / right column |
+| `Right-click` | Toggle help overlay |
 
 ---
 
 ### `> CONFIG_PERSISTENCE.log`
 
 ```
- ┌──────────────────────────────────────────────────┐
- │  ALL PREFS AUTO-SAVED TO ~/.storageshower.conf   │
- │  FORMAT: TOML ── RESTORED ON BOOT ── ZERO EDIT   │
- │                                                    │
- │  >> sort mode    >> sort direction   >> filter     │
- │  >> refresh rate >> bar style        >> color mode  │
- │  >> warn/crit    >> bar visibility   >> border      │
- │  >> col headers  >> compact mode     >> mount paths │
- └──────────────────────────────────────────────────┘
+ ┌──────────────────────────────────────────────────────┐
+ │  ALL PREFS AUTO-SAVED TO ~/.storageshower.conf       │
+ │  FORMAT: TOML ── RESTORED ON BOOT ── ZERO EDIT       │
+ │                                                        │
+ │  >> sort mode    >> sort direction   >> show all       │
+ │  >> refresh rate >> bar style        >> color mode      │
+ │  >> warn/crit    >> bar visibility   >> border          │
+ │  >> col headers  >> compact mode     >> mount paths     │
+ │  >> show used    >> show local       >> custom widths   │
+ │  >> mount col w  >> right col w      >> pct col w       │
+ └──────────────────────────────────────────────────────┘
 ```
 
 ---
