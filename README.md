@@ -14,12 +14,22 @@
 ```
 
 <p align="center">
+  <a href="https://crates.io/crates/storageshower"><img src="https://img.shields.io/crates/v/storageshower.svg" alt="crates.io"></a>
+  <a href="https://crates.io/crates/storageshower"><img src="https://img.shields.io/crates/d/storageshower.svg" alt="downloads"></a>
+  <a href="https://github.com/MenkeTechnologies/storageshower/blob/main/LICENSE"><img src="https://img.shields.io/crates/l/storageshower.svg" alt="license"></a>
+</p>
+
+<p align="center">
   <code>[ SYSTEM://DISK_MATRIX v2.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
   <code>created by MenkeTechnologies</code>
 </p>
+
+```bash
+cargo install storageshower
+```
 
 ---
 
