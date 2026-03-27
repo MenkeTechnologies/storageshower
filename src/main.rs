@@ -739,9 +739,20 @@ fn draw(frame: &mut Frame, app: &App) {
         let mount_hdr = format!(" MOUNT{}", name_arrow);
         set_str(buf, lm, row, &mount_hdr, hdr_s, (mount_w + 3) as u16);
 
+        // Column separator after mount
+        let bar_col_start = lm + 3 + mount_w as u16;
+        set_cell(buf, bar_col_start, row, "\u{2502}", border_s); // │
+
         if app.prefs.show_bars {
-            let bar_start = lm + 3 + mount_w as u16 + 1;
+            let bar_start = bar_col_start + 1;
             set_str(buf, bar_start, row, "USAGE", hdr_s, 5);
+
+            // Column separator after bar
+            let right_info_w: u16 = if app.prefs.show_used { 22 } else { 7 };
+            let bar_end = w.saturating_sub(rm + right_info_w + 1);
+            if bar_end < w.saturating_sub(rm) {
+                set_cell(buf, bar_end, row, "\u{2502}", border_s); // │
+            }
         }
 
         if app.prefs.show_used {
@@ -1260,7 +1271,98 @@ fn get_battery() -> Option<u8> {
 
 // ─── Background stats collection ───────────────────────────────────────────
 
-fn collect_disk_entries(disks: &Disks) -> Vec<DiskEntry> {
+fn collect_disk_entries() -> Vec<DiskEntry> {
+    collect_all_mounts()
+}
+
+#[cfg(target_os = "macos")]
+fn collect_all_mounts() -> Vec<DiskEntry> {
+    use std::ffi::CStr;
+    unsafe {
+        let mut mntbuf: *mut libc::statfs = std::ptr::null_mut();
+        let count = libc::getmntinfo(&mut mntbuf, libc::MNT_NOWAIT);
+        if count <= 0 || mntbuf.is_null() {
+            return Vec::new();
+        }
+        let entries = std::slice::from_raw_parts(mntbuf, count as usize);
+        entries
+            .iter()
+            .map(|fs| {
+                let mount = CStr::from_ptr(fs.f_mntonname.as_ptr())
+                    .to_string_lossy()
+                    .to_string();
+                let fstype = CStr::from_ptr(fs.f_fstypename.as_ptr())
+                    .to_string_lossy()
+                    .to_string();
+                let total = fs.f_blocks * fs.f_bsize as u64;
+                let avail = fs.f_bavail * fs.f_bsize as u64;
+                let used = total.saturating_sub(avail);
+                let pct = if total > 0 {
+                    (used as f64 / total as f64) * 100.0
+                } else {
+                    0.0
+                };
+                let kind = if fstype == "apfs" || fstype == "hfs" {
+                    DiskKind::SSD
+                } else {
+                    DiskKind::Unknown(-1)
+                };
+                DiskEntry { mount, used, total, pct, kind, fs: fstype }
+            })
+            .collect()
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn collect_all_mounts() -> Vec<DiskEntry> {
+    let content = match std::fs::read_to_string("/proc/mounts") {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+    content
+        .lines()
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() < 3 {
+                return None;
+            }
+            let mount = parts[1].to_string();
+            let fstype = parts[2].to_string();
+            let mut stat: std::mem::MaybeUninit<libc::statvfs> = std::mem::MaybeUninit::uninit();
+            let c_mount = std::ffi::CString::new(mount.as_str()).ok()?;
+            let (total, used, pct) = unsafe {
+                if libc::statvfs(c_mount.as_ptr(), stat.as_mut_ptr()) == 0 {
+                    let s = stat.assume_init();
+                    let total = s.f_blocks * s.f_frsize;
+                    let avail = s.f_bavail * s.f_frsize;
+                    let used = total.saturating_sub(avail);
+                    let pct = if total > 0 {
+                        (used as f64 / total as f64) * 100.0
+                    } else {
+                        0.0
+                    };
+                    (total, used, pct)
+                } else {
+                    (0, 0, 0.0)
+                }
+            };
+            Some(DiskEntry {
+                mount,
+                used,
+                total,
+                pct,
+                kind: DiskKind::Unknown(-1),
+                fs: fstype,
+            })
+        })
+        .collect()
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn collect_all_mounts() -> Vec<DiskEntry> {
+    // Fallback: use sysinfo
+    use sysinfo::Disks;
+    let disks = Disks::new_with_refreshed_list();
     disks
         .list()
         .iter()
@@ -1307,13 +1409,11 @@ fn collect_sys_stats(sys: &System) -> SysStats {
 fn spawn_bg_collector(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>) {
     std::thread::spawn(move || {
         let mut sys = System::new_all();
-        let mut disks = Disks::new_with_refreshed_list();
         loop {
             std::thread::sleep(Duration::from_secs(3));
             sys.refresh_all();
-            disks.refresh_list();
             let stats = collect_sys_stats(&sys);
-            let entries = collect_disk_entries(&disks);
+            let entries = collect_disk_entries();
             {
                 let mut lock = shared.lock().unwrap();
                 *lock = (stats, entries);
@@ -1327,11 +1427,9 @@ fn spawn_bg_collector(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>) {
 fn main() -> io::Result<()> {
     // Initial data
     let sys = System::new_all();
-    let disks = Disks::new_with_refreshed_list();
     let initial_stats = collect_sys_stats(&sys);
-    let initial_disks = collect_disk_entries(&disks);
+    let initial_disks = collect_disk_entries();
     drop(sys);
-    drop(disks);
 
     let shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>> =
         Arc::new(Mutex::new((initial_stats, initial_disks)));
