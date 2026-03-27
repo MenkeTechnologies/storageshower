@@ -23,6 +23,10 @@ fn main() -> io::Result<()> {
         cli::print_version();
         return Ok(());
     }
+    if cli.list_colors {
+        cli::print_colors();
+        return Ok(());
+    }
 
     let sys = System::new_all();
     let initial_stats = collect_sys_stats(&sys);

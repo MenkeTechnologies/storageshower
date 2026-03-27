@@ -135,6 +135,10 @@ pub struct Cli {
     /// Display version information
     #[arg(short = 'V', long = "version")]
     pub version: bool,
+
+    /// List all builtin color schemes
+    #[arg(long = "list-colors")]
+    pub list_colors: bool,
 }
 
 // ANSI color constants
@@ -177,7 +181,8 @@ pub fn print_help() {
 
 {B_CYAN}  ── DISPLAY ───────────────────────────────────────{RST}
 {B_GREEN}   -b, --bar-style STYLE {RST}bar visualization {B_MAGENTA}(gradient, solid, thin, ascii){RST}
-{B_GREEN}   -c, --color PALETTE   {RST}color palette {B_MAGENTA}(default, green, blue, purple){RST}
+{B_GREEN}   -c, --color PALETTE   {RST}color palette {B_MAGENTA}(default, green, blue, purple, ...){RST}
+{B_GREEN}       --list-colors      {RST}list all builtin color schemes
 {B_GREEN}   -u, --units MODE      {RST}unit display {B_MAGENTA}(human, gib, mib, bytes){RST}
 {B_GREEN}   -k, --compact         {RST}compact mount names
 {B_GREEN}   -f, --full-mount      {RST}show full mount paths
@@ -237,6 +242,34 @@ pub fn print_version() {
         "{B_CYAN}storageshower{RST} {B_MAGENTA}v{ver}{RST}",
         ver = env!("CARGO_PKG_VERSION"),
     );
+}
+
+pub fn print_colors() {
+    use crate::ui::palette;
+    use ratatui::style::Color;
+
+    fn idx(c: Color) -> u8 {
+        match c {
+            Color::Indexed(n) => n,
+            _ => 0,
+        }
+    }
+
+    println!("\n{B_CYAN}  ── BUILTIN COLOR SCHEMES ────────────────────────{RST}\n");
+    for &mode in ColorMode::ALL {
+        let (a, b, c, d, e, f) = palette(mode);
+        let swatch: String = [a, b, c, d, e, f]
+            .iter()
+            .map(|&col| format!("\x1b[48;5;{}m   {RST}", idx(col)))
+            .collect();
+        println!(
+            "  {B_GREEN}{flag:<10}{RST} {B_MAGENTA}{name:<14}{RST} {swatch}",
+            flag = format!("{:?}", mode).to_lowercase(),
+            name = mode.name(),
+        );
+    }
+    println!("\n  {B_YELLOW}Usage:{RST} storageshower {B_GREEN}-c{RST} {B_MAGENTA}<flag>{RST}");
+    println!("  {B_YELLOW}Cycle:{RST} press {B_GREEN}c{RST} in the TUI\n");
 }
 
 impl Cli {
@@ -308,6 +341,13 @@ mod tests {
         assert!(cli.config.is_none());
         assert!(!cli.help);
         assert!(!cli.version);
+        assert!(!cli.list_colors);
+    }
+
+    #[test]
+    fn list_colors_flag() {
+        let cli = Cli::parse_from(["storageshower", "--list-colors"]);
+        assert!(cli.list_colors);
     }
 
     #[test]
