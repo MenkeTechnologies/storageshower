@@ -119,6 +119,7 @@ pub struct App {
     pub alert: AlertState,
     pub drill: DrillState,
     pub theme_chooser: ThemeChooser,
+    pub test_mode: bool,
 }
 
 impl App {
@@ -176,6 +177,7 @@ impl App {
                 scan_total: Arc::new(Mutex::new(0)),
             },
             theme_chooser: ThemeChooser { active: false, selected: 0, orig_color_mode: ColorMode::Default, orig_active_theme: None },
+            test_mode: false,
         }
     }
 
@@ -233,6 +235,7 @@ impl App {
                 scan_total: Arc::new(Mutex::new(0)),
             },
             theme_chooser: ThemeChooser { active: false, selected: 0, orig_color_mode: ColorMode::Default, orig_active_theme: None },
+            test_mode: false,
         }
     }
 
@@ -754,10 +757,12 @@ impl App {
                 }
                 KeyCode::Char('o') | KeyCode::Char('O') => {
                     let path = self.drill_current_path();
-                    #[cfg(target_os = "macos")]
-                    { let _ = std::process::Command::new("open").arg(&path).spawn(); }
-                    #[cfg(target_os = "linux")]
-                    { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); }
+                    if !self.test_mode {
+                        #[cfg(target_os = "macos")]
+                        { let _ = std::process::Command::new("open").arg(&path).spawn(); }
+                        #[cfg(target_os = "linux")]
+                        { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); }
+                    }
                     self.status_msg = Some((format!("Opened {}", path), Instant::now()));
                 }
                 KeyCode::Char('q') | KeyCode::Char('Q') => {
@@ -1023,10 +1028,12 @@ impl App {
                     let disks = self.sorted_disks();
                     if let Some(disk) = disks.get(idx) {
                         let mount = disk.mount.clone();
-                        #[cfg(target_os = "macos")]
-                        { let _ = std::process::Command::new("open").arg(&mount).spawn(); }
-                        #[cfg(target_os = "linux")]
-                        { let _ = std::process::Command::new("xdg-open").arg(&mount).spawn(); }
+                        if !self.test_mode {
+                            #[cfg(target_os = "macos")]
+                            { let _ = std::process::Command::new("open").arg(&mount).spawn(); }
+                            #[cfg(target_os = "linux")]
+                            { let _ = std::process::Command::new("xdg-open").arg(&mount).spawn(); }
+                        }
                         self.status_msg = Some((format!("Opened {}", mount), Instant::now()));
                     }
                 }
@@ -1375,6 +1382,7 @@ mod tests {
         // Reset prefs to defaults so tests are deterministic
         // (load_prefs may read user's config from disk)
         app.prefs = Prefs::default();
+        app.test_mode = true;
         app
     }
 

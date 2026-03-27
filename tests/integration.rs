@@ -38,6 +38,7 @@ fn make_app_with_disks(disks: Vec<DiskEntry>) -> App {
     app.disks = disks;
     app.stats = stats;
     app.prefs = Prefs::default();
+    app.test_mode = true;
     app
 }
 
