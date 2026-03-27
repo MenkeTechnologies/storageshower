@@ -40,6 +40,8 @@ pub struct App {
     pub alert_mounts: HashSet<String>,
     pub alert_flash: Option<Instant>,
     // Drill-down state
+    pub drill_sort: DrillSortMode,
+    pub drill_sort_rev: bool,
     pub view_mode: ViewMode,
     pub drill_path: Vec<String>,
     pub drill_entries: Vec<DirEntry>,
@@ -77,6 +79,8 @@ impl App {
             theme_edit_cursor: 0,
             alert_mounts: HashSet::new(),
             alert_flash: None,
+            drill_sort: DrillSortMode::Size,
+            drill_sort_rev: false,
             view_mode: ViewMode::Disks,
             drill_path: Vec::new(),
             drill_entries: Vec::new(),
@@ -114,6 +118,8 @@ impl App {
             theme_edit_cursor: 0,
             alert_mounts: HashSet::new(),
             alert_flash: None,
+            drill_sort: DrillSortMode::Size,
+            drill_sort_rev: false,
             view_mode: ViewMode::Disks,
             drill_path: Vec::new(),
             drill_entries: Vec::new(),
@@ -126,11 +132,11 @@ impl App {
     pub fn refresh_data(&mut self) {
         // Check for completed drill-down scans
         if self.drill_scanning {
-            let mut result = self.drill_scan_result.lock().unwrap();
-            if let Some(entries) = result.take() {
+            let taken = self.drill_scan_result.lock().unwrap().take();
+            if let Some(entries) = taken {
                 self.drill_entries = entries;
                 self.drill_scanning = false;
-                self.drill_selected = 0;
+                self.sort_drill_entries();
             }
         }
 
@@ -177,6 +183,17 @@ impl App {
 
     pub fn drill_current_path(&self) -> String {
         self.drill_path.last().cloned().unwrap_or_default()
+    }
+
+    pub fn sort_drill_entries(&mut self) {
+        match self.drill_sort {
+            DrillSortMode::Size => self.drill_entries.sort_by(|a, b| b.size.cmp(&a.size)),
+            DrillSortMode::Name => self.drill_entries.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
+        }
+        if self.drill_sort_rev {
+            self.drill_entries.reverse();
+        }
+        self.drill_selected = 0;
     }
 
     pub fn sorted_disks(&self) -> Vec<DiskEntry> {
@@ -447,6 +464,28 @@ impl App {
                     if !self.drill_entries.is_empty() {
                         self.drill_selected = self.drill_entries.len() - 1;
                     }
+                }
+                KeyCode::Char('s') | KeyCode::Char('S') => {
+                    if self.drill_sort == DrillSortMode::Size {
+                        self.drill_sort_rev = !self.drill_sort_rev;
+                    } else {
+                        self.drill_sort = DrillSortMode::Size;
+                        self.drill_sort_rev = false;
+                    }
+                    self.sort_drill_entries();
+                }
+                KeyCode::Char('n') | KeyCode::Char('N') => {
+                    if self.drill_sort == DrillSortMode::Name {
+                        self.drill_sort_rev = !self.drill_sort_rev;
+                    } else {
+                        self.drill_sort = DrillSortMode::Name;
+                        self.drill_sort_rev = false;
+                    }
+                    self.sort_drill_entries();
+                }
+                KeyCode::Char('r') | KeyCode::Char('R') => {
+                    self.drill_sort_rev = !self.drill_sort_rev;
+                    self.sort_drill_entries();
                 }
                 KeyCode::Char('o') | KeyCode::Char('O') => {
                     let path = self.drill_current_path();

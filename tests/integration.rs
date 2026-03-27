@@ -1212,3 +1212,89 @@ fn view_mode_equality() {
     assert_eq!(ViewMode::DrillDown, ViewMode::DrillDown);
     assert_ne!(ViewMode::Disks, ViewMode::DrillDown);
 }
+
+// ─── Drill-down sort modes ──────────────────────────────────────────────
+
+#[test]
+fn drill_sort_by_name() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_path = vec!["/".into()];
+    app.drill_entries = vec![
+        DirEntry { path: "/c".into(), name: "charlie".into(), size: 10, is_dir: false },
+        DirEntry { path: "/a".into(), name: "alpha".into(), size: 30, is_dir: true },
+        DirEntry { path: "/b".into(), name: "bravo".into(), size: 20, is_dir: false },
+    ];
+    app.handle_key(make_key(KeyCode::Char('n')));
+    assert_eq!(app.drill_sort, DrillSortMode::Name);
+    assert_eq!(app.drill_entries[0].name, "alpha");
+    assert_eq!(app.drill_entries[1].name, "bravo");
+    assert_eq!(app.drill_entries[2].name, "charlie");
+}
+
+#[test]
+fn drill_sort_by_size() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_path = vec!["/".into()];
+    app.drill_entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
+        DirEntry { path: "/b".into(), name: "b".into(), size: 30, is_dir: false },
+        DirEntry { path: "/c".into(), name: "c".into(), size: 20, is_dir: false },
+    ];
+    // Default is size desc, switch to name then back to size
+    app.handle_key(make_key(KeyCode::Char('n')));
+    app.handle_key(make_key(KeyCode::Char('s')));
+    assert_eq!(app.drill_sort, DrillSortMode::Size);
+    assert_eq!(app.drill_entries[0].size, 30); // largest first
+    assert_eq!(app.drill_entries[2].size, 10);
+}
+
+#[test]
+fn drill_sort_reverse() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_path = vec!["/".into()];
+    app.drill_entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 30, is_dir: false },
+        DirEntry { path: "/b".into(), name: "b".into(), size: 10, is_dir: false },
+    ];
+    // Default size desc: 30, 10
+    app.sort_drill_entries();
+    assert_eq!(app.drill_entries[0].size, 30);
+
+    // Reverse
+    app.handle_key(make_key(KeyCode::Char('r')));
+    assert!(app.drill_sort_rev);
+    assert_eq!(app.drill_entries[0].size, 10); // smallest first now
+}
+
+#[test]
+fn drill_sort_toggle_same_mode_reverses() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_path = vec!["/".into()];
+    app.drill_entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
+    ];
+    assert_eq!(app.drill_sort, DrillSortMode::Size);
+    assert!(!app.drill_sort_rev);
+
+    // Press s again — should toggle reverse
+    app.handle_key(make_key(KeyCode::Char('s')));
+    assert!(app.drill_sort_rev);
+}
+
+#[test]
+fn drill_sort_resets_selection() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_path = vec!["/".into()];
+    app.drill_entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
+        DirEntry { path: "/b".into(), name: "b".into(), size: 20, is_dir: false },
+    ];
+    app.drill_selected = 1;
+    app.handle_key(make_key(KeyCode::Char('n')));
+    assert_eq!(app.drill_selected, 0, "Sort should reset selection to 0");
+}

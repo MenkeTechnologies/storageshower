@@ -121,6 +121,12 @@ pub struct DiskEntry {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DrillSortMode {
+    Size,
+    Name,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ViewMode {
     Disks,
     DrillDown,

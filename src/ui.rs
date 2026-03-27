@@ -893,7 +893,10 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     // ─── Column header ───
     {
         let hdr_s = Style::default().fg(pal_lpurple).add_modifier(Modifier::BOLD);
-        let hdr = format!("   {:<name_w$} {:>10}", "NAME", "SIZE", name_w = (inner_w as usize).saturating_sub(15));
+        let sort_arrow = if app.drill_sort_rev { "\u{25BC}" } else { "\u{25B2}" };
+        let name_arrow = if app.drill_sort == DrillSortMode::Name { sort_arrow } else { " " };
+        let size_arrow = if app.drill_sort == DrillSortMode::Size { sort_arrow } else { " " };
+        let hdr = format!("   {}{:<name_w$} {:>9}{}", name_arrow, "NAME", "SIZE", size_arrow, name_w = (inner_w as usize).saturating_sub(16));
         set_str(buf, lm, row, &hdr, hdr_s, inner_w);
         row += 1;
         draw_separator(buf, row, w, show_border, border_s);
@@ -1004,10 +1007,16 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
 
             let entry_count = app.drill_entries.len();
             let total_size: u64 = app.drill_entries.iter().map(|e| e.size).sum();
+            let sort_name = match app.drill_sort {
+                DrillSortMode::Size => "size",
+                DrillSortMode::Name => "name",
+            };
+            let sort_dir = if app.drill_sort_rev { "\u{25BC}" } else { "\u{25B2}" };
             let footer = format!(
-                " \u{27E6}drill\u{22B7}down\u{27E7} \u{25C0}\u{25C0}\u{25C0} items:{} \u{2502} total:{} \u{2502} j/k:nav \u{2502} enter:into \u{2502} bksp:back \u{2502} esc:disks \u{2502} o:open",
+                " \u{27E6}drill\u{22B7}down\u{27E7} \u{25C0}\u{25C0}\u{25C0} items:{} \u{2502} total:{} \u{2502} sort:{}{} \u{2502} s:size \u{2502} n:name \u{2502} r:rev \u{2502} bksp:back",
                 entry_count,
                 format_bytes(total_size, app.prefs.unit_mode),
+                sort_name, sort_dir,
             );
             let footer_display: String = footer.chars().take(inner_w as usize).collect();
             set_str(buf, lm, frow, &footer_display, footer_s, inner_w);
@@ -1229,6 +1238,8 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         HelpEntry { key: "Enter", desc: "Into subdirectory", val_fn: empty_val, is_section: false },
         HelpEntry { key: "Bksp", desc: "Up one level", val_fn: empty_val, is_section: false },
         HelpEntry { key: "Esc", desc: "Back to disk list", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "s/n", desc: "Sort by size/name", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "r", desc: "Reverse sort", val_fn: empty_val, is_section: false },
         HelpEntry { key: "o/O", desc: "Open directory", val_fn: empty_val, is_section: false },
         HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
         HelpEntry { key: "MOUSE", desc: "", val_fn: empty_val, is_section: true },

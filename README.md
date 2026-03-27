@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v11.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v12.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -349,6 +349,9 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `Enter` | Drill into selected directory |
 | `Backspace` | Go up one level |
 | `Esc` | Return to disk list |
+| `s` `S` | Sort by size (again to reverse) |
+| `n` `N` | Sort by name (again to reverse) |
+| `r` `R` | Reverse sort direction |
 | `o` `O` | Open current directory in file manager |
 | `g` `G` | Jump to first / last entry |
 
