@@ -81,6 +81,12 @@
   <img src="screenshots/green-theme.png" alt="Green Theme" width="800">
 </p>
 
+#### `// CLI_HELP`
+
+<p align="center">
+  <img src="screenshots/cli-help.png" alt="CLI Help — storageshower -h" width="800">
+</p>
+
 #### `// HELP_OVERLAY`
 
 <p align="center">
