@@ -1126,7 +1126,7 @@ fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
 
 fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     let box_w: u16 = 100u16.min(w.saturating_sub(4));
-    let box_h: u16 = 40u16.min(h.saturating_sub(4));
+    let box_h: u16 = 46u16.min(h.saturating_sub(4));
     let x0 = (w.saturating_sub(box_w)) / 2;
     let y0 = (h.saturating_sub(box_h)) / 2;
     let bc = border_color(app);
@@ -1209,19 +1209,33 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         HelpEntry { key: "/", desc: "Filter (vim-style edit)", val_fn: empty_val, is_section: false },
         HelpEntry { key: "0", desc: "Clear filter", val_fn: |a| if a.filter.is_empty() {String::new()} else {format!("[{}]", a.filter)}, is_section: false },
         HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "VIM NAV", desc: "", val_fn: empty_val, is_section: true },
+        HelpEntry { key: "NAV", desc: "", val_fn: empty_val, is_section: true },
         HelpEntry { key: "j/\u{2193}", desc: "Select next disk", val_fn: empty_val, is_section: false },
         HelpEntry { key: "k/\u{2191}", desc: "Select prev disk", val_fn: empty_val, is_section: false },
         HelpEntry { key: "G/End", desc: "Jump to last disk", val_fn: empty_val, is_section: false },
         HelpEntry { key: "^G/Home", desc: "Jump to first disk", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "^D", desc: "Half-page down", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "^U", desc: "Half-page up", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "^D/^U", desc: "Half-page down/up", val_fn: empty_val, is_section: false },
         HelpEntry { key: "Esc", desc: "Deselect", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Enter", desc: "Open mount in finder", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "ACTIONS", desc: "", val_fn: empty_val, is_section: true },
+        HelpEntry { key: "Enter", desc: "Drill down into mount", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "o/O", desc: "Open in file manager", val_fn: empty_val, is_section: false },
         HelpEntry { key: "y/Y", desc: "Copy mount to clipboard", val_fn: empty_val, is_section: false },
         HelpEntry { key: "e/E", desc: "Export to file", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "B", desc: "Toggle bookmark", val_fn: |a| format!("[{}]", a.prefs.bookmarks.len()), is_section: false },
+        HelpEntry { key: "B", desc: "Toggle bookmark \u{2605}", val_fn: |a| format!("[{}]", a.prefs.bookmarks.len()), is_section: false },
         HelpEntry { key: "?", desc: "Show help", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "DRILL DOWN", desc: "", val_fn: empty_val, is_section: true },
+        HelpEntry { key: "Enter", desc: "Into subdirectory", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "Bksp", desc: "Up one level", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "Esc", desc: "Back to disk list", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "o/O", desc: "Open directory", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "MOUSE", desc: "", val_fn: empty_val, is_section: true },
+        HelpEntry { key: "Click", desc: "Select disk row", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "Click\u{00D7}2", desc: "Drill into selected", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "Drag", desc: "Resize columns", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "R-Click", desc: "Toggle help", val_fn: empty_val, is_section: false },
     ];
 
     let content_h = (box_h as usize).saturating_sub(4);
