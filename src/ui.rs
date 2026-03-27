@@ -97,13 +97,29 @@ pub fn palette(mode: ColorMode) -> (Color, Color, Color, Color, Color, Color) {
     }
 }
 
+pub fn palette_for_prefs(prefs: &crate::prefs::Prefs) -> (Color, Color, Color, Color, Color, Color) {
+    if let Some(ref name) = prefs.active_theme {
+        if let Some(theme) = prefs.custom_themes.get(name) {
+            return (
+                Color::Indexed(theme.blue),
+                Color::Indexed(theme.green),
+                Color::Indexed(theme.purple),
+                Color::Indexed(theme.light_purple),
+                Color::Indexed(theme.royal),
+                Color::Indexed(theme.dark_purple),
+            );
+        }
+    }
+    palette(prefs.color_mode)
+}
+
 fn border_color(app: &App) -> Color {
-    let (blue, ..) = palette(app.prefs.color_mode);
+    let (blue, ..) = palette_for_prefs(&app.prefs);
     if app.paused { DIM_BORDER } else { blue }
 }
 
 fn thresh_color(pct: f64, app: &App) -> (Color, Option<Color>, &'static str) {
-    let (_, green, _, lpurple, royal, _) = palette(app.prefs.color_mode);
+    let (_, green, _, lpurple, royal, _) = palette_for_prefs(&app.prefs);
     if pct >= app.prefs.thresh_crit as f64 {
         (royal, Some(royal), "\u{2716}")
     } else if pct >= app.prefs.thresh_warn as f64 {
@@ -115,6 +131,19 @@ fn thresh_color(pct: f64, app: &App) -> (Color, Option<Color>, &'static str) {
 
 pub fn gradient_color_at(frac: f64, mode: ColorMode) -> Color {
     let (blue, green, purple, _, _, dpurple) = palette(mode);
+    if frac < 0.33 {
+        green
+    } else if frac < 0.55 {
+        blue
+    } else if frac < 0.80 {
+        purple
+    } else {
+        dpurple
+    }
+}
+
+fn gradient_color_at_prefs(frac: f64, prefs: &crate::prefs::Prefs) -> Color {
+    let (blue, green, purple, _, _, dpurple) = palette_for_prefs(prefs);
     if frac < 0.33 {
         green
     } else if frac < 0.55 {
@@ -160,11 +189,16 @@ pub fn draw(frame: &mut Frame, app: &App) {
         return;
     }
 
+    if app.view_mode == ViewMode::DrillDown {
+        draw_drilldown(frame, app);
+        return;
+    }
+
     let buf = frame.buffer_mut();
     let bc = border_color(app);
     let border_s = Style::default().fg(bc);
     let (pal_blue, pal_green, _pal_purple, pal_lpurple, _pal_royal, _pal_dpurple) =
-        palette(app.prefs.color_mode);
+        palette_for_prefs(&app.prefs);
 
     let show_border = app.prefs.show_border;
     let lm: u16 = if show_border { 1 } else { 0 };
@@ -437,7 +471,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
                         match app.prefs.bar_style {
                             BarStyle::Gradient => {
                                 let frac = j as f64 / bar_w as f64;
-                                let gc = gradient_color_at(frac, app.prefs.color_mode);
+                                let gc = gradient_color_at_prefs(frac, &app.prefs);
                                 let ch = if j == filled - 1 {
                                     "\u{25B8}"
                                 } else if frac < 0.33 {
@@ -536,7 +570,11 @@ pub fn draw(frame: &mut Frame, app: &App) {
                 BarStyle::Thin => "thin",
                 BarStyle::Ascii => "ascii",
             };
-            let color_name = app.prefs.color_mode.name();
+            let color_name = if let Some(ref name) = app.prefs.active_theme {
+                name.as_str()
+            } else {
+                app.prefs.color_mode.name()
+            };
             let unit_name = match app.prefs.unit_mode {
                 UnitMode::Human => "human",
                 UnitMode::GiB => "GiB",
@@ -615,6 +653,11 @@ pub fn draw(frame: &mut Frame, app: &App) {
     // ─── Help overlay ───
     if app.show_help {
         draw_help(buf, w, h, app);
+    }
+
+    // ─── Theme editor overlay ───
+    if app.theme_editor {
+        draw_theme_editor(buf, w, h, app);
     }
 }
 
@@ -729,6 +772,302 @@ fn draw_filter_popup(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     set_str(buf, h3x, y0 + 7, hints3, hint_s, box_w.saturating_sub(2));
 }
 
+fn draw_drilldown(frame: &mut Frame, app: &App) {
+    let area = frame.area();
+    let w = area.width;
+    let h = area.height;
+    let buf = frame.buffer_mut();
+
+    let bc = border_color(app);
+    let border_s = Style::default().fg(bc);
+    let (pal_blue, pal_green, _pal_purple, pal_lpurple, _pal_royal, _pal_dpurple) =
+        palette_for_prefs(&app.prefs);
+
+    let show_border = app.prefs.show_border;
+    let lm: u16 = if show_border { 1 } else { 0 };
+    let rm: u16 = if show_border { 1 } else { 0 };
+    let inner_w = w.saturating_sub(lm + rm);
+
+    // Clear background
+    for y in 0..h {
+        for x in 0..w {
+            let cell = &mut buf[(x, y)];
+            cell.set_symbol(" ");
+            cell.set_style(Style::default());
+        }
+    }
+
+    // Borders
+    if show_border {
+        set_cell(buf, 0, 0, "\u{2554}", border_s);
+        for x in 1..w - 1 { set_cell(buf, x, 0, "\u{2550}", border_s); }
+        set_cell(buf, w - 1, 0, "\u{2557}", border_s);
+        set_cell(buf, 0, h - 1, "\u{255A}", border_s);
+        for x in 1..w - 1 { set_cell(buf, x, h - 1, "\u{2550}", border_s); }
+        set_cell(buf, w - 1, h - 1, "\u{255D}", border_s);
+        for y in 1..h - 1 {
+            set_cell(buf, 0, y, "\u{2551}", border_s);
+            set_cell(buf, w - 1, y, "\u{2551}", border_s);
+        }
+    }
+
+    let mut row: u16 = if show_border { 1 } else { 0 };
+
+    // ─── Breadcrumb bar ───
+    {
+        let banner_s = Style::default().fg(pal_green).bg(DARK_BG);
+        let accent_s = Style::default().fg(pal_blue).bg(DARK_BG).add_modifier(Modifier::BOLD);
+
+        for x in lm..w.saturating_sub(rm) {
+            set_cell(buf, x, row, " ", Style::default().bg(DARK_BG));
+        }
+
+        set_str(buf, lm, row, " \u{25B6} DRILL DOWN \u{25C0} ", accent_s, inner_w);
+        let path_start = lm + 19;
+        let path_display = app.drill_current_path();
+        let remaining = inner_w.saturating_sub(19);
+        set_str(buf, path_start, row, &path_display, banner_s, remaining);
+        row += 1;
+    }
+
+    // ─── Separator ───
+    draw_separator(buf, row, w, show_border, border_s);
+    row += 1;
+
+    // ─── Column header ───
+    {
+        let hdr_s = Style::default().fg(pal_lpurple).add_modifier(Modifier::BOLD);
+        let hdr = format!("   {:<name_w$} {:>10}", "NAME", "SIZE", name_w = (inner_w as usize).saturating_sub(15));
+        set_str(buf, lm, row, &hdr, hdr_s, inner_w);
+        row += 1;
+        draw_separator(buf, row, w, show_border, border_s);
+        row += 1;
+    }
+
+    // ─── Footer area ───
+    let footer_rows: u16 = 2 + (if show_border { 1 } else { 0 });
+    let entry_area_end = h.saturating_sub(footer_rows);
+
+    // ─── Scanning indicator ───
+    if app.drill_scanning {
+        let scanning_s = Style::default().fg(pal_blue).add_modifier(Modifier::BOLD);
+        set_str(buf, lm + 2, row, "\u{25CB} Scanning\u{2026}", scanning_s, inner_w);
+        row += 1;
+    }
+
+    // ─── Entries ───
+    let max_size = app.drill_entries.first().map(|e| e.size).unwrap_or(1).max(1);
+
+    for (i, entry) in app.drill_entries.iter().enumerate() {
+        if row >= entry_area_end {
+            break;
+        }
+
+        let is_selected = i == app.drill_selected;
+
+        if is_selected {
+            let sel_bg = Style::default().bg(Color::Indexed(237));
+            for x in lm..w.saturating_sub(rm) {
+                set_cell(buf, x, row, " ", sel_bg);
+            }
+        }
+
+        // Icon
+        let (icon, icon_color) = if entry.is_dir {
+            ("\u{25B8} \u{1F4C1} ", pal_blue)
+        } else {
+            ("  \u{25CB} ", pal_green)
+        };
+        let icon_style = if is_selected {
+            Style::default().fg(icon_color).bg(Color::Indexed(237))
+        } else {
+            Style::default().fg(icon_color)
+        };
+        set_str(buf, lm, row, icon, icon_style, 5);
+
+        // Name
+        let size_col_w = 10u16;
+        let bar_col_w = 12u16;
+        let name_max = (inner_w as usize).saturating_sub(5 + size_col_w as usize + bar_col_w as usize + 2);
+        let name_display = truncate_mount(&entry.name, name_max);
+        let name_style = if is_selected {
+            Style::default().fg(pal_green).bg(Color::Indexed(237))
+        } else {
+            Style::default().fg(pal_green)
+        };
+        set_str(buf, lm + 5, row, &name_display, name_style, name_max as u16);
+
+        // Size bar
+        let bar_start = lm + 5 + name_max as u16 + 1;
+        let bar_w = bar_col_w as usize;
+        let frac = entry.size as f64 / max_size as f64;
+        let filled = (frac * bar_w as f64).round() as usize;
+        for j in 0..bar_w {
+            let x = bar_start + j as u16;
+            if j < filled {
+                let gc = gradient_color_at_prefs(j as f64 / bar_w as f64, &app.prefs);
+                set_cell(buf, x, row, "\u{2588}", Style::default().fg(gc));
+            } else {
+                set_cell(buf, x, row, "\u{00B7}", Style::default().fg(DIM_BORDER));
+            }
+        }
+
+        // Size text
+        let size_str = format_bytes(entry.size, app.prefs.unit_mode);
+        let size_display = format!("{:>10}", size_str);
+        let size_style = if is_selected {
+            Style::default().fg(pal_lpurple).bg(Color::Indexed(237))
+        } else {
+            Style::default().fg(pal_lpurple)
+        };
+        let size_x = w.saturating_sub(rm + size_col_w);
+        set_str(buf, size_x, row, &size_display, size_style, size_col_w);
+
+        row += 1;
+    }
+
+    // ─── Empty state ───
+    if app.drill_entries.is_empty() && !app.drill_scanning {
+        let empty_s = Style::default().fg(DIM_BORDER);
+        set_str(buf, lm + 2, row, "(empty or access denied)", empty_s, inner_w);
+    }
+
+    // ─── Footer separator ───
+    if entry_area_end < h {
+        draw_separator(buf, entry_area_end, w, show_border, border_s);
+    }
+
+    // ─── Footer banner ───
+    {
+        let frow = entry_area_end + 1;
+        if frow < h {
+            let footer_s = Style::default().fg(pal_green).bg(DARK_BG);
+            for x in lm..w.saturating_sub(rm) {
+                set_cell(buf, x, frow, " ", Style::default().bg(DARK_BG));
+            }
+
+            let entry_count = app.drill_entries.len();
+            let total_size: u64 = app.drill_entries.iter().map(|e| e.size).sum();
+            let footer = format!(
+                " \u{27E6}drill\u{22B7}down\u{27E7} \u{25C0}\u{25C0}\u{25C0} items:{} \u{2502} total:{} \u{2502} j/k:nav \u{2502} enter:into \u{2502} bksp:back \u{2502} esc:disks \u{2502} o:open",
+                entry_count,
+                format_bytes(total_size, app.prefs.unit_mode),
+            );
+            let footer_display: String = footer.chars().take(inner_w as usize).collect();
+            set_str(buf, lm, frow, &footer_display, footer_s, inner_w);
+        }
+    }
+}
+
+fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
+    let box_w: u16 = 56u16.min(w.saturating_sub(4));
+    let box_h: u16 = if app.theme_edit_naming { 16 } else { 15 };
+    let x0 = (w.saturating_sub(box_w)) / 2;
+    let y0 = (h.saturating_sub(box_h)) / 2;
+    let bc = border_color(app);
+    let border_s = Style::default().fg(bc);
+    let bg_s = Style::default().fg(Color::White).bg(HELP_BG);
+    let title_s = Style::default()
+        .fg(Color::Indexed(27))
+        .bg(HELP_BG)
+        .add_modifier(Modifier::BOLD);
+    let hint_s = Style::default().fg(Color::Indexed(240)).bg(HELP_BG);
+    let sel_s = Style::default().fg(Color::White).bg(Color::Indexed(237));
+
+    // Draw box
+    for y in y0..y0 + box_h {
+        for x in x0..x0 + box_w {
+            set_cell(buf, x, y, " ", Style::default().bg(HELP_BG));
+        }
+    }
+    set_cell(buf, x0, y0, "\u{2554}", border_s);
+    set_cell(buf, x0 + box_w - 1, y0, "\u{2557}", border_s);
+    set_cell(buf, x0, y0 + box_h - 1, "\u{255A}", border_s);
+    set_cell(buf, x0 + box_w - 1, y0 + box_h - 1, "\u{255D}", border_s);
+    for x in x0 + 1..x0 + box_w - 1 {
+        set_cell(buf, x, y0, "\u{2550}", border_s);
+        set_cell(buf, x, y0 + box_h - 1, "\u{2550}", border_s);
+    }
+    for y in y0 + 1..y0 + box_h - 1 {
+        set_cell(buf, x0, y, "\u{2551}", border_s);
+        set_cell(buf, x0 + box_w - 1, y, "\u{2551}", border_s);
+    }
+
+    // Title
+    let title = "\u{1F3A8} THEME EDITOR";
+    let tlen = title.chars().count() as u16;
+    let tx = x0 + (box_w.saturating_sub(tlen)) / 2;
+    set_str(buf, tx, y0 + 1, title, title_s, box_w - 2);
+
+    // Color channel names
+    let labels = ["blue", "green", "purple", "light_purple", "royal", "dark_purple"];
+    let colors = app.theme_edit_colors;
+
+    for (i, label) in labels.iter().enumerate() {
+        let row_y = y0 + 3 + i as u16;
+        let is_sel = i == app.theme_edit_slot;
+
+        // Selection indicator
+        let row_style = if is_sel { sel_s } else { bg_s };
+        if is_sel {
+            for x in x0 + 1..x0 + box_w - 1 {
+                set_cell(buf, x, row_y, " ", sel_s);
+            }
+        }
+
+        let marker = if is_sel { "\u{25B8} " } else { "  " };
+        set_str(buf, x0 + 2, row_y, marker, row_style, 2);
+
+        // Label
+        let label_str = format!("{:<14}", label);
+        set_str(buf, x0 + 4, row_y, &label_str, row_style, 14);
+
+        // Value
+        let val_str = format!("{:>3}", colors[i]);
+        set_str(buf, x0 + 19, row_y, &val_str, row_style, 3);
+
+        // Color swatch — two blocks showing the color
+        let swatch_style = Style::default().fg(Color::Indexed(colors[i])).bg(HELP_BG);
+        set_str(buf, x0 + 24, row_y, "\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}", swatch_style, 5);
+
+        // Gradient preview bar using all 6 current colors as a mini bar
+        let preview_color = Color::Indexed(colors[i]);
+        set_str(buf, x0 + 30, row_y, " \u{25C0}\u{2500}\u{2500}\u{25B6}", Style::default().fg(preview_color).bg(HELP_BG), 5);
+    }
+
+    // Preview bar using the full palette
+    let preview_y = y0 + 10;
+    set_str(buf, x0 + 2, preview_y, "preview:", hint_s, 8);
+    let preview_w = (box_w as usize).saturating_sub(13);
+    for j in 0..preview_w {
+        let frac = j as f64 / preview_w as f64;
+        let c = if frac < 0.33 {
+            Color::Indexed(colors[1]) // green
+        } else if frac < 0.55 {
+            Color::Indexed(colors[0]) // blue
+        } else if frac < 0.80 {
+            Color::Indexed(colors[2]) // purple
+        } else {
+            Color::Indexed(colors[5]) // dark_purple
+        };
+        set_cell(buf, x0 + 11 + j as u16, preview_y, "\u{2588}", Style::default().fg(c).bg(HELP_BG));
+    }
+
+    // Naming prompt or keybind hints
+    if app.theme_edit_naming {
+        let name_y = y0 + 12;
+        let input_s = Style::default().fg(Color::Indexed(48)).bg(Color::Indexed(235));
+        set_str(buf, x0 + 2, name_y, "Theme name:", bg_s, 11);
+        let name_display = format!("{}_", app.theme_edit_name);
+        set_str(buf, x0 + 14, name_y, &name_display, input_s, box_w - 16);
+        set_str(buf, x0 + 2, name_y + 1, "Enter:save  Esc:back", hint_s, box_w - 4);
+    } else {
+        let hint_y = y0 + 12;
+        set_str(buf, x0 + 2, hint_y, "j/k:select  h/l:\u{00B1}1  H/L:\u{00B1}10", hint_s, box_w - 4);
+        set_str(buf, x0 + 2, hint_y + 1, "Enter/s:save  Esc/q:cancel", hint_s, box_w - 4);
+    }
+}
+
 fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     let box_w: u16 = 100u16.min(w.saturating_sub(4));
     let box_h: u16 = 40u16.min(h.saturating_sub(4));
@@ -798,7 +1137,8 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         HelpEntry { key: "", desc: "", val_fn: empty_val, is_section: false },
         HelpEntry { key: "DISPLAY", desc: "", val_fn: empty_val, is_section: true },
         HelpEntry { key: "b", desc: "Cycle bar style", val_fn: |a| format!("[{}]", match a.prefs.bar_style { BarStyle::Gradient=>"gradient", BarStyle::Solid=>"solid", BarStyle::Thin=>"thin", BarStyle::Ascii=>"ascii" }), is_section: false },
-        HelpEntry { key: "c", desc: "Cycle color mode", val_fn: |a| format!("[{}]", a.prefs.color_mode.name()), is_section: false },
+        HelpEntry { key: "c", desc: "Cycle color mode", val_fn: |a| { let n = if let Some(ref t) = a.prefs.active_theme { t.clone() } else { a.prefs.color_mode.name().into() }; format!("[{}]", n) }, is_section: false },
+        HelpEntry { key: "C", desc: "Theme editor", val_fn: empty_val, is_section: false },
         HelpEntry { key: "v/V", desc: "Toggle bars", val_fn: |a| format!("[{}]", if a.prefs.show_bars {"on"} else {"off"}), is_section: false },
         HelpEntry { key: "d/D", desc: "Toggle used/size", val_fn: |a| format!("[{}]", if a.prefs.show_used {"on"} else {"off"}), is_section: false },
         HelpEntry { key: "g", desc: "Toggle col headers", val_fn: |a| format!("[{}]", if a.prefs.show_header {"on"} else {"off"}), is_section: false },

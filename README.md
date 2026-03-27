@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v2.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v4.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -66,9 +66,23 @@ cargo install storageshower
   ├── Sort ─── name / usage% / size / asc / desc
   ├── Filter ─── case-insensitive substring match
   ├── Units ─── human / GiB / MiB / raw bytes
-  ├── Themes ─── default / green / blue / purple
+  ├── Themes ─── 10 builtin + custom user themes (TOML)
+  ├── Theme editor ─── live color picker with per-channel control
   └── Persistent config ─── ~/.storageshower.conf (TOML)
-
+  │
+[DRILL_DOWN]
+  ├── Directory explorer ─── Enter on any mount to drill in
+  │   ├── recursive size calculation per directory
+  │   ├── background scanning via Arc<Mutex<>>
+  │   ├── breadcrumb navigation (Enter/Backspace/Esc)
+  │   └── gradient size bars relative to largest entry
+  │
+[NET_LATENCY]
+  ├── Network filesystem latency ─── NFS/SMB/CIFS/SSHFS
+  │   ├── timed read_dir with 2s timeout (no root needed)
+  │   ├── color-coded badge: green(<50ms) / warn / red
+  │   └── detects: nfs, nfs4, cifs, smbfs, afp, sshfs, s3fs, 9p
+  │
 [PLATFORM_COMPAT]
   ├── macOS ── SUPPORTED
   ├── Linux ── SUPPORTED
@@ -167,7 +181,9 @@ to force-override in either direction.
 | `FLAG` | `DESCRIPTION` |
 |:---|:---|
 | `-b, --bar-style STYLE` | Bar visualization — `gradient`, `solid`, `thin`, `ascii` |
-| `-c, --color PALETTE` | Color palette — `default`, `green`, `blue`, `purple` |
+| `-c, --color PALETTE` | Color palette — `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset` |
+| `--theme NAME` | Activate a custom theme by name (defined in config) |
+| `--list-colors` | List all builtin color schemes with preview |
 | `-u, --units MODE` | Unit display — `human`, `gib`, `mib`, `bytes` |
 | `-k, --compact` / `--no-compact` | Compact mount names |
 | `-f, --full-mount` / `--no-full-mount` | Show full mount paths |
@@ -207,6 +223,8 @@ storageshower -c purple -b ascii     # purple palette with ascii bars
 storageshower -s pct -R              # sort by usage%, reversed
 storageshower -l --no-virtual        # local physical disks only
 storageshower -u gib -w 60 -C 85    # GiB units, custom thresholds
+storageshower --theme neonpink       # activate custom theme
+storageshower --list-colors          # preview all builtin palettes
 storageshower --config /tmp/ss.conf  # use alternate config
 ```
 
@@ -254,7 +272,8 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `KEY` | `ACTION` |
 |:---:|:---|
 | `b` | Cycle bar style — gradient / solid / thin / ascii |
-| `c` | Cycle color theme — default / green / blue / purple |
+| `c` | Cycle color theme — 10 builtins + custom themes |
+| `C` | Open theme editor — live color picker |
 | `v` `V` | Toggle usage bars |
 | `d` `D` | Toggle used/size columns |
 | `g` | Toggle column headers |
@@ -295,9 +314,31 @@ storageshower --config /tmp/ss.conf  # use alternate config
 
 | `KEY` | `ACTION` |
 |:---:|:---|
-| `Enter` | Open selected mount in file manager |
+| `Enter` | Drill down into selected mount |
+| `o` `O` | Open selected mount in file manager |
 | `y` `Y` | Copy mount path to clipboard |
 | `e` `E` | Export disk matrix to file |
+
+#### `// DRILL_DOWN_MODE`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `j` `k` | Navigate entries |
+| `Enter` | Drill into selected directory |
+| `Backspace` | Go up one level |
+| `Esc` | Return to disk list |
+| `o` `O` | Open current directory in file manager |
+| `g` `G` | Jump to first / last entry |
+
+#### `// THEME_EDITOR (C)`
+
+| `KEY` | `ACTION` |
+|:---:|:---|
+| `j` `k` | Select color channel |
+| `h` `l` | Adjust value ±1 |
+| `H` `L` | Adjust value ±10 |
+| `Enter` `s` | Save (prompts for name) |
+| `Esc` `q` | Cancel |
 
 #### `// MOUSE_INPUT`
 
@@ -409,8 +450,39 @@ cargo bench
  │  >> col headers  >> compact mode     >> mount paths     │
  │  >> show used    >> show local       >> custom widths   │
  │  >> mount col w  >> right col w      >> pct col w       │
+ │  >> custom themes (HashMap)         >> active theme    │
  └──────────────────────────────────────────────────────┘
 ```
+
+---
+
+### `> CUSTOM_THEMES.cfg`
+
+```
+ ┌──────────────────────────────────────────────────┐
+ │          ◈◈◈  THEME SYSTEM  ◈◈◈                 │
+ └──────────────────────────────────────────────────┘
+```
+
+10 builtin palettes: **Neon Sprawl** · **Acid Rain** · **Ice Breaker** · **Synth Wave** · **Rust Belt** · **Ghost Wire** · **Red Sector** · **Sakura Den** · **Data Stream** · **Solar Flare**
+
+Create your own by adding to `~/.storageshower.conf`:
+
+```toml
+[custom_themes.neonpink]
+blue         = 199
+green        = 46
+purple       = 201
+light_purple = 213
+royal        = 196
+dark_purple  = 161
+
+active_theme = "neonpink"
+```
+
+Or use the **in-app theme editor** (`C` key) to tweak colors live and save.
+
+See `themes/` for all builtin palettes as ready-to-copy TOML files.
 
 ---
 

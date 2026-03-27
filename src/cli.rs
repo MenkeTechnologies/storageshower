@@ -139,6 +139,10 @@ pub struct Cli {
     /// List all builtin color schemes
     #[arg(long = "list-colors")]
     pub list_colors: bool,
+
+    /// Activate a custom theme by name (defined in config file)
+    #[arg(long = "theme", value_name = "NAME")]
+    pub theme: Option<String>,
 }
 
 // ANSI color constants
@@ -304,6 +308,9 @@ impl Cli {
         if self.no_used { prefs.show_used = false; }
         if self.show_virtual { prefs.show_all = true; }
         if self.no_virtual { prefs.show_all = false; }
+        if let Some(ref name) = self.theme {
+            prefs.active_theme = Some(name.clone());
+        }
     }
 }
 

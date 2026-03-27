@@ -1,0 +1,9 @@
+# Red Sector (Red)
+# Hot reds and pinks — alert-level intensity
+[custom_themes.red_sector]
+blue         = 160
+green        = 203
+purple       = 196
+light_purple = 210
+royal        = 124
+dark_purple  = 88

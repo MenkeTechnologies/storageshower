@@ -78,6 +78,16 @@ impl ColorMode {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ThemeColors {
+    pub blue: u8,
+    pub green: u8,
+    pub purple: u8,
+    pub light_purple: u8,
+    pub royal: u8,
+    pub dark_purple: u8,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
 pub enum UnitMode {
     #[default]

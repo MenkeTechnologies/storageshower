@@ -28,6 +28,13 @@ pub struct App {
     pub drag: Option<DragTarget>,
     pub selected: Option<usize>,
     pub status_msg: Option<(String, Instant)>,
+    // Theme editor state
+    pub theme_editor: bool,
+    pub theme_edit_colors: [u8; 6],
+    pub theme_edit_slot: usize,
+    pub theme_edit_naming: bool,
+    pub theme_edit_name: String,
+    pub theme_edit_cursor: usize,
     // Drill-down state
     pub view_mode: ViewMode,
     pub drill_path: Vec<String>,
@@ -58,6 +65,12 @@ impl App {
             selected: None,
             status_msg: None,
             drag: None,
+            theme_editor: false,
+            theme_edit_colors: [0; 6],
+            theme_edit_slot: 0,
+            theme_edit_naming: false,
+            theme_edit_name: String::new(),
+            theme_edit_cursor: 0,
             view_mode: ViewMode::Disks,
             drill_path: Vec::new(),
             drill_entries: Vec::new(),
@@ -87,6 +100,12 @@ impl App {
             selected: None,
             status_msg: None,
             drag: None,
+            theme_editor: false,
+            theme_edit_colors: [0; 6],
+            theme_edit_slot: 0,
+            theme_edit_naming: false,
+            theme_edit_name: String::new(),
+            theme_edit_cursor: 0,
             view_mode: ViewMode::Disks,
             drill_path: Vec::new(),
             drill_entries: Vec::new(),
@@ -268,6 +287,150 @@ impl App {
             return;
         }
 
+        if self.theme_editor {
+            if self.theme_edit_naming {
+                match key.code {
+                    KeyCode::Enter => {
+                        let name = self.theme_edit_name.trim().to_string();
+                        if !name.is_empty() {
+                            let colors = self.theme_edit_colors;
+                            self.prefs.custom_themes.insert(name.clone(), ThemeColors {
+                                blue: colors[0],
+                                green: colors[1],
+                                purple: colors[2],
+                                light_purple: colors[3],
+                                royal: colors[4],
+                                dark_purple: colors[5],
+                            });
+                            self.prefs.active_theme = Some(name.clone());
+                            self.save();
+                            self.status_msg = Some((format!("Saved theme: {}", name), Instant::now()));
+                        }
+                        self.theme_editor = false;
+                        self.theme_edit_naming = false;
+                        self.theme_edit_name.clear();
+                        self.theme_edit_cursor = 0;
+                    }
+                    KeyCode::Esc => {
+                        self.theme_edit_naming = false;
+                        self.theme_edit_name.clear();
+                        self.theme_edit_cursor = 0;
+                    }
+                    KeyCode::Backspace => {
+                        if self.theme_edit_cursor > 0 {
+                            self.theme_edit_cursor -= 1;
+                            self.theme_edit_name.remove(self.theme_edit_cursor);
+                        }
+                    }
+                    KeyCode::Left => {
+                        self.theme_edit_cursor = self.theme_edit_cursor.saturating_sub(1);
+                    }
+                    KeyCode::Right => {
+                        self.theme_edit_cursor = (self.theme_edit_cursor + 1).min(self.theme_edit_name.len());
+                    }
+                    KeyCode::Char(c) if !ctrl => {
+                        if self.theme_edit_name.len() < 20 {
+                            self.theme_edit_name.insert(self.theme_edit_cursor, c);
+                            self.theme_edit_cursor += 1;
+                        }
+                    }
+                    _ => {}
+                }
+                return;
+            }
+
+            match key.code {
+                KeyCode::Esc | KeyCode::Char('q') => {
+                    self.theme_editor = false;
+                }
+                KeyCode::Char('j') | KeyCode::Down => {
+                    self.theme_edit_slot = (self.theme_edit_slot + 1).min(5);
+                }
+                KeyCode::Char('k') | KeyCode::Up => {
+                    self.theme_edit_slot = self.theme_edit_slot.saturating_sub(1);
+                }
+                KeyCode::Char('l') | KeyCode::Right => {
+                    self.theme_edit_colors[self.theme_edit_slot] =
+                        self.theme_edit_colors[self.theme_edit_slot].wrapping_add(1);
+                }
+                KeyCode::Char('h') | KeyCode::Left => {
+                    self.theme_edit_colors[self.theme_edit_slot] =
+                        self.theme_edit_colors[self.theme_edit_slot].wrapping_sub(1);
+                }
+                KeyCode::Char('L') => {
+                    self.theme_edit_colors[self.theme_edit_slot] =
+                        self.theme_edit_colors[self.theme_edit_slot].wrapping_add(10);
+                }
+                KeyCode::Char('H') => {
+                    self.theme_edit_colors[self.theme_edit_slot] =
+                        self.theme_edit_colors[self.theme_edit_slot].wrapping_sub(10);
+                }
+                KeyCode::Enter | KeyCode::Char('s') | KeyCode::Char('S') => {
+                    self.theme_edit_naming = true;
+                    self.theme_edit_name.clear();
+                    self.theme_edit_cursor = 0;
+                }
+                _ => {}
+            }
+            return;
+        }
+
+        if self.view_mode == ViewMode::DrillDown {
+            match key.code {
+                KeyCode::Esc | KeyCode::Backspace => {
+                    if self.drill_path.len() > 1 {
+                        self.drill_path.pop();
+                        let parent = self.drill_current_path();
+                        self.start_drill_scan(&parent);
+                    } else {
+                        self.view_mode = ViewMode::Disks;
+                        self.drill_path.clear();
+                        self.drill_entries.clear();
+                    }
+                }
+                KeyCode::Enter => {
+                    if !self.drill_scanning {
+                        if let Some(entry) = self.drill_entries.get(self.drill_selected) {
+                            if entry.is_dir {
+                                let path = entry.path.clone();
+                                self.drill_path.push(path.clone());
+                                self.start_drill_scan(&path);
+                            }
+                        }
+                    }
+                }
+                KeyCode::Char('j') | KeyCode::Down => {
+                    if !self.drill_entries.is_empty() {
+                        self.drill_selected = (self.drill_selected + 1).min(self.drill_entries.len() - 1);
+                    }
+                }
+                KeyCode::Char('k') | KeyCode::Up => {
+                    self.drill_selected = self.drill_selected.saturating_sub(1);
+                }
+                KeyCode::Home | KeyCode::Char('g') => {
+                    self.drill_selected = 0;
+                }
+                KeyCode::End | KeyCode::Char('G') => {
+                    if !self.drill_entries.is_empty() {
+                        self.drill_selected = self.drill_entries.len() - 1;
+                    }
+                }
+                KeyCode::Char('o') | KeyCode::Char('O') => {
+                    let path = self.drill_current_path();
+                    #[cfg(target_os = "macos")]
+                    { let _ = std::process::Command::new("open").arg(&path).spawn(); }
+                    #[cfg(target_os = "linux")]
+                    { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); }
+                    self.status_msg = Some((format!("Opened {}", path), Instant::now()));
+                }
+                KeyCode::Char('q') | KeyCode::Char('Q') => {
+                    self.quit = true;
+                }
+                _ => {}
+            }
+            return;
+        }
+
         if ctrl {
             match key.code {
                 KeyCode::Char('d') => {
@@ -384,12 +547,61 @@ impl App {
                 self.save();
             }
             KeyCode::Char('c') => {
-                self.prefs.color_mode = self.prefs.color_mode.next();
+                let custom_names: Vec<String> = {
+                    let mut names: Vec<String> = self.prefs.custom_themes.keys().cloned().collect();
+                    names.sort();
+                    names
+                };
+                if let Some(ref active) = self.prefs.active_theme {
+                    // Currently on a custom theme — find next custom or wrap to first built-in
+                    if let Some(pos) = custom_names.iter().position(|n| n == active) {
+                        if pos + 1 < custom_names.len() {
+                            self.prefs.active_theme = Some(custom_names[pos + 1].clone());
+                        } else {
+                            self.prefs.active_theme = None;
+                            self.prefs.color_mode = ColorMode::ALL[0];
+                        }
+                    } else {
+                        self.prefs.active_theme = None;
+                        self.prefs.color_mode = ColorMode::ALL[0];
+                    }
+                } else {
+                    // Currently on a built-in theme
+                    let next = self.prefs.color_mode.next();
+                    if next == ColorMode::ALL[0] && !custom_names.is_empty() {
+                        // Wrapped around — enter custom themes
+                        self.prefs.active_theme = Some(custom_names[0].clone());
+                    } else {
+                        self.prefs.color_mode = next;
+                    }
+                }
+                let display_name = if let Some(ref name) = self.prefs.active_theme {
+                    name.clone()
+                } else {
+                    self.prefs.color_mode.name().to_string()
+                };
                 self.status_msg = Some((
-                    format!("\u{25C6} {}", self.prefs.color_mode.name()),
+                    format!("\u{25C6} {}", display_name),
                     Instant::now(),
                 ));
                 self.save();
+            }
+            KeyCode::Char('C') => {
+                // Open theme editor, seeded with current palette
+                let current = crate::ui::palette_for_prefs(&self.prefs);
+                fn idx(c: ratatui::style::Color) -> u8 {
+                    match c {
+                        ratatui::style::Color::Indexed(n) => n,
+                        _ => 0,
+                    }
+                }
+                self.theme_edit_colors = [
+                    idx(current.0), idx(current.1), idx(current.2),
+                    idx(current.3), idx(current.4), idx(current.5),
+                ];
+                self.theme_edit_slot = 0;
+                self.theme_editor = true;
+                self.theme_edit_naming = false;
             }
             KeyCode::Char('v') | KeyCode::Char('V') => {
                 self.prefs.show_bars = !self.prefs.show_bars;
@@ -482,6 +694,18 @@ impl App {
                 }
             }
             KeyCode::Enter => {
+                if let Some(idx) = self.selected {
+                    let disks = self.sorted_disks();
+                    if let Some(disk) = disks.get(idx) {
+                        let mount = disk.mount.clone();
+                        self.view_mode = ViewMode::DrillDown;
+                        self.drill_path = vec![mount.clone()];
+                        self.drill_selected = 0;
+                        self.start_drill_scan(&mount);
+                    }
+                }
+            }
+            KeyCode::Char('o') | KeyCode::Char('O') => {
                 if let Some(idx) = self.selected {
                     let disks = self.sorted_disks();
                     if let Some(disk) = disks.get(idx) {

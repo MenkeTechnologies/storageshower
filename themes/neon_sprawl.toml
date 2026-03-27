@@ -1,0 +1,9 @@
+# Neon Sprawl (Default)
+# Electric blues and purples — the original cyberdeck palette
+[custom_themes.neon_sprawl]
+blue         = 27
+green        = 48
+purple       = 135
+light_purple = 141
+royal        = 63
+dark_purple  = 99

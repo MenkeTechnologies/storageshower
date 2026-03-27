@@ -1,0 +1,9 @@
+# Acid Rain (Green)
+# Toxic greens — the classic terminal hacker look
+[custom_themes.acid_rain]
+blue         = 28
+green        = 46
+purple       = 34
+light_purple = 40
+royal        = 22
+dark_purple  = 35

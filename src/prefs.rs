@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::types::*;
@@ -29,6 +30,10 @@ pub struct Prefs {
     pub col_bar_end_w: u16,
     #[serde(default)]
     pub col_pct_w: u16,
+    #[serde(default)]
+    pub custom_themes: HashMap<String, ThemeColors>,
+    #[serde(default)]
+    pub active_theme: Option<String>,
 }
 
 fn default_true() -> bool { true }
@@ -55,6 +60,8 @@ impl Default for Prefs {
             col_mount_w: 0,
             col_bar_end_w: 0,
             col_pct_w: 0,
+            custom_themes: HashMap::new(),
+            active_theme: None,
         }
     }
 }
