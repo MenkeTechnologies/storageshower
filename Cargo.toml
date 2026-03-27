@@ -1,7 +1,7 @@
 [package]
 name = "storageshower"
 version = "0.23.0"
-edition = "2021"
+edition = "2024"
 description = "Cyberpunk disk usage TUI"
 license = "MIT"
 repository = "https://github.com/MenkeTechnologies/storageshower"
