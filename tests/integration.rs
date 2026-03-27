@@ -55,15 +55,15 @@ fn full_workflow_sort_filter_navigate() {
 
     // Filter to only root
     app.handle_key(make_key(KeyCode::Char('/')));
-    assert!(app.filter_mode);
+    assert!(app.filter.active);
     // Type "/"  — but "/" also triggers filter mode, so we need a different char
     app.handle_key(make_key(KeyCode::Char('d')));
     app.handle_key(make_key(KeyCode::Char('a')));
     app.handle_key(make_key(KeyCode::Char('t')));
     app.handle_key(make_key(KeyCode::Char('a')));
     app.handle_key(make_key(KeyCode::Enter));
-    assert!(!app.filter_mode);
-    assert_eq!(app.filter, "data");
+    assert!(!app.filter.active);
+    assert_eq!(app.filter.text, "data");
 
     let filtered = app.sorted_disks();
     assert_eq!(filtered.len(), 1);
@@ -75,7 +75,7 @@ fn full_workflow_sort_filter_navigate() {
 
     // Clear filter
     app.handle_key(make_key(KeyCode::Char('0')));
-    assert!(app.filter.is_empty());
+    assert!(app.filter.text.is_empty());
     assert_eq!(app.sorted_disks().len(), 3);
 }
 
@@ -279,14 +279,14 @@ fn filter_vim_editing_workflow() {
 
     // Enter filter mode
     app.handle_key(make_key(KeyCode::Char('/')));
-    assert!(app.filter_mode);
+    assert!(app.filter.active);
 
     // Type "home"
     for c in "home".chars() {
         app.handle_key(make_key(KeyCode::Char(c)));
     }
-    assert_eq!(app.filter_buf, "home");
-    assert_eq!(app.filter_cursor, 4);
+    assert_eq!(app.filter.buf, "home");
+    assert_eq!(app.filter.cursor, 4);
 
     // Live filter should show 1 result
     assert_eq!(app.sorted_disks().len(), 1);
@@ -298,7 +298,7 @@ fn filter_vim_editing_workflow() {
         kind: KeyEventKind::Press,
         state: KeyEventState::NONE,
     });
-    assert_eq!(app.filter_cursor, 0);
+    assert_eq!(app.filter.cursor, 0);
 
     // Kill to end (Ctrl+K)
     app.handle_key(KeyEvent {
@@ -307,13 +307,13 @@ fn filter_vim_editing_workflow() {
         kind: KeyEventKind::Press,
         state: KeyEventState::NONE,
     });
-    assert_eq!(app.filter_buf, "");
+    assert_eq!(app.filter.buf, "");
     // Live filter: all disks visible again
     assert_eq!(app.sorted_disks().len(), 3);
 
     // Esc cancels — but since we entered with empty filter_prev, it restores ""
     app.handle_key(make_key(KeyCode::Esc));
-    assert!(!app.filter_mode);
+    assert!(!app.filter.active);
 }
 
 // ─── Sort click simulation ─────────────────────────────────────────────────
@@ -630,7 +630,7 @@ fn sort_and_filter_many_disks() {
     assert!(sorted.windows(2).all(|w| w[0].pct <= w[1].pct));
 
     // Filter
-    app.filter = "mount_00".into();
+    app.filter.text = "mount_00".into();
     let filtered = app.sorted_disks();
     assert!(filtered.len() < 500);
     assert!(filtered.iter().all(|d| d.mount.contains("mount_00")));
@@ -788,54 +788,54 @@ fn load_prefs_from_invalid_toml_returns_defaults() {
 #[test]
 fn enter_drill_down_and_back() {
     let mut app = make_app_with_disks(sample_disks());
-    assert_eq!(app.view_mode, ViewMode::Disks);
+    assert_eq!(app.drill.mode, ViewMode::Disks);
 
     // Select first disk and press Enter
     app.handle_key(make_key(KeyCode::Char('j')));
     assert_eq!(app.selected, Some(0));
     app.handle_key(make_key(KeyCode::Enter));
-    assert_eq!(app.view_mode, ViewMode::DrillDown);
-    assert!(!app.drill_path.is_empty());
+    assert_eq!(app.drill.mode, ViewMode::DrillDown);
+    assert!(!app.drill.path.is_empty());
 
     // Esc returns to disk view
     app.handle_key(make_key(KeyCode::Esc));
-    assert_eq!(app.view_mode, ViewMode::Disks);
-    assert!(app.drill_path.is_empty());
+    assert_eq!(app.drill.mode, ViewMode::Disks);
+    assert!(app.drill.path.is_empty());
 }
 
 #[test]
 fn drill_down_navigation() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_path = vec!["/tmp".into()];
-    app.drill_entries = vec![
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/tmp".into()];
+    app.drill.entries = vec![
         DirEntry { path: "/tmp/a".into(), name: "a".into(), size: 100, is_dir: true },
         DirEntry { path: "/tmp/b".into(), name: "b".into(), size: 50, is_dir: false },
     ];
-    app.drill_selected = 0;
+    app.drill.selected = 0;
 
     // j moves down
     app.handle_key(make_key(KeyCode::Char('j')));
-    assert_eq!(app.drill_selected, 1);
+    assert_eq!(app.drill.selected, 1);
 
     // k moves up
     app.handle_key(make_key(KeyCode::Char('k')));
-    assert_eq!(app.drill_selected, 0);
+    assert_eq!(app.drill.selected, 0);
 
     // G jumps to end
     app.handle_key(make_key(KeyCode::Char('G')));
-    assert_eq!(app.drill_selected, 1);
+    assert_eq!(app.drill.selected, 1);
 
     // g jumps to start
     app.handle_key(make_key(KeyCode::Char('g')));
-    assert_eq!(app.drill_selected, 0);
+    assert_eq!(app.drill.selected, 0);
 }
 
 #[test]
 fn drill_down_quit() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_path = vec!["/".into()];
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into()];
     app.handle_key(make_key(KeyCode::Char('q')));
     assert!(app.quit);
 }
@@ -845,62 +845,62 @@ fn drill_down_quit() {
 #[test]
 fn theme_editor_opens_and_closes() {
     let mut app = make_app_with_disks(sample_disks());
-    assert!(!app.theme_editor);
+    assert!(!app.theme_edit.active);
 
     // C opens theme editor
     app.handle_key(make_key(KeyCode::Char('C')));
-    assert!(app.theme_editor);
-    assert_eq!(app.theme_edit_slot, 0);
+    assert!(app.theme_edit.active);
+    assert_eq!(app.theme_edit.slot, 0);
 
     // Esc closes it
     app.handle_key(make_key(KeyCode::Esc));
-    assert!(!app.theme_editor);
+    assert!(!app.theme_edit.active);
 }
 
 #[test]
 fn theme_editor_navigation() {
     let mut app = make_app_with_disks(sample_disks());
     app.handle_key(make_key(KeyCode::Char('C')));
-    assert!(app.theme_editor);
+    assert!(app.theme_edit.active);
 
     // j/k navigate slots
     app.handle_key(make_key(KeyCode::Char('j')));
-    assert_eq!(app.theme_edit_slot, 1);
+    assert_eq!(app.theme_edit.slot, 1);
     app.handle_key(make_key(KeyCode::Char('j')));
-    assert_eq!(app.theme_edit_slot, 2);
+    assert_eq!(app.theme_edit.slot, 2);
     app.handle_key(make_key(KeyCode::Char('k')));
-    assert_eq!(app.theme_edit_slot, 1);
+    assert_eq!(app.theme_edit.slot, 1);
 
     // l increments color value
-    let before = app.theme_edit_colors[1];
+    let before = app.theme_edit.colors[1];
     app.handle_key(make_key(KeyCode::Char('l')));
-    assert_eq!(app.theme_edit_colors[1], before.wrapping_add(1));
+    assert_eq!(app.theme_edit.colors[1], before.wrapping_add(1));
 
     // h decrements
     app.handle_key(make_key(KeyCode::Char('h')));
-    assert_eq!(app.theme_edit_colors[1], before);
+    assert_eq!(app.theme_edit.colors[1], before);
 }
 
 #[test]
 fn theme_editor_save_flow() {
     let mut app = make_app_with_disks(sample_disks());
     app.handle_key(make_key(KeyCode::Char('C')));
-    assert!(app.theme_editor);
+    assert!(app.theme_edit.active);
 
     // Press s to enter naming mode
     app.handle_key(make_key(KeyCode::Char('s')));
-    assert!(app.theme_edit_naming);
+    assert!(app.theme_edit.naming);
 
     // Type a name
     app.handle_key(make_key(KeyCode::Char('t')));
     app.handle_key(make_key(KeyCode::Char('e')));
     app.handle_key(make_key(KeyCode::Char('s')));
     app.handle_key(make_key(KeyCode::Char('t')));
-    assert_eq!(app.theme_edit_name, "test");
+    assert_eq!(app.theme_edit.name, "test");
 
     // Enter saves
     app.handle_key(make_key(KeyCode::Enter));
-    assert!(!app.theme_editor);
+    assert!(!app.theme_edit.active);
     assert!(app.prefs.custom_themes.contains_key("test"));
     assert_eq!(app.prefs.active_theme, Some("test".into()));
 }
@@ -1005,14 +1005,14 @@ fn mouse_click_selects_and_drills_down() {
         80,
     );
     assert_eq!(app.selected, Some(0));
-    assert_eq!(app.view_mode, ViewMode::Disks);
+    assert_eq!(app.drill.mode, ViewMode::Disks);
 
     // Click same row again → drill down
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 5, modifiers: KeyModifiers::NONE },
         80,
     );
-    assert_eq!(app.view_mode, ViewMode::DrillDown);
+    assert_eq!(app.drill.mode, ViewMode::DrillDown);
 }
 
 #[test]
@@ -1030,7 +1030,7 @@ fn mouse_click_different_row_changes_selection() {
         80,
     );
     assert_eq!(app.selected, Some(1));
-    assert_eq!(app.view_mode, ViewMode::Disks); // did not drill down
+    assert_eq!(app.drill.mode, ViewMode::Disks); // did not drill down
 }
 
 // ─── Disk free space alerts ──────────────────────────────────────────────
@@ -1044,11 +1044,11 @@ fn alert_triggers_on_threshold_crossing() {
     let mut app = App::new_default(shared.clone());
     app.prefs = Prefs::default();
     app.prefs.thresh_warn = 70;
-    app.alert_mounts.clear();
+    app.alert.mounts.clear();
 
     // First refresh: disk at 50% — no alert
     app.refresh_data();
-    assert!(app.alert_flash.is_none());
+    assert!(app.alert.flash.is_none());
 
     // Push disk above warning threshold
     {
@@ -1058,8 +1058,8 @@ fn alert_triggers_on_threshold_crossing() {
         ];
     }
     app.refresh_data();
-    assert!(app.alert_flash.is_some());
-    assert!(app.alert_mounts.contains("/"));
+    assert!(app.alert.flash.is_some());
+    assert!(app.alert.mounts.contains("/"));
     assert!(app.status_msg.is_some());
     let msg = &app.status_msg.as_ref().unwrap().0;
     assert!(msg.contains("ALERT"), "Expected alert message, got: {}", msg);
@@ -1077,13 +1077,13 @@ fn alert_does_not_re_trigger_for_same_mount() {
 
     // First refresh triggers alert
     app.refresh_data();
-    assert!(app.alert_flash.is_some());
+    assert!(app.alert.flash.is_some());
 
     // Clear flash, refresh again — should NOT re-trigger
-    app.alert_flash = None;
+    app.alert.flash = None;
     app.status_msg = None;
     app.refresh_data();
-    assert!(app.alert_flash.is_none(), "Alert should not re-trigger for same mount");
+    assert!(app.alert.flash.is_none(), "Alert should not re-trigger for same mount");
 }
 
 #[test]
@@ -1098,7 +1098,7 @@ fn alert_clears_when_disk_drops_below_threshold() {
 
     // Trigger alert
     app.refresh_data();
-    assert!(app.alert_mounts.contains("/"));
+    assert!(app.alert.mounts.contains("/"));
 
     // Drop below threshold
     {
@@ -1108,7 +1108,7 @@ fn alert_clears_when_disk_drops_below_threshold() {
         ];
     }
     app.refresh_data();
-    assert!(!app.alert_mounts.contains("/"), "Mount should be cleared from alert set");
+    assert!(!app.alert.mounts.contains("/"), "Mount should be cleared from alert set");
 }
 
 // ─── Bookmarks ───────────────────────────────────────────────────────────
@@ -1151,7 +1151,7 @@ fn o_key_does_not_drill_down() {
     app.selected = Some(0);
     app.handle_key(make_key(KeyCode::Char('o')));
     // Should NOT change view mode — just spawns open command
-    assert_eq!(app.view_mode, ViewMode::Disks);
+    assert_eq!(app.drill.mode, ViewMode::Disks);
 }
 
 // ─── Drill-down backspace navigation ─────────────────────────────────────
@@ -1159,21 +1159,21 @@ fn o_key_does_not_drill_down() {
 #[test]
 fn drill_down_backspace_returns_to_disks() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_path = vec!["/".into()];
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into()];
     app.handle_key(make_key(KeyCode::Backspace));
-    assert_eq!(app.view_mode, ViewMode::Disks);
-    assert!(app.drill_path.is_empty());
+    assert_eq!(app.drill.mode, ViewMode::Disks);
+    assert!(app.drill.path.is_empty());
 }
 
 #[test]
 fn drill_down_backspace_goes_up_one_level() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_path = vec!["/".into(), "/usr".into()];
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into(), "/usr".into()];
     app.handle_key(make_key(KeyCode::Backspace));
-    assert_eq!(app.view_mode, ViewMode::DrillDown);
-    assert_eq!(app.drill_path, vec!["/"]);
+    assert_eq!(app.drill.mode, ViewMode::DrillDown);
+    assert_eq!(app.drill.path, vec!["/"]);
 }
 
 // ─── SmartHealth display values ──────────────────────────────────────────
@@ -1218,26 +1218,26 @@ fn view_mode_equality() {
 #[test]
 fn drill_sort_by_name() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_path = vec!["/".into()];
-    app.drill_entries = vec![
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into()];
+    app.drill.entries = vec![
         DirEntry { path: "/c".into(), name: "charlie".into(), size: 10, is_dir: false },
         DirEntry { path: "/a".into(), name: "alpha".into(), size: 30, is_dir: true },
         DirEntry { path: "/b".into(), name: "bravo".into(), size: 20, is_dir: false },
     ];
     app.handle_key(make_key(KeyCode::Char('n')));
-    assert_eq!(app.drill_sort, DrillSortMode::Name);
-    assert_eq!(app.drill_entries[0].name, "alpha");
-    assert_eq!(app.drill_entries[1].name, "bravo");
-    assert_eq!(app.drill_entries[2].name, "charlie");
+    assert_eq!(app.drill.sort, DrillSortMode::Name);
+    assert_eq!(app.drill.entries[0].name, "alpha");
+    assert_eq!(app.drill.entries[1].name, "bravo");
+    assert_eq!(app.drill.entries[2].name, "charlie");
 }
 
 #[test]
 fn drill_sort_by_size() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_path = vec!["/".into()];
-    app.drill_entries = vec![
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into()];
+    app.drill.entries = vec![
         DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
         DirEntry { path: "/b".into(), name: "b".into(), size: 30, is_dir: false },
         DirEntry { path: "/c".into(), name: "c".into(), size: 20, is_dir: false },
@@ -1245,44 +1245,44 @@ fn drill_sort_by_size() {
     // Default is size desc, switch to name then back to size
     app.handle_key(make_key(KeyCode::Char('n')));
     app.handle_key(make_key(KeyCode::Char('s')));
-    assert_eq!(app.drill_sort, DrillSortMode::Size);
-    assert_eq!(app.drill_entries[0].size, 30); // largest first
-    assert_eq!(app.drill_entries[2].size, 10);
+    assert_eq!(app.drill.sort, DrillSortMode::Size);
+    assert_eq!(app.drill.entries[0].size, 30); // largest first
+    assert_eq!(app.drill.entries[2].size, 10);
 }
 
 #[test]
 fn drill_sort_reverse() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_path = vec!["/".into()];
-    app.drill_entries = vec![
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into()];
+    app.drill.entries = vec![
         DirEntry { path: "/a".into(), name: "a".into(), size: 30, is_dir: false },
         DirEntry { path: "/b".into(), name: "b".into(), size: 10, is_dir: false },
     ];
     // Default size desc: 30, 10
     app.sort_drill_entries();
-    assert_eq!(app.drill_entries[0].size, 30);
+    assert_eq!(app.drill.entries[0].size, 30);
 
     // Reverse
     app.handle_key(make_key(KeyCode::Char('r')));
-    assert!(app.drill_sort_rev);
-    assert_eq!(app.drill_entries[0].size, 10); // smallest first now
+    assert!(app.drill.sort_rev);
+    assert_eq!(app.drill.entries[0].size, 10); // smallest first now
 }
 
 #[test]
 fn drill_sort_toggle_same_mode_reverses() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_path = vec!["/".into()];
-    app.drill_entries = vec![
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into()];
+    app.drill.entries = vec![
         DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
     ];
-    assert_eq!(app.drill_sort, DrillSortMode::Size);
-    assert!(!app.drill_sort_rev);
+    assert_eq!(app.drill.sort, DrillSortMode::Size);
+    assert!(!app.drill.sort_rev);
 
     // Press s again — should toggle reverse
     app.handle_key(make_key(KeyCode::Char('s')));
-    assert!(app.drill_sort_rev);
+    assert!(app.drill.sort_rev);
 }
 
 #[test]
@@ -1290,41 +1290,41 @@ fn drill_sort_toggle_same_mode_reverses() {
 fn drill_scan_progress_counters() {
     let mut app = make_app_with_disks(sample_disks());
     // Before scan, counters are zero
-    assert_eq!(*app.drill_scan_count.lock().unwrap(), 0);
-    assert_eq!(*app.drill_scan_total.lock().unwrap(), 0);
+    assert_eq!(*app.drill.scan_count.lock().unwrap(), 0);
+    assert_eq!(*app.drill.scan_total.lock().unwrap(), 0);
 
     // Start a scan of /tmp
     app.selected = Some(0);
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_path = vec!["/tmp".into()];
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/tmp".into()];
     // Simulate by directly calling start_drill_scan
     app.start_drill_scan("/tmp");
-    assert!(app.drill_scanning);
+    assert!(app.drill.scanning);
 
     // Wait for scan to complete
     std::thread::sleep(std::time::Duration::from_millis(500));
     app.refresh_data();
 
     // After completion, scanning should be false
-    assert!(!app.drill_scanning);
+    assert!(!app.drill.scanning);
     // Total should have been set (may be 0 if /tmp is empty)
-    let total = *app.drill_scan_total.lock().unwrap();
-    let count = *app.drill_scan_count.lock().unwrap();
+    let total = *app.drill.scan_total.lock().unwrap();
+    let count = *app.drill.scan_count.lock().unwrap();
     assert_eq!(count, total, "count should equal total after completion");
 }
 
 #[test]
 fn drill_sort_resets_selection() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_path = vec!["/".into()];
-    app.drill_entries = vec![
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into()];
+    app.drill.entries = vec![
         DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
         DirEntry { path: "/b".into(), name: "b".into(), size: 20, is_dir: false },
     ];
-    app.drill_selected = 1;
+    app.drill.selected = 1;
     app.handle_key(make_key(KeyCode::Char('n')));
-    assert_eq!(app.drill_selected, 0, "Sort should reset selection to 0");
+    assert_eq!(app.drill.selected, 0, "Sort should reset selection to 0");
 }
 
 // ─── Export theme CLI ────────────────────────────────────────────────────
@@ -1333,37 +1333,37 @@ fn drill_sort_resets_selection() {
 #[test]
 fn hover_sets_position() {
     let mut app = make_app_with_disks(sample_disks());
-    assert!(app.hover_pos.is_none());
+    assert!(app.hover.pos.is_none());
     app.handle_mouse(
         MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 6, modifiers: KeyModifiers::NONE },
         80,
     );
-    assert_eq!(app.hover_pos, Some((20, 6)));
+    assert_eq!(app.hover.pos, Some((20, 6)));
 }
 
 #[test]
 fn hover_resolves_disk_index() {
     let mut app = make_app_with_disks(sample_disks());
     // With border + header, first disk row is at y=5
-    app.hover_pos = Some((10, 5));
+    app.hover.pos = Some((10, 5));
     assert_eq!(app.hovered_disk_index(), Some(0));
-    app.hover_pos = Some((10, 6));
+    app.hover.pos = Some((10, 6));
     assert_eq!(app.hovered_disk_index(), Some(1));
 }
 
 #[test]
 fn hover_out_of_range_returns_none() {
     let mut app = make_app_with_disks(sample_disks());
-    app.hover_pos = Some((10, 50));
+    app.hover.pos = Some((10, 50));
     assert!(app.hovered_disk_index().is_none());
-    app.hover_pos = Some((10, 0)); // title bar
+    app.hover.pos = Some((10, 0)); // title bar
     assert!(app.hovered_disk_index().is_none());
 }
 
 #[test]
 fn hover_none_returns_none() {
     let app = make_app_with_disks(sample_disks());
-    assert!(app.hover_pos.is_none());
+    assert!(app.hover.pos.is_none());
     assert!(app.hovered_disk_index().is_none());
 }
 
@@ -1393,7 +1393,7 @@ fn export_theme_with_theme_flag() {
 fn hover_zone_title_bar() {
     let mut app = make_app_with_disks(sample_disks());
     // Title bar is at row 1 with border
-    app.hover_pos = Some((10, 1));
+    app.hover.pos = Some((10, 1));
     assert_eq!(app.hovered_zone(40), HoverZone::TitleBar);
 }
 
@@ -1402,7 +1402,7 @@ fn hover_zone_footer_bar() {
     let mut app = make_app_with_disks(sample_disks());
     // Footer is near the bottom: h - footer_rows + 1
     // With border, footer_rows = 3, so footer_row = 40 - 3 + 1 = 38
-    app.hover_pos = Some((10, 38));
+    app.hover.pos = Some((10, 38));
     assert_eq!(app.hovered_zone(40), HoverZone::FooterBar);
 }
 
@@ -1410,9 +1410,9 @@ fn hover_zone_footer_bar() {
 fn hover_zone_disk_row() {
     let mut app = make_app_with_disks(sample_disks());
     // First disk at row 5 (border + title + sep + header + sep)
-    app.hover_pos = Some((10, 5));
+    app.hover.pos = Some((10, 5));
     assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(0));
-    app.hover_pos = Some((10, 6));
+    app.hover.pos = Some((10, 6));
     assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(1));
 }
 
@@ -1420,7 +1420,7 @@ fn hover_zone_disk_row() {
 fn hover_zone_none_on_separator() {
     let mut app = make_app_with_disks(sample_disks());
     // Row 0 is border, not title
-    app.hover_pos = Some((10, 0));
+    app.hover.pos = Some((10, 0));
     assert_eq!(app.hovered_zone(40), HoverZone::None);
 }
 
@@ -1435,24 +1435,24 @@ fn hover_zone_none_when_no_hover() {
 #[test]
 fn hover_not_ready_immediately() {
     let mut app = make_app_with_disks(sample_disks());
-    app.hover_pos = Some((10, 5));
-    app.hover_since = Some(std::time::Instant::now());
+    app.hover.pos = Some((10, 5));
+    app.hover.since = Some(std::time::Instant::now());
     assert!(!app.hover_ready(), "Hover should not be ready immediately");
 }
 
 #[test]
 fn hover_ready_after_delay() {
     let mut app = make_app_with_disks(sample_disks());
-    app.hover_pos = Some((10, 5));
-    app.hover_since = Some(std::time::Instant::now() - std::time::Duration::from_secs(3));
+    app.hover.pos = Some((10, 5));
+    app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_secs(3));
     assert!(app.hover_ready(), "Hover should be ready after 2+ seconds");
 }
 
 #[test]
 fn hover_resets_on_move() {
     let mut app = make_app_with_disks(sample_disks());
-    app.hover_pos = Some((10, 5));
-    app.hover_since = Some(std::time::Instant::now() - std::time::Duration::from_secs(3));
+    app.hover.pos = Some((10, 5));
+    app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_secs(3));
     assert!(app.hover_ready());
 
     // Move to different position
@@ -1495,10 +1495,10 @@ fn scroll_offset_stays_when_visible() {
 #[test]
 fn drill_scroll_offset_follows_selection() {
     let mut app = make_app_with_disks(sample_disks());
-    app.drill_selected = 5;
-    app.drill_scroll_offset = 0;
+    app.drill.selected = 5;
+    app.drill.scroll_offset = 0;
     app.ensure_drill_visible(3);
-    assert_eq!(app.drill_scroll_offset, 3);
+    assert_eq!(app.drill.scroll_offset, 3);
 }
 
 // ─── Mouse scroll wheel ─────────────────────────────────────────────────
@@ -1539,7 +1539,7 @@ fn right_click_sets_hover_instantly() {
         MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 30, row: 7, modifiers: KeyModifiers::NONE },
         80,
     );
-    assert_eq!(app.hover_pos, Some((30, 7)));
+    assert_eq!(app.hover.pos, Some((30, 7)));
     assert!(app.hover_ready());
     assert!(!app.show_help, "Right-click should not toggle help");
 }
@@ -1549,17 +1549,17 @@ fn right_click_sets_hover_instantly() {
 #[test]
 fn hovered_drill_index_resolves() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_entries = vec![
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.entries = vec![
         DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: true },
         DirEntry { path: "/b".into(), name: "b".into(), size: 20, is_dir: false },
     ];
     // First entry at row 5 (border=1 + 4 chrome rows)
-    app.hover_pos = Some((10, 5));
+    app.hover.pos = Some((10, 5));
     assert_eq!(app.hovered_drill_index(), Some(0));
-    app.hover_pos = Some((10, 6));
+    app.hover.pos = Some((10, 6));
     assert_eq!(app.hovered_drill_index(), Some(1));
-    app.hover_pos = Some((10, 50));
+    app.hover.pos = Some((10, 50));
     assert!(app.hovered_drill_index().is_none());
 }
 
@@ -1568,12 +1568,12 @@ fn hovered_drill_index_resolves() {
 #[test]
 fn hover_delay_is_one_second() {
     let mut app = make_app_with_disks(sample_disks());
-    app.hover_pos = Some((10, 5));
+    app.hover.pos = Some((10, 5));
     // Just under 1 second — not ready
-    app.hover_since = Some(std::time::Instant::now() - std::time::Duration::from_millis(900));
+    app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_millis(900));
     assert!(!app.hover_ready());
     // Over 1 second — ready
-    app.hover_since = Some(std::time::Instant::now() - std::time::Duration::from_millis(1100));
+    app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_millis(1100));
     assert!(app.hover_ready());
 }
 
@@ -1582,11 +1582,11 @@ fn hover_delay_is_one_second() {
 #[test]
 fn hover_zone_matches_hovered_disk_index() {
     let mut app = make_app_with_disks(sample_disks());
-    app.hover_pos = Some((10, 5));
+    app.hover.pos = Some((10, 5));
     assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(0));
     assert_eq!(app.hovered_disk_index(), Some(0));
 
-    app.hover_pos = Some((10, 7));
+    app.hover.pos = Some((10, 7));
     assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(2));
     assert_eq!(app.hovered_disk_index(), Some(2));
 }
@@ -1594,7 +1594,7 @@ fn hover_zone_matches_hovered_disk_index() {
 #[test]
 fn hover_zone_title_not_disk() {
     let mut app = make_app_with_disks(sample_disks());
-    app.hover_pos = Some((10, 1));
+    app.hover.pos = Some((10, 1));
     assert_eq!(app.hovered_zone(40), HoverZone::TitleBar);
     assert!(app.hovered_disk_index().is_none());
 }
@@ -1604,12 +1604,12 @@ fn hover_zone_title_not_disk() {
 #[test]
 fn drill_hover_index_none_on_header() {
     let mut app = make_app_with_disks(sample_disks());
-    app.view_mode = ViewMode::DrillDown;
-    app.drill_entries = vec![
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.entries = vec![
         DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: true },
     ];
     // Row 3 is header area in drill-down (border + breadcrumb + sep + header)
-    app.hover_pos = Some((10, 3));
+    app.hover.pos = Some((10, 3));
     assert!(app.hovered_drill_index().is_none());
 }
 

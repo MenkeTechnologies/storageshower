@@ -13,6 +13,52 @@ use crate::prefs::{load_prefs_from, save_prefs, Prefs};
 use crate::system::{chrono_now, scan_directory_with_progress};
 use crate::types::*;
 
+pub struct AlertState {
+    pub mounts: HashSet<String>,
+    pub flash: Option<Instant>,
+}
+
+pub struct HoverState {
+    pub pos: Option<(u16, u16)>,
+    pub since: Option<Instant>,
+}
+
+pub struct ThemeEditState {
+    pub active: bool,
+    pub colors: [u8; 6],
+    pub slot: usize,
+    pub naming: bool,
+    pub name: String,
+    pub cursor: usize,
+}
+
+pub struct FilterState {
+    pub text: String,
+    pub active: bool,
+    pub buf: String,
+    pub prev: String,
+    pub cursor: usize,
+}
+
+pub struct DrillState {
+    pub mode: ViewMode,
+    pub sort: DrillSortMode,
+    pub sort_rev: bool,
+    pub path: Vec<String>,
+    pub entries: Vec<DirEntry>,
+    pub selected: usize,
+    pub scroll_offset: usize,
+    pub scanning: bool,
+    pub scan_result: Arc<Mutex<Option<Vec<DirEntry>>>>,
+    pub scan_count: Arc<Mutex<usize>>,
+    pub scan_total: Arc<Mutex<usize>>,
+}
+
+pub struct ThemeChooser {
+    pub active: bool,
+    pub selected: usize,
+}
+
 pub struct App {
     pub prefs: Prefs,
     pub disks: Vec<DiskEntry>,
@@ -20,41 +66,17 @@ pub struct App {
     pub shared_stats: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>,
     pub paused: bool,
     pub show_help: bool,
-    pub filter: String,
-    pub filter_mode: bool,
-    pub filter_buf: String,
-    pub filter_prev: String,
-    pub filter_cursor: usize,
     pub quit: bool,
     pub drag: Option<DragTarget>,
     pub selected: Option<usize>,
     pub scroll_offset: usize,
     pub status_msg: Option<(String, Instant)>,
-    // Hover state
-    pub hover_pos: Option<(u16, u16)>,
-    pub hover_since: Option<Instant>,
-    // Theme editor state
-    pub theme_editor: bool,
-    pub theme_edit_colors: [u8; 6],
-    pub theme_edit_slot: usize,
-    pub theme_edit_naming: bool,
-    pub theme_edit_name: String,
-    pub theme_edit_cursor: usize,
-    // Alert state
-    pub alert_mounts: HashSet<String>,
-    pub alert_flash: Option<Instant>,
-    // Drill-down state
-    pub drill_sort: DrillSortMode,
-    pub drill_sort_rev: bool,
-    pub view_mode: ViewMode,
-    pub drill_path: Vec<String>,
-    pub drill_entries: Vec<DirEntry>,
-    pub drill_selected: usize,
-    pub drill_scroll_offset: usize,
-    pub drill_scanning: bool,
-    pub drill_scan_result: Arc<Mutex<Option<Vec<DirEntry>>>>,
-    pub drill_scan_count: Arc<Mutex<usize>>,
-    pub drill_scan_total: Arc<Mutex<usize>>,
+    pub filter: FilterState,
+    pub hover: HoverState,
+    pub theme_edit: ThemeEditState,
+    pub alert: AlertState,
+    pub drill: DrillState,
+    pub theme_chooser: ThemeChooser,
 }
 
 impl App {
@@ -69,37 +91,47 @@ impl App {
             shared_stats: shared,
             paused: false,
             show_help: false,
-            filter: String::new(),
-            filter_mode: false,
-            filter_buf: String::new(),
-            filter_prev: String::new(),
-            filter_cursor: 0,
             quit: false,
             selected: None,
             scroll_offset: 0,
             status_msg: None,
             drag: None,
-            hover_pos: None,
-            hover_since: None,
-            theme_editor: false,
-            theme_edit_colors: [0; 6],
-            theme_edit_slot: 0,
-            theme_edit_naming: false,
-            theme_edit_name: String::new(),
-            theme_edit_cursor: 0,
-            alert_mounts: HashSet::new(),
-            alert_flash: None,
-            drill_sort: DrillSortMode::Size,
-            drill_sort_rev: false,
-            view_mode: ViewMode::Disks,
-            drill_path: Vec::new(),
-            drill_entries: Vec::new(),
-            drill_selected: 0,
-            drill_scroll_offset: 0,
-            drill_scanning: false,
-            drill_scan_result: Arc::new(Mutex::new(None)),
-            drill_scan_count: Arc::new(Mutex::new(0)),
-            drill_scan_total: Arc::new(Mutex::new(0)),
+            filter: FilterState {
+                text: String::new(),
+                active: false,
+                buf: String::new(),
+                prev: String::new(),
+                cursor: 0,
+            },
+            hover: HoverState {
+                pos: None,
+                since: None,
+            },
+            theme_edit: ThemeEditState {
+                active: false,
+                colors: [0; 6],
+                slot: 0,
+                naming: false,
+                name: String::new(),
+                cursor: 0,
+            },
+            alert: AlertState {
+                mounts: HashSet::new(),
+                flash: None,
+            },
+            drill: DrillState {
+                mode: ViewMode::Disks,
+                sort: DrillSortMode::Size,
+                sort_rev: false,
+                path: Vec::new(),
+                entries: Vec::new(),
+                selected: 0,
+                scroll_offset: 0,
+                scanning: false,
+                scan_result: Arc::new(Mutex::new(None)),
+                scan_count: Arc::new(Mutex::new(0)),
+                scan_total: Arc::new(Mutex::new(0)),
+            },
         }
     }
 
@@ -114,47 +146,57 @@ impl App {
             shared_stats: shared,
             paused: false,
             show_help: false,
-            filter: String::new(),
-            filter_mode: false,
-            filter_buf: String::new(),
-            filter_prev: String::new(),
-            filter_cursor: 0,
             quit: false,
             selected: None,
             scroll_offset: 0,
             status_msg: None,
             drag: None,
-            hover_pos: None,
-            hover_since: None,
-            theme_editor: false,
-            theme_edit_colors: [0; 6],
-            theme_edit_slot: 0,
-            theme_edit_naming: false,
-            theme_edit_name: String::new(),
-            theme_edit_cursor: 0,
-            alert_mounts: HashSet::new(),
-            alert_flash: None,
-            drill_sort: DrillSortMode::Size,
-            drill_sort_rev: false,
-            view_mode: ViewMode::Disks,
-            drill_path: Vec::new(),
-            drill_entries: Vec::new(),
-            drill_selected: 0,
-            drill_scroll_offset: 0,
-            drill_scanning: false,
-            drill_scan_result: Arc::new(Mutex::new(None)),
-            drill_scan_count: Arc::new(Mutex::new(0)),
-            drill_scan_total: Arc::new(Mutex::new(0)),
+            filter: FilterState {
+                text: String::new(),
+                active: false,
+                buf: String::new(),
+                prev: String::new(),
+                cursor: 0,
+            },
+            hover: HoverState {
+                pos: None,
+                since: None,
+            },
+            theme_edit: ThemeEditState {
+                active: false,
+                colors: [0; 6],
+                slot: 0,
+                naming: false,
+                name: String::new(),
+                cursor: 0,
+            },
+            alert: AlertState {
+                mounts: HashSet::new(),
+                flash: None,
+            },
+            drill: DrillState {
+                mode: ViewMode::Disks,
+                sort: DrillSortMode::Size,
+                sort_rev: false,
+                path: Vec::new(),
+                entries: Vec::new(),
+                selected: 0,
+                scroll_offset: 0,
+                scanning: false,
+                scan_result: Arc::new(Mutex::new(None)),
+                scan_count: Arc::new(Mutex::new(0)),
+                scan_total: Arc::new(Mutex::new(0)),
+            },
         }
     }
 
     pub fn refresh_data(&mut self) {
         // Check for completed drill-down scans
-        if self.drill_scanning {
-            let taken = self.drill_scan_result.lock().unwrap().take();
+        if self.drill.scanning {
+            let taken = self.drill.scan_result.lock().unwrap().take();
             if let Some(entries) = taken {
-                self.drill_entries = entries;
-                self.drill_scanning = false;
+                self.drill.entries = entries;
+                self.drill.scanning = false;
                 self.sort_drill_entries();
             }
         }
@@ -173,29 +215,29 @@ impl App {
         for d in &self.disks {
             if d.pct >= warn {
                 current_alert_mounts.insert(d.mount.clone());
-                if !self.alert_mounts.contains(&d.mount) {
+                if !self.alert.mounts.contains(&d.mount) {
                     new_alerts.push(format!("{} {:.0}%", d.mount, d.pct));
                 }
             }
         }
         if !new_alerts.is_empty() {
-            self.alert_flash = Some(Instant::now());
+            self.alert.flash = Some(Instant::now());
             let msg = format!("\u{26A0} ALERT: {}", new_alerts.join(", "));
             self.status_msg = Some((msg, Instant::now()));
             // Terminal bell
             print!("\x07");
         }
-        self.alert_mounts = current_alert_mounts;
+        self.alert.mounts = current_alert_mounts;
     }
 
     pub fn start_drill_scan(&mut self, path: &str) {
-        self.drill_scanning = true;
-        self.drill_entries.clear();
-        *self.drill_scan_count.lock().unwrap() = 0;
-        *self.drill_scan_total.lock().unwrap() = 0;
-        let result = Arc::clone(&self.drill_scan_result);
-        let count = Arc::clone(&self.drill_scan_count);
-        let total = Arc::clone(&self.drill_scan_total);
+        self.drill.scanning = true;
+        self.drill.entries.clear();
+        *self.drill.scan_count.lock().unwrap() = 0;
+        *self.drill.scan_total.lock().unwrap() = 0;
+        let result = Arc::clone(&self.drill.scan_result);
+        let count = Arc::clone(&self.drill.scan_count);
+        let total = Arc::clone(&self.drill.scan_total);
         let path = path.to_string();
         std::thread::spawn(move || {
             let entries = scan_directory_with_progress(&path, Some(count), Some(total));
@@ -204,13 +246,13 @@ impl App {
     }
 
     pub fn hover_ready(&self) -> bool {
-        self.hover_since
+        self.hover.since
             .map(|t| t.elapsed().as_millis() >= 1000)
             .unwrap_or(false)
     }
 
     pub fn hovered_zone(&self, term_h: u16) -> HoverZone {
-        let (_, y) = match self.hover_pos {
+        let (_, y) = match self.hover.pos {
             Some(pos) => pos,
             None => return HoverZone::None,
         };
@@ -237,7 +279,7 @@ impl App {
     }
 
     pub fn hovered_disk_index(&self) -> Option<usize> {
-        let (_, y) = self.hover_pos?;
+        let (_, y) = self.hover.pos?;
         let first_disk_row: u16 = if self.prefs.show_border { 1 } else { 0 }
             + 2
             + if self.prefs.show_header { 2 } else { 0 };
@@ -250,30 +292,30 @@ impl App {
     }
 
     pub fn hovered_drill_index(&self) -> Option<usize> {
-        let (_, y) = self.hover_pos?;
+        let (_, y) = self.hover.pos?;
         // Drill-down layout: border(0/1) + breadcrumb + separator + header + separator = first entry row
         let first_entry_row: u16 = if self.prefs.show_border { 1 } else { 0 } + 4;
         if y < first_entry_row {
             return None;
         }
         let idx = (y - first_entry_row) as usize;
-        if idx < self.drill_entries.len() { Some(idx) } else { None }
+        if idx < self.drill.entries.len() { Some(idx) } else { None }
     }
 
     pub fn drill_current_path(&self) -> String {
-        self.drill_path.last().cloned().unwrap_or_default()
+        self.drill.path.last().cloned().unwrap_or_default()
     }
 
     pub fn sort_drill_entries(&mut self) {
-        match self.drill_sort {
-            DrillSortMode::Size => self.drill_entries.sort_by(|a, b| b.size.cmp(&a.size)),
-            DrillSortMode::Name => self.drill_entries.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
+        match self.drill.sort {
+            DrillSortMode::Size => self.drill.entries.sort_by(|a, b| b.size.cmp(&a.size)),
+            DrillSortMode::Name => self.drill.entries.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
         }
-        if self.drill_sort_rev {
-            self.drill_entries.reverse();
+        if self.drill.sort_rev {
+            self.drill.entries.reverse();
         }
-        self.drill_selected = 0;
-        self.drill_scroll_offset = 0;
+        self.drill.selected = 0;
+        self.drill.scroll_offset = 0;
     }
 
     /// Adjust scroll_offset so `selected` is visible in `visible_rows` window.
@@ -289,10 +331,10 @@ impl App {
 
     /// Adjust drill_scroll_offset so drill_selected is visible.
     pub fn ensure_drill_visible(&mut self, visible_rows: usize) {
-        if self.drill_selected < self.drill_scroll_offset {
-            self.drill_scroll_offset = self.drill_selected;
-        } else if self.drill_selected >= self.drill_scroll_offset + visible_rows {
-            self.drill_scroll_offset = self.drill_selected.saturating_sub(visible_rows - 1);
+        if self.drill.selected < self.drill.scroll_offset {
+            self.drill.scroll_offset = self.drill.selected;
+        } else if self.drill.selected >= self.drill.scroll_offset + visible_rows {
+            self.drill.scroll_offset = self.drill.selected.saturating_sub(visible_rows - 1);
         }
     }
 
@@ -321,8 +363,8 @@ impl App {
                     || d.total > 0
             });
         }
-        if !self.filter.is_empty() {
-            let f = self.filter.to_lowercase();
+        if !self.filter.text.is_empty() {
+            let f = self.filter.text.to_lowercase();
             ds.retain(|d| d.mount.to_lowercase().contains(&f));
         }
         match self.prefs.sort_mode {
@@ -347,82 +389,82 @@ impl App {
     pub fn handle_key(&mut self, key: KeyEvent) {
         let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
 
-        if self.filter_mode {
+        if self.filter.active {
             match key.code {
                 KeyCode::Enter => {
-                    self.filter_mode = false;
+                    self.filter.active = false;
                     return;
                 }
                 KeyCode::Esc => {
-                    self.filter = self.filter_prev.clone();
-                    self.filter_mode = false;
-                    self.filter_cursor = 0;
+                    self.filter.text = self.filter.prev.clone();
+                    self.filter.active = false;
+                    self.filter.cursor = 0;
                     return;
                 }
                 KeyCode::Backspace => {
-                    if self.filter_cursor > 0 {
-                        self.filter_cursor -= 1;
-                        self.filter_buf.remove(self.filter_cursor);
+                    if self.filter.cursor > 0 {
+                        self.filter.cursor -= 1;
+                        self.filter.buf.remove(self.filter.cursor);
                     }
                 }
                 KeyCode::Delete => {
-                    if self.filter_cursor < self.filter_buf.len() {
-                        self.filter_buf.remove(self.filter_cursor);
+                    if self.filter.cursor < self.filter.buf.len() {
+                        self.filter.buf.remove(self.filter.cursor);
                     }
                 }
                 KeyCode::Char('w') if ctrl => {
-                    if self.filter_cursor > 0 {
-                        let before = &self.filter_buf[..self.filter_cursor];
+                    if self.filter.cursor > 0 {
+                        let before = &self.filter.buf[..self.filter.cursor];
                         let trimmed = before.trim_end();
                         let word_start = trimmed.rfind(' ').map(|i| i + 1).unwrap_or(0);
-                        self.filter_buf.drain(word_start..self.filter_cursor);
-                        self.filter_cursor = word_start;
+                        self.filter.buf.drain(word_start..self.filter.cursor);
+                        self.filter.cursor = word_start;
                     }
                 }
                 KeyCode::Char('u') if ctrl => {
-                    self.filter_buf.drain(..self.filter_cursor);
-                    self.filter_cursor = 0;
+                    self.filter.buf.drain(..self.filter.cursor);
+                    self.filter.cursor = 0;
                 }
                 KeyCode::Char('k') if ctrl => {
-                    self.filter_buf.truncate(self.filter_cursor);
+                    self.filter.buf.truncate(self.filter.cursor);
                 }
                 KeyCode::Char('a') if ctrl => {
-                    self.filter_cursor = 0;
+                    self.filter.cursor = 0;
                 }
                 KeyCode::Home => {
-                    self.filter_cursor = 0;
+                    self.filter.cursor = 0;
                 }
                 KeyCode::Char('e') if ctrl => {
-                    self.filter_cursor = self.filter_buf.len();
+                    self.filter.cursor = self.filter.buf.len();
                 }
                 KeyCode::End => {
-                    self.filter_cursor = self.filter_buf.len();
+                    self.filter.cursor = self.filter.buf.len();
                 }
                 KeyCode::Char('b') if ctrl => {
-                    self.filter_cursor = self.filter_cursor.saturating_sub(1);
+                    self.filter.cursor = self.filter.cursor.saturating_sub(1);
                 }
                 KeyCode::Left => {
-                    self.filter_cursor = self.filter_cursor.saturating_sub(1);
+                    self.filter.cursor = self.filter.cursor.saturating_sub(1);
                 }
                 KeyCode::Char('f') if ctrl => {
-                    self.filter_cursor = (self.filter_cursor + 1).min(self.filter_buf.len());
+                    self.filter.cursor = (self.filter.cursor + 1).min(self.filter.buf.len());
                 }
                 KeyCode::Right => {
-                    self.filter_cursor = (self.filter_cursor + 1).min(self.filter_buf.len());
+                    self.filter.cursor = (self.filter.cursor + 1).min(self.filter.buf.len());
                 }
                 KeyCode::Char('h') if ctrl => {
-                    if self.filter_cursor > 0 {
-                        self.filter_cursor -= 1;
-                        self.filter_buf.remove(self.filter_cursor);
+                    if self.filter.cursor > 0 {
+                        self.filter.cursor -= 1;
+                        self.filter.buf.remove(self.filter.cursor);
                     }
                 }
                 KeyCode::Char(c) => {
-                    self.filter_buf.insert(self.filter_cursor, c);
-                    self.filter_cursor += 1;
+                    self.filter.buf.insert(self.filter.cursor, c);
+                    self.filter.cursor += 1;
                 }
                 _ => {}
             }
-            self.filter = self.filter_buf.clone();
+            self.filter.text = self.filter.buf.clone();
             return;
         }
 
@@ -437,13 +479,13 @@ impl App {
             return;
         }
 
-        if self.theme_editor {
-            if self.theme_edit_naming {
+        if self.theme_edit.active {
+            if self.theme_edit.naming {
                 match key.code {
                     KeyCode::Enter => {
-                        let name = self.theme_edit_name.trim().to_string();
+                        let name = self.theme_edit.name.trim().to_string();
                         if !name.is_empty() {
-                            let colors = self.theme_edit_colors;
+                            let colors = self.theme_edit.colors;
                             self.prefs.custom_themes.insert(name.clone(), ThemeColors {
                                 blue: colors[0],
                                 green: colors[1],
@@ -456,32 +498,32 @@ impl App {
                             self.save();
                             self.status_msg = Some((format!("Saved theme: {}", name), Instant::now()));
                         }
-                        self.theme_editor = false;
-                        self.theme_edit_naming = false;
-                        self.theme_edit_name.clear();
-                        self.theme_edit_cursor = 0;
+                        self.theme_edit.active = false;
+                        self.theme_edit.naming = false;
+                        self.theme_edit.name.clear();
+                        self.theme_edit.cursor = 0;
                     }
                     KeyCode::Esc => {
-                        self.theme_edit_naming = false;
-                        self.theme_edit_name.clear();
-                        self.theme_edit_cursor = 0;
+                        self.theme_edit.naming = false;
+                        self.theme_edit.name.clear();
+                        self.theme_edit.cursor = 0;
                     }
                     KeyCode::Backspace => {
-                        if self.theme_edit_cursor > 0 {
-                            self.theme_edit_cursor -= 1;
-                            self.theme_edit_name.remove(self.theme_edit_cursor);
+                        if self.theme_edit.cursor > 0 {
+                            self.theme_edit.cursor -= 1;
+                            self.theme_edit.name.remove(self.theme_edit.cursor);
                         }
                     }
                     KeyCode::Left => {
-                        self.theme_edit_cursor = self.theme_edit_cursor.saturating_sub(1);
+                        self.theme_edit.cursor = self.theme_edit.cursor.saturating_sub(1);
                     }
                     KeyCode::Right => {
-                        self.theme_edit_cursor = (self.theme_edit_cursor + 1).min(self.theme_edit_name.len());
+                        self.theme_edit.cursor = (self.theme_edit.cursor + 1).min(self.theme_edit.name.len());
                     }
                     KeyCode::Char(c) if !ctrl => {
-                        if self.theme_edit_name.len() < 20 {
-                            self.theme_edit_name.insert(self.theme_edit_cursor, c);
-                            self.theme_edit_cursor += 1;
+                        if self.theme_edit.name.len() < 20 {
+                            self.theme_edit.name.insert(self.theme_edit.cursor, c);
+                            self.theme_edit.cursor += 1;
                         }
                     }
                     _ => {}
@@ -491,100 +533,100 @@ impl App {
 
             match key.code {
                 KeyCode::Esc | KeyCode::Char('q') => {
-                    self.theme_editor = false;
+                    self.theme_edit.active = false;
                 }
                 KeyCode::Char('j') | KeyCode::Down => {
-                    self.theme_edit_slot = (self.theme_edit_slot + 1).min(5);
+                    self.theme_edit.slot = (self.theme_edit.slot + 1).min(5);
                 }
                 KeyCode::Char('k') | KeyCode::Up => {
-                    self.theme_edit_slot = self.theme_edit_slot.saturating_sub(1);
+                    self.theme_edit.slot = self.theme_edit.slot.saturating_sub(1);
                 }
                 KeyCode::Char('l') | KeyCode::Right => {
-                    self.theme_edit_colors[self.theme_edit_slot] =
-                        self.theme_edit_colors[self.theme_edit_slot].wrapping_add(1);
+                    self.theme_edit.colors[self.theme_edit.slot] =
+                        self.theme_edit.colors[self.theme_edit.slot].wrapping_add(1);
                 }
                 KeyCode::Char('h') | KeyCode::Left => {
-                    self.theme_edit_colors[self.theme_edit_slot] =
-                        self.theme_edit_colors[self.theme_edit_slot].wrapping_sub(1);
+                    self.theme_edit.colors[self.theme_edit.slot] =
+                        self.theme_edit.colors[self.theme_edit.slot].wrapping_sub(1);
                 }
                 KeyCode::Char('L') => {
-                    self.theme_edit_colors[self.theme_edit_slot] =
-                        self.theme_edit_colors[self.theme_edit_slot].wrapping_add(10);
+                    self.theme_edit.colors[self.theme_edit.slot] =
+                        self.theme_edit.colors[self.theme_edit.slot].wrapping_add(10);
                 }
                 KeyCode::Char('H') => {
-                    self.theme_edit_colors[self.theme_edit_slot] =
-                        self.theme_edit_colors[self.theme_edit_slot].wrapping_sub(10);
+                    self.theme_edit.colors[self.theme_edit.slot] =
+                        self.theme_edit.colors[self.theme_edit.slot].wrapping_sub(10);
                 }
                 KeyCode::Enter | KeyCode::Char('s') | KeyCode::Char('S') => {
-                    self.theme_edit_naming = true;
-                    self.theme_edit_name.clear();
-                    self.theme_edit_cursor = 0;
+                    self.theme_edit.naming = true;
+                    self.theme_edit.name.clear();
+                    self.theme_edit.cursor = 0;
                 }
                 _ => {}
             }
             return;
         }
 
-        if self.view_mode == ViewMode::DrillDown {
+        if self.drill.mode == ViewMode::DrillDown {
             match key.code {
                 KeyCode::Esc | KeyCode::Backspace => {
-                    if self.drill_path.len() > 1 {
-                        self.drill_path.pop();
+                    if self.drill.path.len() > 1 {
+                        self.drill.path.pop();
                         let parent = self.drill_current_path();
                         self.start_drill_scan(&parent);
                     } else {
-                        self.view_mode = ViewMode::Disks;
-                        self.drill_path.clear();
-                        self.drill_entries.clear();
+                        self.drill.mode = ViewMode::Disks;
+                        self.drill.path.clear();
+                        self.drill.entries.clear();
                     }
                 }
                 KeyCode::Enter => {
-                    if !self.drill_scanning {
-                        if let Some(entry) = self.drill_entries.get(self.drill_selected) {
+                    if !self.drill.scanning {
+                        if let Some(entry) = self.drill.entries.get(self.drill.selected) {
                             if entry.is_dir {
                                 let path = entry.path.clone();
-                                self.drill_path.push(path.clone());
+                                self.drill.path.push(path.clone());
                                 self.start_drill_scan(&path);
                             }
                         }
                     }
                 }
                 KeyCode::Char('j') | KeyCode::Down => {
-                    if !self.drill_entries.is_empty() {
-                        self.drill_selected = (self.drill_selected + 1).min(self.drill_entries.len() - 1);
+                    if !self.drill.entries.is_empty() {
+                        self.drill.selected = (self.drill.selected + 1).min(self.drill.entries.len() - 1);
                     }
                 }
                 KeyCode::Char('k') | KeyCode::Up => {
-                    self.drill_selected = self.drill_selected.saturating_sub(1);
+                    self.drill.selected = self.drill.selected.saturating_sub(1);
                 }
                 KeyCode::Home | KeyCode::Char('g') => {
-                    self.drill_selected = 0;
+                    self.drill.selected = 0;
                 }
                 KeyCode::End | KeyCode::Char('G') => {
-                    if !self.drill_entries.is_empty() {
-                        self.drill_selected = self.drill_entries.len() - 1;
+                    if !self.drill.entries.is_empty() {
+                        self.drill.selected = self.drill.entries.len() - 1;
                     }
                 }
                 KeyCode::Char('s') | KeyCode::Char('S') => {
-                    if self.drill_sort == DrillSortMode::Size {
-                        self.drill_sort_rev = !self.drill_sort_rev;
+                    if self.drill.sort == DrillSortMode::Size {
+                        self.drill.sort_rev = !self.drill.sort_rev;
                     } else {
-                        self.drill_sort = DrillSortMode::Size;
-                        self.drill_sort_rev = false;
+                        self.drill.sort = DrillSortMode::Size;
+                        self.drill.sort_rev = false;
                     }
                     self.sort_drill_entries();
                 }
                 KeyCode::Char('n') | KeyCode::Char('N') => {
-                    if self.drill_sort == DrillSortMode::Name {
-                        self.drill_sort_rev = !self.drill_sort_rev;
+                    if self.drill.sort == DrillSortMode::Name {
+                        self.drill.sort_rev = !self.drill.sort_rev;
                     } else {
-                        self.drill_sort = DrillSortMode::Name;
-                        self.drill_sort_rev = false;
+                        self.drill.sort = DrillSortMode::Name;
+                        self.drill.sort_rev = false;
                     }
                     self.sort_drill_entries();
                 }
                 KeyCode::Char('r') | KeyCode::Char('R') => {
-                    self.drill_sort_rev = !self.drill_sort_rev;
+                    self.drill.sort_rev = !self.drill.sort_rev;
                     self.sort_drill_entries();
                 }
                 KeyCode::Char('o') | KeyCode::Char('O') => {
@@ -767,13 +809,13 @@ impl App {
                         _ => 0,
                     }
                 }
-                self.theme_edit_colors = [
+                self.theme_edit.colors = [
                     idx(current.0), idx(current.1), idx(current.2),
                     idx(current.3), idx(current.4), idx(current.5),
                 ];
-                self.theme_edit_slot = 0;
-                self.theme_editor = true;
-                self.theme_edit_naming = false;
+                self.theme_edit.slot = 0;
+                self.theme_edit.active = true;
+                self.theme_edit.naming = false;
             }
             KeyCode::Char('v') | KeyCode::Char('V') => {
                 self.prefs.show_bars = !self.prefs.show_bars;
@@ -838,14 +880,14 @@ impl App {
                 self.save();
             }
             KeyCode::Char('/') => {
-                self.filter_mode = true;
-                self.filter_prev = self.filter.clone();
-                self.filter_buf = self.filter.clone();
-                self.filter_cursor = self.filter_buf.len();
+                self.filter.active = true;
+                self.filter.prev = self.filter.text.clone();
+                self.filter.buf = self.filter.text.clone();
+                self.filter.cursor = self.filter.buf.len();
             }
             KeyCode::Char('0') => {
-                self.filter.clear();
-                self.filter_buf.clear();
+                self.filter.text.clear();
+                self.filter.buf.clear();
             }
             KeyCode::Char('j') | KeyCode::Down => {
                 let count = self.sorted_disks().len();
@@ -870,9 +912,9 @@ impl App {
                     let disks = self.sorted_disks();
                     if let Some(disk) = disks.get(idx) {
                         let mount = disk.mount.clone();
-                        self.view_mode = ViewMode::DrillDown;
-                        self.drill_path = vec![mount.clone()];
-                        self.drill_selected = 0;
+                        self.drill.mode = ViewMode::DrillDown;
+                        self.drill.path = vec![mount.clone()];
+                        self.drill.selected = 0;
                         self.start_drill_scan(&mount);
                     }
                 }
@@ -1028,9 +1070,9 @@ impl App {
                                 let disks = self.sorted_disks();
                                 if let Some(disk) = disks.get(disk_idx) {
                                     let mount = disk.mount.clone();
-                                    self.view_mode = ViewMode::DrillDown;
-                                    self.drill_path = vec![mount.clone()];
-                                    self.drill_selected = 0;
+                                    self.drill.mode = ViewMode::DrillDown;
+                                    self.drill.path = vec![mount.clone()];
+                                    self.drill.selected = 0;
                                     self.start_drill_scan(&mount);
                                 }
                             } else {
@@ -1070,20 +1112,20 @@ impl App {
             }
             MouseEventKind::Down(MouseButton::Right) => {
                 // Right-click triggers instant hover tooltip at click position
-                self.hover_pos = Some((event.column, event.row));
-                self.hover_since = Some(Instant::now() - std::time::Duration::from_secs(2));
+                self.hover.pos = Some((event.column, event.row));
+                self.hover.since = Some(Instant::now() - std::time::Duration::from_secs(2));
             }
             MouseEventKind::Moved => {
                 let new_pos = (event.column, event.row);
-                if self.hover_pos != Some(new_pos) {
-                    self.hover_pos = Some(new_pos);
-                    self.hover_since = Some(Instant::now());
+                if self.hover.pos != Some(new_pos) {
+                    self.hover.pos = Some(new_pos);
+                    self.hover.since = Some(Instant::now());
                 }
             }
             MouseEventKind::ScrollDown => {
-                if self.view_mode == ViewMode::DrillDown {
-                    if !self.drill_entries.is_empty() {
-                        self.drill_selected = (self.drill_selected + 1).min(self.drill_entries.len() - 1);
+                if self.drill.mode == ViewMode::DrillDown {
+                    if !self.drill.entries.is_empty() {
+                        self.drill.selected = (self.drill.selected + 1).min(self.drill.entries.len() - 1);
                     }
                 } else {
                     let count = self.sorted_disks().len();
@@ -1096,8 +1138,8 @@ impl App {
                 }
             }
             MouseEventKind::ScrollUp => {
-                if self.view_mode == ViewMode::DrillDown {
-                    self.drill_selected = self.drill_selected.saturating_sub(1);
+                if self.drill.mode == ViewMode::DrillDown {
+                    self.drill.selected = self.drill.selected.saturating_sub(1);
                 } else {
                     let count = self.sorted_disks().len();
                     if count > 0 {
@@ -1303,7 +1345,7 @@ mod tests {
     #[test]
     fn sorted_disks_filter() {
         let mut app = test_app();
-        app.filter = "home".into();
+        app.filter.text = "home".into();
         let disks = app.sorted_disks();
         assert_eq!(disks.len(), 1);
         assert_eq!(disks[0].mount, "/home");
@@ -1312,7 +1354,7 @@ mod tests {
     #[test]
     fn sorted_disks_filter_case_insensitive() {
         let mut app = test_app();
-        app.filter = "HOME".into();
+        app.filter.text = "HOME".into();
         let disks = app.sorted_disks();
         assert_eq!(disks.len(), 1);
         assert_eq!(disks[0].mount, "/home");
@@ -1321,7 +1363,7 @@ mod tests {
     #[test]
     fn sorted_disks_filter_no_match() {
         let mut app = test_app();
-        app.filter = "nonexistent".into();
+        app.filter.text = "nonexistent".into();
         let disks = app.sorted_disks();
         assert!(disks.is_empty());
     }
@@ -1669,7 +1711,7 @@ mod tests {
     fn slash_enters_filter_mode() {
         let mut app = test_app();
         app.handle_key(make_key(KeyCode::Char('/')));
-        assert!(app.filter_mode);
+        assert!(app.filter.active);
     }
 
     #[test]
@@ -1679,9 +1721,9 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('h')));
         app.handle_key(make_key(KeyCode::Char('o')));
         app.handle_key(make_key(KeyCode::Char('m')));
-        assert_eq!(app.filter_buf, "hom");
+        assert_eq!(app.filter.buf, "hom");
         // Live filter should be applied
-        assert_eq!(app.filter, "hom");
+        assert_eq!(app.filter.text, "hom");
     }
 
     #[test]
@@ -1690,19 +1732,19 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_key(KeyCode::Char('a')));
         app.handle_key(make_key(KeyCode::Enter));
-        assert!(!app.filter_mode);
-        assert_eq!(app.filter, "a");
+        assert!(!app.filter.active);
+        assert_eq!(app.filter.text, "a");
     }
 
     #[test]
     fn filter_mode_esc_restores_previous() {
         let mut app = test_app();
-        app.filter = "old".into();
+        app.filter.text = "old".into();
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_key(KeyCode::Char('x')));
         app.handle_key(make_key(KeyCode::Esc));
-        assert!(!app.filter_mode);
-        assert_eq!(app.filter, "old");
+        assert!(!app.filter.active);
+        assert_eq!(app.filter.text, "old");
     }
 
     #[test]
@@ -1712,8 +1754,8 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('a')));
         app.handle_key(make_key(KeyCode::Char('b')));
         app.handle_key(make_key(KeyCode::Backspace));
-        assert_eq!(app.filter_buf, "a");
-        assert_eq!(app.filter_cursor, 1);
+        assert_eq!(app.filter.buf, "a");
+        assert_eq!(app.filter.cursor, 1);
     }
 
     #[test]
@@ -1722,9 +1764,9 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_key(KeyCode::Char('a')));
         app.handle_key(make_key(KeyCode::Char('b')));
-        assert_eq!(app.filter_cursor, 2);
+        assert_eq!(app.filter.cursor, 2);
         app.handle_key(make_ctrl_key(KeyCode::Char('a')));
-        assert_eq!(app.filter_cursor, 0);
+        assert_eq!(app.filter.cursor, 0);
     }
 
     #[test]
@@ -1735,7 +1777,7 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('b')));
         app.handle_key(make_ctrl_key(KeyCode::Char('a'))); // go to start
         app.handle_key(make_ctrl_key(KeyCode::Char('e'))); // go to end
-        assert_eq!(app.filter_cursor, 2);
+        assert_eq!(app.filter.cursor, 2);
     }
 
     #[test]
@@ -1747,8 +1789,8 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('c')));
         // cursor at 3, clear before
         app.handle_key(make_ctrl_key(KeyCode::Char('u')));
-        assert_eq!(app.filter_buf, "");
-        assert_eq!(app.filter_cursor, 0);
+        assert_eq!(app.filter.buf, "");
+        assert_eq!(app.filter.cursor, 0);
     }
 
     #[test]
@@ -1761,17 +1803,17 @@ mod tests {
         app.handle_key(make_ctrl_key(KeyCode::Char('a'))); // go to start
         app.handle_key(make_key(KeyCode::Right)); // move to pos 1
         app.handle_key(make_ctrl_key(KeyCode::Char('k'))); // kill from pos 1
-        assert_eq!(app.filter_buf, "a");
+        assert_eq!(app.filter.buf, "a");
     }
 
     #[test]
     fn key_0_clears_filter() {
         let mut app = test_app();
-        app.filter = "test".into();
-        app.filter_buf = "test".into();
+        app.filter.text = "test".into();
+        app.filter.buf = "test".into();
         app.handle_key(make_key(KeyCode::Char('0')));
-        assert!(app.filter.is_empty());
-        assert!(app.filter_buf.is_empty());
+        assert!(app.filter.text.is_empty());
+        assert!(app.filter.buf.is_empty());
     }
 
     // ── Key handling — filter swallows in help mode ────────
@@ -1914,11 +1956,11 @@ mod tests {
         // Move cursor to position 1
         app.handle_key(make_ctrl_key(KeyCode::Char('a')));
         app.handle_key(make_key(KeyCode::Right));
-        assert_eq!(app.filter_cursor, 1);
+        assert_eq!(app.filter.cursor, 1);
         // Delete at cursor removes 'b'
         app.handle_key(make_key(KeyCode::Delete));
-        assert_eq!(app.filter_buf, "ac");
-        assert_eq!(app.filter_cursor, 1);
+        assert_eq!(app.filter.buf, "ac");
+        assert_eq!(app.filter.cursor, 1);
     }
 
     #[test]
@@ -1927,7 +1969,7 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_key(KeyCode::Char('a')));
         app.handle_key(make_key(KeyCode::Delete));
-        assert_eq!(app.filter_buf, "a");
+        assert_eq!(app.filter.buf, "a");
     }
 
     // ── Filter mode — Ctrl+w word delete ──────────────────
@@ -1939,11 +1981,11 @@ mod tests {
         for c in "hello world".chars() {
             app.handle_key(make_key(KeyCode::Char(c)));
         }
-        assert_eq!(app.filter_buf, "hello world");
+        assert_eq!(app.filter.buf, "hello world");
         app.handle_key(make_ctrl_key(KeyCode::Char('w')));
-        assert_eq!(app.filter_buf, "hello ");
+        assert_eq!(app.filter.buf, "hello ");
         app.handle_key(make_ctrl_key(KeyCode::Char('w')));
-        assert_eq!(app.filter_buf, "");
+        assert_eq!(app.filter.buf, "");
     }
 
     #[test]
@@ -1951,8 +1993,8 @@ mod tests {
         let mut app = test_app();
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_ctrl_key(KeyCode::Char('w')));
-        assert_eq!(app.filter_buf, "");
-        assert_eq!(app.filter_cursor, 0);
+        assert_eq!(app.filter.buf, "");
+        assert_eq!(app.filter.cursor, 0);
     }
 
     // ── Filter mode — Ctrl+h backspace ────────────────────
@@ -1964,8 +2006,8 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('a')));
         app.handle_key(make_key(KeyCode::Char('b')));
         app.handle_key(make_ctrl_key(KeyCode::Char('h')));
-        assert_eq!(app.filter_buf, "a");
-        assert_eq!(app.filter_cursor, 1);
+        assert_eq!(app.filter.buf, "a");
+        assert_eq!(app.filter.cursor, 1);
     }
 
     #[test]
@@ -1973,8 +2015,8 @@ mod tests {
         let mut app = test_app();
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_ctrl_key(KeyCode::Char('h')));
-        assert_eq!(app.filter_buf, "");
-        assert_eq!(app.filter_cursor, 0);
+        assert_eq!(app.filter.buf, "");
+        assert_eq!(app.filter.cursor, 0);
     }
 
     // ── Filter mode — Ctrl+b/f cursor movement ───────────
@@ -1985,9 +2027,9 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_key(KeyCode::Char('a')));
         app.handle_key(make_key(KeyCode::Char('b')));
-        assert_eq!(app.filter_cursor, 2);
+        assert_eq!(app.filter.cursor, 2);
         app.handle_key(make_ctrl_key(KeyCode::Char('b')));
-        assert_eq!(app.filter_cursor, 1);
+        assert_eq!(app.filter.cursor, 1);
     }
 
     #[test]
@@ -1995,7 +2037,7 @@ mod tests {
         let mut app = test_app();
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_ctrl_key(KeyCode::Char('b')));
-        assert_eq!(app.filter_cursor, 0);
+        assert_eq!(app.filter.cursor, 0);
     }
 
     #[test]
@@ -2006,7 +2048,7 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('b')));
         app.handle_key(make_ctrl_key(KeyCode::Char('a'))); // go to start
         app.handle_key(make_ctrl_key(KeyCode::Char('f')));
-        assert_eq!(app.filter_cursor, 1);
+        assert_eq!(app.filter.cursor, 1);
     }
 
     #[test]
@@ -2015,7 +2057,7 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_key(KeyCode::Char('a')));
         app.handle_key(make_ctrl_key(KeyCode::Char('f')));
-        assert_eq!(app.filter_cursor, 1); // stays at end
+        assert_eq!(app.filter.cursor, 1); // stays at end
     }
 
     // ── Filter mode — Left/Right arrows ───────────────────
@@ -2027,7 +2069,7 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('a')));
         app.handle_key(make_key(KeyCode::Char('b')));
         app.handle_key(make_key(KeyCode::Left));
-        assert_eq!(app.filter_cursor, 1);
+        assert_eq!(app.filter.cursor, 1);
     }
 
     #[test]
@@ -2038,7 +2080,7 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('b')));
         app.handle_key(make_ctrl_key(KeyCode::Char('a'))); // start
         app.handle_key(make_key(KeyCode::Right));
-        assert_eq!(app.filter_cursor, 1);
+        assert_eq!(app.filter.cursor, 1);
     }
 
     // ── Filter mode — Home/End ────────────────────────────
@@ -2050,7 +2092,7 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('a')));
         app.handle_key(make_key(KeyCode::Char('b')));
         app.handle_key(make_key(KeyCode::Home));
-        assert_eq!(app.filter_cursor, 0);
+        assert_eq!(app.filter.cursor, 0);
     }
 
     #[test]
@@ -2061,7 +2103,7 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('b')));
         app.handle_key(make_key(KeyCode::Home));
         app.handle_key(make_key(KeyCode::End));
-        assert_eq!(app.filter_cursor, 2);
+        assert_eq!(app.filter.cursor, 2);
     }
 
     // ── Filter mode — insert at middle ────────────────────
@@ -2074,8 +2116,8 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('c')));
         app.handle_key(make_key(KeyCode::Left)); // cursor at 1
         app.handle_key(make_key(KeyCode::Char('b')));
-        assert_eq!(app.filter_buf, "abc");
-        assert_eq!(app.filter_cursor, 2);
+        assert_eq!(app.filter.buf, "abc");
+        assert_eq!(app.filter.cursor, 2);
     }
 
     // ── Filter mode — backspace at start noop ─────────────
@@ -2085,8 +2127,8 @@ mod tests {
         let mut app = test_app();
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_key(KeyCode::Backspace));
-        assert_eq!(app.filter_buf, "");
-        assert_eq!(app.filter_cursor, 0);
+        assert_eq!(app.filter.buf, "");
+        assert_eq!(app.filter.cursor, 0);
     }
 
     // ── Filter — Ctrl+u at middle ─────────────────────────
@@ -2103,10 +2145,10 @@ mod tests {
         app.handle_key(make_key(KeyCode::Right));
         app.handle_key(make_key(KeyCode::Right));
         app.handle_key(make_key(KeyCode::Right));
-        assert_eq!(app.filter_cursor, 3);
+        assert_eq!(app.filter.cursor, 3);
         app.handle_key(make_ctrl_key(KeyCode::Char('u')));
-        assert_eq!(app.filter_buf, "def");
-        assert_eq!(app.filter_cursor, 0);
+        assert_eq!(app.filter.buf, "def");
+        assert_eq!(app.filter.cursor, 0);
     }
 
     // ── Filter — unknown key in filter mode ───────────────
@@ -2116,8 +2158,8 @@ mod tests {
         let mut app = test_app();
         app.handle_key(make_key(KeyCode::Char('/')));
         app.handle_key(make_key(KeyCode::F(1)));
-        assert_eq!(app.filter_buf, "");
-        assert!(app.filter_mode);
+        assert_eq!(app.filter.buf, "");
+        assert!(app.filter.active);
     }
 
     // ── show_all=false filters various virtual fs ─────────
@@ -2414,7 +2456,7 @@ mod tests {
             pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
             io_read_rate: None, io_write_rate: None, smart_status: None,
         });
-        app.filter = "data".into();
+        app.filter.text = "data".into();
         app.prefs.sort_mode = SortMode::Size;
         app.prefs.sort_rev = false;
         let disks = app.sorted_disks();
@@ -2505,12 +2547,12 @@ mod tests {
     #[test]
     fn mouse_right_click_triggers_hover() {
         let mut app = test_app();
-        assert!(app.hover_pos.is_none());
+        assert!(app.hover.pos.is_none());
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 15, row: 5, modifiers: KeyModifiers::NONE },
             80,
         );
-        assert_eq!(app.hover_pos, Some((15, 5)));
+        assert_eq!(app.hover.pos, Some((15, 5)));
         // Should be instantly ready (timestamp set in the past)
         assert!(app.hover_ready());
     }
@@ -2610,14 +2652,14 @@ mod tests {
             80,
         );
         assert_eq!(app.selected, Some(0));
-        assert_eq!(app.view_mode, ViewMode::Disks);
+        assert_eq!(app.drill.mode, ViewMode::Disks);
 
         // Second click on same row enters drill-down
         app.handle_mouse(
             MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 5, modifiers: KeyModifiers::NONE },
             80,
         );
-        assert_eq!(app.view_mode, ViewMode::DrillDown);
+        assert_eq!(app.drill.mode, ViewMode::DrillDown);
     }
 
     // ── Bookmarks ──────────────────────────────────────────
@@ -2663,12 +2705,12 @@ mod tests {
     #[test]
     fn slash_preserves_previous_filter() {
         let mut app = test_app();
-        app.filter = "old_filter".into();
+        app.filter.text = "old_filter".into();
         app.handle_key(make_key(KeyCode::Char('/')));
-        assert!(app.filter_mode);
-        assert_eq!(app.filter_prev, "old_filter");
-        assert_eq!(app.filter_buf, "old_filter");
-        assert_eq!(app.filter_cursor, 10);
+        assert!(app.filter.active);
+        assert_eq!(app.filter.prev, "old_filter");
+        assert_eq!(app.filter.buf, "old_filter");
+        assert_eq!(app.filter.cursor, 10);
     }
 
     // ── Warn/crit threshold full cycles ───────────────────

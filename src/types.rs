@@ -40,6 +40,42 @@ pub enum ColorMode {
     Sakura,
     Matrix,
     Sunset,
+    #[value(name = "neon-noir")]
+    NeonNoir,
+    #[value(name = "chrome-heart")]
+    ChromeHeart,
+    #[value(name = "blade-runner")]
+    BladeRunner,
+    #[value(name = "void-walker")]
+    VoidWalker,
+    #[value(name = "toxic-waste")]
+    ToxicWaste,
+    #[value(name = "cyber-frost")]
+    CyberFrost,
+    #[value(name = "plasma-core")]
+    PlasmaCore,
+    #[value(name = "steel-nerve")]
+    SteelNerve,
+    #[value(name = "dark-signal")]
+    DarkSignal,
+    #[value(name = "glitch-pop")]
+    GlitchPop,
+    #[value(name = "holo-shift")]
+    HoloShift,
+    #[value(name = "night-city")]
+    NightCity,
+    #[value(name = "deep-net")]
+    DeepNet,
+    #[value(name = "laser-grid")]
+    LaserGrid,
+    #[value(name = "quantum-flux")]
+    QuantumFlux,
+    #[value(name = "bio-hazard")]
+    BioHazard,
+    Darkwave,
+    Overlock,
+    Megacorp,
+    Zaibatsu,
 }
 
 impl ColorMode {
@@ -54,6 +90,26 @@ impl ColorMode {
         ColorMode::Sakura,
         ColorMode::Matrix,
         ColorMode::Sunset,
+        ColorMode::NeonNoir,
+        ColorMode::ChromeHeart,
+        ColorMode::BladeRunner,
+        ColorMode::VoidWalker,
+        ColorMode::ToxicWaste,
+        ColorMode::CyberFrost,
+        ColorMode::PlasmaCore,
+        ColorMode::SteelNerve,
+        ColorMode::DarkSignal,
+        ColorMode::GlitchPop,
+        ColorMode::HoloShift,
+        ColorMode::NightCity,
+        ColorMode::DeepNet,
+        ColorMode::LaserGrid,
+        ColorMode::QuantumFlux,
+        ColorMode::BioHazard,
+        ColorMode::Darkwave,
+        ColorMode::Overlock,
+        ColorMode::Megacorp,
+        ColorMode::Zaibatsu,
     ];
 
     pub fn name(self) -> &'static str {
@@ -68,6 +124,26 @@ impl ColorMode {
             ColorMode::Sakura => "Sakura Den",
             ColorMode::Matrix => "Data Stream",
             ColorMode::Sunset => "Solar Flare",
+            ColorMode::NeonNoir => "Neon Noir",
+            ColorMode::ChromeHeart => "Chrome Heart",
+            ColorMode::BladeRunner => "Blade Runner",
+            ColorMode::VoidWalker => "Void Walker",
+            ColorMode::ToxicWaste => "Toxic Waste",
+            ColorMode::CyberFrost => "Cyber Frost",
+            ColorMode::PlasmaCore => "Plasma Core",
+            ColorMode::SteelNerve => "Steel Nerve",
+            ColorMode::DarkSignal => "Dark Signal",
+            ColorMode::GlitchPop => "Glitch Pop",
+            ColorMode::HoloShift => "Holo Shift",
+            ColorMode::NightCity => "Night City",
+            ColorMode::DeepNet => "Deep Net",
+            ColorMode::LaserGrid => "Laser Grid",
+            ColorMode::QuantumFlux => "Quantum Flux",
+            ColorMode::BioHazard => "Bio Hazard",
+            ColorMode::Darkwave => "Darkwave",
+            ColorMode::Overlock => "Overlock",
+            ColorMode::Megacorp => "Megacorp",
+            ColorMode::Zaibatsu => "Zaibatsu",
         }
     }
 

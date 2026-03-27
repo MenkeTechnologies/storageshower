@@ -94,6 +94,167 @@ pub fn palette(mode: ColorMode) -> (Color, Color, Color, Color, Color, Color) {
             Color::Indexed(160),
             Color::Indexed(125),
         ),
+        // ── New cyberpunk palettes ──────────────────────────────
+        ColorMode::NeonNoir => (
+            Color::Indexed(201),  // hot magenta
+            Color::Indexed(231),  // bright white
+            Color::Indexed(93),   // deep violet
+            Color::Indexed(219),  // soft pink
+            Color::Indexed(57),   // blue-violet
+            Color::Indexed(53),   // dark plum
+        ),
+        ColorMode::ChromeHeart => (
+            Color::Indexed(250),  // silver
+            Color::Indexed(255),  // bright silver
+            Color::Indexed(246),  // mid gray
+            Color::Indexed(253),  // light gray
+            Color::Indexed(243),  // steel
+            Color::Indexed(239),  // gunmetal
+        ),
+        ColorMode::BladeRunner => (
+            Color::Indexed(208),  // deep orange
+            Color::Indexed(37),   // muted teal
+            Color::Indexed(166),  // burnt orange
+            Color::Indexed(73),   // dusty cyan
+            Color::Indexed(130),  // rust
+            Color::Indexed(23),   // dark teal
+        ),
+        ColorMode::VoidWalker => (
+            Color::Indexed(55),   // deep purple
+            Color::Indexed(99),   // medium purple
+            Color::Indexed(54),   // dark magenta
+            Color::Indexed(141),  // light lavender
+            Color::Indexed(92),   // plum
+            Color::Indexed(17),   // abyss blue
+        ),
+        ColorMode::ToxicWaste => (
+            Color::Indexed(118),  // lime green
+            Color::Indexed(190),  // yellow-green
+            Color::Indexed(154),  // chartreuse
+            Color::Indexed(226),  // acid yellow
+            Color::Indexed(82),   // bright green
+            Color::Indexed(58),   // olive
+        ),
+        ColorMode::CyberFrost => (
+            Color::Indexed(159),  // pale ice blue
+            Color::Indexed(195),  // frost white
+            Color::Indexed(153),  // powder blue
+            Color::Indexed(189),  // light periwinkle
+            Color::Indexed(111),  // cornflower
+            Color::Indexed(67),   // slate blue
+        ),
+        ColorMode::PlasmaCore => (
+            Color::Indexed(199),  // hot pink
+            Color::Indexed(213),  // light pink
+            Color::Indexed(163),  // deep magenta
+            Color::Indexed(207),  // orchid
+            Color::Indexed(126),  // dark magenta
+            Color::Indexed(89),   // purple-red
+        ),
+        ColorMode::SteelNerve => (
+            Color::Indexed(68),   // steel blue
+            Color::Indexed(110),  // light steel
+            Color::Indexed(60),   // slate
+            Color::Indexed(146),  // gray-blue
+            Color::Indexed(24),   // navy steel
+            Color::Indexed(236),  // dark iron
+        ),
+        ColorMode::DarkSignal => (
+            Color::Indexed(30),   // dark cyan
+            Color::Indexed(43),   // medium spring green
+            Color::Indexed(23),   // deep teal
+            Color::Indexed(79),   // sea green
+            Color::Indexed(29),   // jungle green
+            Color::Indexed(16),   // near black
+        ),
+        ColorMode::GlitchPop => (
+            Color::Indexed(201),  // magenta
+            Color::Indexed(51),   // electric cyan
+            Color::Indexed(226),  // yellow
+            Color::Indexed(47),   // neon green
+            Color::Indexed(196),  // red
+            Color::Indexed(21),   // blue
+        ),
+        ColorMode::HoloShift => (
+            Color::Indexed(123),  // aqua
+            Color::Indexed(219),  // pink
+            Color::Indexed(159),  // light cyan
+            Color::Indexed(183),  // thistle
+            Color::Indexed(87),   // turquoise
+            Color::Indexed(133),  // medium orchid
+        ),
+        ColorMode::NightCity => (
+            Color::Indexed(214),  // warm orange
+            Color::Indexed(227),  // warm yellow
+            Color::Indexed(209),  // salmon
+            Color::Indexed(223),  // light salmon
+            Color::Indexed(172),  // dark orange
+            Color::Indexed(94),   // brown
+        ),
+        ColorMode::DeepNet => (
+            Color::Indexed(19),   // navy
+            Color::Indexed(33),   // dodger blue
+            Color::Indexed(17),   // dark navy
+            Color::Indexed(75),   // royal blue
+            Color::Indexed(26),   // medium blue
+            Color::Indexed(16),   // near black
+        ),
+        ColorMode::LaserGrid => (
+            Color::Indexed(46),   // neon green
+            Color::Indexed(201),  // neon magenta
+            Color::Indexed(51),   // neon cyan
+            Color::Indexed(226),  // neon yellow
+            Color::Indexed(196),  // neon red
+            Color::Indexed(21),   // neon blue
+        ),
+        ColorMode::QuantumFlux => (
+            Color::Indexed(135),  // medium purple
+            Color::Indexed(75),   // steel blue
+            Color::Indexed(171),  // plum
+            Color::Indexed(111),  // cornflower
+            Color::Indexed(98),   // slate purple
+            Color::Indexed(61),   // dark slate blue
+        ),
+        ColorMode::BioHazard => (
+            Color::Indexed(148),  // dark khaki green
+            Color::Indexed(184),  // yellow-green
+            Color::Indexed(106),  // olive drab
+            Color::Indexed(192),  // light green-yellow
+            Color::Indexed(64),   // dark olive
+            Color::Indexed(22),   // deep green
+        ),
+        ColorMode::Darkwave => (
+            Color::Indexed(53),   // dark plum
+            Color::Indexed(140),  // medium purple
+            Color::Indexed(89),   // dark red-purple
+            Color::Indexed(176),  // light plum
+            Color::Indexed(127),  // magenta-purple
+            Color::Indexed(52),   // dark maroon
+        ),
+        ColorMode::Overlock => (
+            Color::Indexed(196),  // red
+            Color::Indexed(208),  // orange
+            Color::Indexed(160),  // dark red
+            Color::Indexed(214),  // gold
+            Color::Indexed(124),  // firebrick
+            Color::Indexed(52),   // maroon
+        ),
+        ColorMode::Megacorp => (
+            Color::Indexed(252),  // light gray
+            Color::Indexed(39),   // deepskyblue
+            Color::Indexed(245),  // gray
+            Color::Indexed(81),   // light sky blue
+            Color::Indexed(242),  // dark gray
+            Color::Indexed(236),  // charcoal
+        ),
+        ColorMode::Zaibatsu => (
+            Color::Indexed(167),  // indian red
+            Color::Indexed(216),  // light coral
+            Color::Indexed(131),  // dark red-brown
+            Color::Indexed(224),  // misty rose
+            Color::Indexed(95),   // sienna
+            Color::Indexed(52),   // dark maroon
+        ),
     }
 }
 
@@ -114,7 +275,7 @@ pub fn palette_for_prefs(prefs: &crate::prefs::Prefs) -> (Color, Color, Color, C
 }
 
 fn is_alert_flashing(app: &App) -> bool {
-    app.alert_flash
+    app.alert.flash
         .map(|t| t.elapsed().as_millis() < 2000 && (t.elapsed().as_millis() / 300) % 2 == 0)
         .unwrap_or(false)
 }
@@ -198,7 +359,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
         return;
     }
 
-    if app.view_mode == ViewMode::DrillDown {
+    if app.drill.mode == ViewMode::DrillDown {
         draw_drilldown(frame, app);
         return;
     }
@@ -278,8 +439,8 @@ pub fn draw(frame: &mut Frame, app: &App) {
         if app.prefs.show_all {
             title.push_str(&format!("{s}ALL"));
         }
-        if !app.filter.is_empty() {
-            title.push_str(&format!("{s}filter:{}", app.filter));
+        if !app.filter.text.is_empty() {
+            title.push_str(&format!("{s}filter:{}", app.filter.text));
         }
 
         let load = app.stats.load_avg;
@@ -419,7 +580,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
 
         let is_selected = app.selected == Some(di);
         let (fg_color, bg_pct, icon) = thresh_color(disk.pct, app);
-        let is_alert_row = is_alert_flashing(app) && app.alert_mounts.contains(&disk.mount);
+        let is_alert_row = is_alert_flashing(app) && app.alert.mounts.contains(&disk.mount);
 
         if is_alert_row {
             let flash_bg = Style::default().bg(Color::Indexed(52)); // dark red flash
@@ -687,8 +848,8 @@ pub fn draw(frame: &mut Frame, app: &App) {
                 footer.push_str(&format!(" \u{2502} {}x{}", w, h));
             }
 
-            if app.filter_mode {
-                footer.push_str(&format!(" \u{2502} FILTER> {}_", app.filter_buf));
+            if app.filter.active {
+                footer.push_str(&format!(" \u{2502} FILTER> {}_", app.filter.buf));
             }
             if let Some((ref msg, t)) = app.status_msg {
                 if t.elapsed() < Duration::from_secs(3) {
@@ -702,7 +863,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
     }
 
     // ─── Filter popup ───
-    if app.filter_mode {
+    if app.filter.active {
         draw_filter_popup(buf, w, h, app);
     }
 
@@ -712,12 +873,12 @@ pub fn draw(frame: &mut Frame, app: &App) {
     }
 
     // ─── Theme editor overlay ───
-    if app.theme_editor {
+    if app.theme_edit.active {
         draw_theme_editor(buf, w, h, app);
     }
 
     // ─── Hover tooltip (2s delay) ───
-    if !app.show_help && !app.theme_editor && !app.filter_mode && app.hover_ready() {
+    if !app.show_help && !app.theme_edit.active && !app.filter.active && app.hover_ready() {
         match app.hovered_zone(h) {
             HoverZone::DiskRow(idx) => {
                 let disks = app.sorted_disks();
@@ -799,7 +960,7 @@ fn draw_filter_popup(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     set_str(buf, tx, y0 + 1, title, title_s, box_w - 2);
 
     let current_label = "Active: ";
-    let current_val = if app.filter.is_empty() { "(none)" } else { &app.filter };
+    let current_val = if app.filter.text.is_empty() { "(none)" } else { &app.filter.text };
     set_str(buf, x0 + 2, y0 + 2, current_label, label_s, 8);
     set_str(buf, x0 + 10, y0 + 2, current_val, bg_s, box_w.saturating_sub(13));
 
@@ -811,8 +972,8 @@ fn draw_filter_popup(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     set_str(buf, x0 + 2, field_y, "\u{25B8} ", input_s, 2);
 
     let max_visible = (input_w as usize).saturating_sub(3);
-    let cursor_pos = app.filter_cursor;
-    let buf_len = app.filter_buf.len();
+    let cursor_pos = app.filter.cursor;
+    let buf_len = app.filter.buf.len();
 
     let (vis_start, vis_end) = if buf_len <= max_visible {
         (0, buf_len)
@@ -824,12 +985,12 @@ fn draw_filter_popup(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         (cursor_pos - max_visible / 2, cursor_pos + max_visible / 2)
     };
 
-    let display_buf = &app.filter_buf[vis_start..vis_end.min(buf_len)];
+    let display_buf = &app.filter.buf[vis_start..vis_end.min(buf_len)];
     set_str(buf, x0 + 4, field_y, display_buf, input_s, input_w.saturating_sub(3));
 
     let cursor_x = x0 + 4 + (cursor_pos - vis_start) as u16;
     if cursor_x < x0 + 2 + input_w {
-        let ch = app.filter_buf.chars().nth(cursor_pos).unwrap_or(' ');
+        let ch = app.filter.buf.chars().nth(cursor_pos).unwrap_or(' ');
         let cursor_s = Style::default().fg(Color::Indexed(235)).bg(Color::Indexed(48));
         set_cell(buf, cursor_x, field_y, &ch.to_string(), cursor_s);
     }
@@ -912,9 +1073,9 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     // ─── Column header ───
     {
         let hdr_s = Style::default().fg(pal_lpurple).add_modifier(Modifier::BOLD);
-        let sort_arrow = if app.drill_sort_rev { "\u{25BC}" } else { "\u{25B2}" };
-        let name_arrow = if app.drill_sort == DrillSortMode::Name { sort_arrow } else { " " };
-        let size_arrow = if app.drill_sort == DrillSortMode::Size { sort_arrow } else { " " };
+        let sort_arrow = if app.drill.sort_rev { "\u{25BC}" } else { "\u{25B2}" };
+        let name_arrow = if app.drill.sort == DrillSortMode::Name { sort_arrow } else { " " };
+        let size_arrow = if app.drill.sort == DrillSortMode::Size { sort_arrow } else { " " };
         let hdr = format!("   {}{:<name_w$} {:>9}{}", name_arrow, "NAME", "SIZE", size_arrow, name_w = (inner_w as usize).saturating_sub(16));
         set_str(buf, lm, row, &hdr, hdr_s, inner_w);
         row += 1;
@@ -927,9 +1088,9 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     let entry_area_end = h.saturating_sub(footer_rows);
 
     // ─── Scanning indicator with progress bar ───
-    if app.drill_scanning {
-        let scan_count = *app.drill_scan_count.lock().unwrap();
-        let scan_total = *app.drill_scan_total.lock().unwrap();
+    if app.drill.scanning {
+        let scan_count = *app.drill.scan_count.lock().unwrap();
+        let scan_total = *app.drill.scan_total.lock().unwrap();
         let scanning_s = Style::default().fg(pal_blue).add_modifier(Modifier::BOLD);
 
         if scan_total > 0 {
@@ -960,14 +1121,14 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     }
 
     // ─── Entries ───
-    let max_size = app.drill_entries.first().map(|e| e.size).unwrap_or(1).max(1);
+    let max_size = app.drill.entries.first().map(|e| e.size).unwrap_or(1).max(1);
 
-    for (i, entry) in app.drill_entries.iter().enumerate().skip(app.drill_scroll_offset) {
+    for (i, entry) in app.drill.entries.iter().enumerate().skip(app.drill.scroll_offset) {
         if row >= entry_area_end {
             break;
         }
 
-        let is_selected = i == app.drill_selected;
+        let is_selected = i == app.drill.selected;
 
         if is_selected {
             let sel_bg = Style::default().bg(Color::Indexed(237));
@@ -1031,7 +1192,7 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     }
 
     // ─── Empty state ───
-    if app.drill_entries.is_empty() && !app.drill_scanning {
+    if app.drill.entries.is_empty() && !app.drill.scanning {
         let empty_s = Style::default().fg(DIM_BORDER);
         set_str(buf, lm + 2, row, "(empty or access denied)", empty_s, inner_w);
     }
@@ -1050,13 +1211,13 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
                 set_cell(buf, x, frow, " ", Style::default().bg(DARK_BG));
             }
 
-            let entry_count = app.drill_entries.len();
-            let total_size: u64 = app.drill_entries.iter().map(|e| e.size).sum();
-            let sort_name = match app.drill_sort {
+            let entry_count = app.drill.entries.len();
+            let total_size: u64 = app.drill.entries.iter().map(|e| e.size).sum();
+            let sort_name = match app.drill.sort {
                 DrillSortMode::Size => "size",
                 DrillSortMode::Name => "name",
             };
-            let sort_dir = if app.drill_sort_rev { "\u{25BC}" } else { "\u{25B2}" };
+            let sort_dir = if app.drill.sort_rev { "\u{25BC}" } else { "\u{25B2}" };
             let footer = format!(
                 " \u{27E6}drill\u{22B7}down\u{27E7} \u{25C0}\u{25C0}\u{25C0} items:{} \u{2502} total:{} \u{2502} sort:{}{} \u{2502} s:size \u{2502} n:name \u{2502} r:rev \u{2502} bksp:back",
                 entry_count,
@@ -1071,7 +1232,7 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     // ─── Hover tooltip for drill-down entries ───
     if app.hover_ready() {
         if let Some(idx) = app.hovered_drill_index() {
-            if let Some(entry) = app.drill_entries.get(idx) {
+            if let Some(entry) = app.drill.entries.get(idx) {
                 draw_hover_drill_tooltip(buf, w, h, app, entry);
             }
         }
@@ -1079,7 +1240,7 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
 }
 
 fn draw_hover_drill_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, entry: &DirEntry) {
-    let (hover_x, hover_y) = match app.hover_pos {
+    let (hover_x, hover_y) = match app.hover.pos {
         Some(pos) => pos,
         None => return,
     };
@@ -1090,7 +1251,7 @@ fn draw_hover_drill_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, entry: 
     lines.push(("  Type".into(), kind.into()));
     lines.push(("  Size".into(), format_bytes(entry.size, app.prefs.unit_mode)));
     lines.push(("  Path".into(), entry.path.clone()));
-    let parent_total: u64 = app.drill_entries.iter().map(|e| e.size).sum();
+    let parent_total: u64 = app.drill.entries.iter().map(|e| e.size).sum();
     if parent_total > 0 {
         let pct = (entry.size as f64 / parent_total as f64) * 100.0;
         lines.push(("  Share".into(), format!("{:.1}% of directory", pct)));
@@ -1100,7 +1261,7 @@ fn draw_hover_drill_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, entry: 
 }
 
 fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEntry) {
-    let (hover_x, hover_y) = match app.hover_pos {
+    let (hover_x, hover_y) = match app.hover.pos {
         Some(pos) => pos,
         None => return,
     };
@@ -1355,7 +1516,7 @@ fn footer_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
         vec![("\u{25B6} Disk Count".into(), segment.trim_start_matches("disks:").into()),
              ("  Desc".into(), "Total visible filesystems".into())]
     } else if seg_lower.contains("filter>") {
-        vec![("\u{25B6} Filter Active".into(), app.filter_buf.clone()),
+        vec![("\u{25B6} Filter Active".into(), app.filter.buf.clone()),
              ("  Desc".into(), "Case-insensitive mount path substring".into()),
              ("  Keys".into(), "Enter=confirm  Esc=cancel".into()),
              ("  Edit".into(), "Ctrl+w=word  Ctrl+u=line  Ctrl+k=end".into())]
@@ -1381,7 +1542,7 @@ fn footer_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
 }
 
 fn draw_hover_bar_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, is_title: bool) {
-    let (hover_x, hover_y) = match app.hover_pos {
+    let (hover_x, hover_y) = match app.hover.pos {
         Some(pos) => pos,
         None => return,
     };
@@ -1411,7 +1572,7 @@ fn draw_hover_bar_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, is_title:
 
 fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     let box_w: u16 = 56u16.min(w.saturating_sub(4));
-    let box_h: u16 = if app.theme_edit_naming { 16 } else { 15 };
+    let box_h: u16 = if app.theme_edit.naming { 16 } else { 15 };
     let x0 = (w.saturating_sub(box_w)) / 2;
     let y0 = (h.saturating_sub(box_h)) / 2;
     let bc = border_color(app);
@@ -1451,11 +1612,11 @@ fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
 
     // Color channel names
     let labels = ["blue", "green", "purple", "light_purple", "royal", "dark_purple"];
-    let colors = app.theme_edit_colors;
+    let colors = app.theme_edit.colors;
 
     for (i, label) in labels.iter().enumerate() {
         let row_y = y0 + 3 + i as u16;
-        let is_sel = i == app.theme_edit_slot;
+        let is_sel = i == app.theme_edit.slot;
 
         // Selection indicator
         let row_style = if is_sel { sel_s } else { bg_s };
@@ -1504,11 +1665,11 @@ fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     }
 
     // Naming prompt or keybind hints
-    if app.theme_edit_naming {
+    if app.theme_edit.naming {
         let name_y = y0 + 12;
         let input_s = Style::default().fg(Color::Indexed(48)).bg(Color::Indexed(235));
         set_str(buf, x0 + 2, name_y, "Theme name:", bg_s, 11);
-        let name_display = format!("{}_", app.theme_edit_name);
+        let name_display = format!("{}_", app.theme_edit.name);
         set_str(buf, x0 + 14, name_y, &name_display, input_s, box_w - 16);
         set_str(buf, x0 + 2, name_y + 1, "Enter:save  Esc:back", hint_s, box_w - 4);
     } else {
