@@ -280,3 +280,97 @@ pub fn spawn_bg_collector(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>) {
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chrono_now_returns_valid_format() {
+        let (date, time) = chrono_now();
+        // date: "YYYY.MM.DD"
+        assert_eq!(date.len(), 10);
+        assert_eq!(date.chars().nth(4), Some('.'));
+        assert_eq!(date.chars().nth(7), Some('.'));
+        // time: "HH:MM:SS"
+        assert_eq!(time.len(), 8);
+        assert_eq!(time.chars().nth(2), Some(':'));
+        assert_eq!(time.chars().nth(5), Some(':'));
+    }
+
+    #[test]
+    fn chrono_now_year_reasonable() {
+        let (date, _) = chrono_now();
+        let year: i32 = date[..4].parse().unwrap();
+        assert!(year >= 2024 && year <= 2100);
+    }
+
+    #[test]
+    fn get_username_returns_something() {
+        // On CI/dev machines USER is almost always set
+        let user = get_username();
+        // Just check it doesn't panic; may be None in unusual environments
+        if let Some(u) = user {
+            assert!(!u.is_empty());
+        }
+    }
+
+    #[test]
+    fn get_local_ip_returns_valid_ip() {
+        let ip = get_local_ip();
+        assert!(!ip.is_empty());
+        // Should be parseable as an IP or fallback
+        assert!(ip.contains('.') || ip == "127.0.0.1");
+    }
+
+    #[test]
+    fn collect_disk_entries_returns_something() {
+        let disks = collect_disk_entries();
+        // On any real system there should be at least one disk
+        assert!(!disks.is_empty(), "Expected at least one disk entry");
+    }
+
+    #[test]
+    fn collect_disk_entries_have_mount_points() {
+        let disks = collect_disk_entries();
+        for d in &disks {
+            assert!(!d.mount.is_empty(), "Disk mount should not be empty");
+        }
+    }
+
+    #[test]
+    fn collect_disk_entries_pct_in_range() {
+        let disks = collect_disk_entries();
+        for d in &disks {
+            assert!(d.pct >= 0.0 && d.pct <= 100.0,
+                "Disk {} pct {} out of range", d.mount, d.pct);
+        }
+    }
+
+    #[test]
+    fn collect_sys_stats_returns_valid() {
+        let sys = System::new_all();
+        let stats = collect_sys_stats(&sys);
+        assert!(stats.mem_total > 0, "mem_total should be > 0");
+        assert!(stats.cpu_count > 0, "cpu_count should be > 0");
+    }
+
+    #[test]
+    fn collect_sys_stats_hostname_not_empty() {
+        let sys = System::new_all();
+        let stats = collect_sys_stats(&sys);
+        assert!(!stats.hostname.is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn get_tty_does_not_panic() {
+        // May fail in CI but should not panic
+        let _ = get_tty();
+    }
+
+    #[test]
+    fn get_battery_does_not_panic() {
+        let _ = get_battery();
+    }
+}

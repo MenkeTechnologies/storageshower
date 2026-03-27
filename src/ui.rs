@@ -803,3 +803,110 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::layout::Rect;
+
+    #[test]
+    fn palette_returns_six_colors() {
+        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+            let (a, b, c, d, e, f) = palette(mode);
+            // Just verify they are Color::Indexed values (not default)
+            assert_ne!(a, Color::Reset);
+            assert_ne!(b, Color::Reset);
+            assert_ne!(c, Color::Reset);
+            assert_ne!(d, Color::Reset);
+            assert_ne!(e, Color::Reset);
+            assert_ne!(f, Color::Reset);
+        }
+    }
+
+    #[test]
+    fn palette_modes_differ() {
+        let default = palette(ColorMode::Default);
+        let green = palette(ColorMode::Green);
+        // At least the first color should differ
+        assert_ne!(default.0, green.0);
+    }
+
+    #[test]
+    fn set_cell_within_bounds() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 5));
+        set_cell(&mut buf, 3, 2, "X", Style::default());
+        assert_eq!(buf[(3, 2)].symbol(), "X");
+    }
+
+    #[test]
+    fn set_cell_out_of_bounds_no_panic() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 5));
+        set_cell(&mut buf, 100, 100, "X", Style::default());
+        // Should not panic
+    }
+
+    #[test]
+    fn set_str_writes_string() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5));
+        set_str(&mut buf, 0, 0, "Hello", Style::default(), 20);
+        assert_eq!(buf[(0, 0)].symbol(), "H");
+        assert_eq!(buf[(1, 0)].symbol(), "e");
+        assert_eq!(buf[(4, 0)].symbol(), "o");
+    }
+
+    #[test]
+    fn set_str_truncates_at_max_w() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5));
+        set_str(&mut buf, 0, 0, "Hello World", Style::default(), 5);
+        assert_eq!(buf[(4, 0)].symbol(), "o");
+        assert_eq!(buf[(5, 0)].symbol(), " "); // not written to
+    }
+
+    #[test]
+    fn gradient_color_at_returns_colors() {
+        for mode in [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple] {
+            let c0 = gradient_color_at(0.0, mode);
+            let c50 = gradient_color_at(0.5, mode);
+            let c90 = gradient_color_at(0.9, mode);
+            assert_ne!(c0, Color::Reset);
+            assert_ne!(c50, Color::Reset);
+            assert_ne!(c90, Color::Reset);
+        }
+    }
+
+    #[test]
+    fn border_color_paused_vs_normal() {
+        use std::sync::{Arc, Mutex};
+        use crate::app::App;
+
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new(shared);
+
+        let normal = border_color(&app);
+        app.paused = true;
+        let paused = border_color(&app);
+        assert_ne!(normal, paused);
+        assert_eq!(paused, DIM_BORDER);
+    }
+
+    #[test]
+    fn thresh_color_levels() {
+        use std::sync::{Arc, Mutex};
+        use crate::app::App;
+
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let app = App::new(shared);
+
+        let (_, bg_low, icon_low) = thresh_color(30.0, &app);
+        assert!(bg_low.is_none());
+        assert_eq!(icon_low, "\u{25C8}");
+
+        let (_, bg_warn, icon_warn) = thresh_color(75.0, &app);
+        assert!(bg_warn.is_some());
+        assert_eq!(icon_warn, "\u{26A0}");
+
+        let (_, bg_crit, icon_crit) = thresh_color(95.0, &app);
+        assert!(bg_crit.is_some());
+        assert_eq!(icon_crit, "\u{2716}");
+    }
+}

@@ -83,3 +83,101 @@ pub fn save_prefs(p: &Prefs) {
         let _ = std::fs::write(prefs_path(), s);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_prefs_values() {
+        let p = Prefs::default();
+        assert_eq!(p.sort_mode, SortMode::Name);
+        assert!(!p.sort_rev);
+        assert!(!p.show_local);
+        assert_eq!(p.refresh_rate, 1);
+        assert_eq!(p.bar_style, BarStyle::Gradient);
+        assert_eq!(p.color_mode, ColorMode::Default);
+        assert_eq!(p.thresh_warn, 70);
+        assert_eq!(p.thresh_crit, 90);
+        assert!(p.show_bars);
+        assert!(p.show_border);
+        assert!(p.show_header);
+        assert!(!p.compact);
+        assert!(p.show_used);
+        assert!(!p.full_mount);
+        assert!(p.show_all);
+        assert_eq!(p.unit_mode, UnitMode::Human);
+        assert_eq!(p.col_mount_w, 0);
+        assert_eq!(p.col_bar_end_w, 0);
+        assert_eq!(p.col_pct_w, 0);
+    }
+
+    #[test]
+    fn prefs_roundtrip_toml() {
+        let mut p = Prefs::default();
+        p.sort_mode = SortMode::Size;
+        p.sort_rev = true;
+        p.bar_style = BarStyle::Ascii;
+        p.color_mode = ColorMode::Purple;
+        p.thresh_warn = 60;
+        p.thresh_crit = 85;
+        p.unit_mode = UnitMode::GiB;
+        p.col_mount_w = 25;
+        p.col_bar_end_w = 30;
+        p.col_pct_w = 7;
+        p.refresh_rate = 5;
+
+        let serialized = toml::to_string_pretty(&p).unwrap();
+        let deserialized: Prefs = toml::from_str(&serialized).unwrap();
+
+        assert_eq!(deserialized.sort_mode, SortMode::Size);
+        assert!(deserialized.sort_rev);
+        assert_eq!(deserialized.bar_style, BarStyle::Ascii);
+        assert_eq!(deserialized.color_mode, ColorMode::Purple);
+        assert_eq!(deserialized.thresh_warn, 60);
+        assert_eq!(deserialized.thresh_crit, 85);
+        assert_eq!(deserialized.unit_mode, UnitMode::GiB);
+        assert_eq!(deserialized.col_mount_w, 25);
+        assert_eq!(deserialized.col_bar_end_w, 30);
+        assert_eq!(deserialized.col_pct_w, 7);
+        assert_eq!(deserialized.refresh_rate, 5);
+    }
+
+    #[test]
+    fn prefs_deserialize_missing_fields_uses_defaults() {
+        let toml_str = r#"
+            sort_mode = "Pct"
+            sort_rev = false
+            show_local = false
+            refresh_rate = 2
+            bar_style = "Solid"
+            color_mode = "Green"
+            thresh_warn = 50
+            thresh_crit = 80
+            show_bars = true
+            show_border = false
+            show_header = true
+            compact = true
+            show_used = false
+            full_mount = true
+        "#;
+        let p: Prefs = toml::from_str(toml_str).unwrap();
+        // Fields present:
+        assert_eq!(p.sort_mode, SortMode::Pct);
+        assert_eq!(p.bar_style, BarStyle::Solid);
+        assert!(p.compact);
+        assert!(!p.show_border);
+        // Defaults for missing serde(default) fields:
+        assert!(p.show_all); // default_true
+        assert_eq!(p.unit_mode, UnitMode::Human);
+        assert_eq!(p.col_mount_w, 0);
+        assert_eq!(p.col_bar_end_w, 0);
+        assert_eq!(p.col_pct_w, 0);
+    }
+
+    #[test]
+    fn default_conf_parses() {
+        let p: Result<Prefs, _> = toml::from_str(DEFAULT_CONF);
+        assert!(p.is_ok(), "Default config should parse: {:?}", p.err());
+    }
+}

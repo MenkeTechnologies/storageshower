@@ -13,14 +13,14 @@ pub enum DragTarget {
     PctSep,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SortMode {
     Name,
     Pct,
     Size,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BarStyle {
     Gradient,
     Solid,
@@ -28,7 +28,7 @@ pub enum BarStyle {
     Ascii,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ColorMode {
     Default,
     Green,
@@ -36,7 +36,7 @@ pub enum ColorMode {
     Purple,
 }
 
-#[derive(Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UnitMode {
     #[default]
     Human,
@@ -89,5 +89,42 @@ impl Default for SysStats {
             os_name: String::new(),
             os_version: String::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sys_stats_default() {
+        let s = SysStats::default();
+        assert!(s.hostname.is_empty());
+        assert_eq!(s.mem_total, 1); // non-zero to avoid div-by-zero
+        assert_eq!(s.uptime, 0);
+    }
+
+    #[test]
+    fn unit_mode_default_is_human() {
+        assert_eq!(UnitMode::default(), UnitMode::Human);
+    }
+
+    #[test]
+    fn sort_mode_equality() {
+        assert_eq!(SortMode::Name, SortMode::Name);
+        assert_ne!(SortMode::Name, SortMode::Pct);
+        assert_ne!(SortMode::Pct, SortMode::Size);
+    }
+
+    #[test]
+    fn bar_style_equality() {
+        assert_eq!(BarStyle::Gradient, BarStyle::Gradient);
+        assert_ne!(BarStyle::Solid, BarStyle::Thin);
+    }
+
+    #[test]
+    fn color_mode_equality() {
+        assert_eq!(ColorMode::Default, ColorMode::Default);
+        assert_ne!(ColorMode::Green, ColorMode::Blue);
     }
 }

@@ -604,3 +604,654 @@ pub fn mount_col_width(inner_w: u16, prefs: &Prefs) -> usize {
         (inner_w as usize / 3).max(12)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+    use std::sync::{Arc, Mutex};
+
+    fn make_key(code: KeyCode) -> KeyEvent {
+        KeyEvent {
+            code,
+            modifiers: KeyModifiers::NONE,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        }
+    }
+
+    fn make_ctrl_key(code: KeyCode) -> KeyEvent {
+        KeyEvent {
+            code,
+            modifiers: KeyModifiers::CONTROL,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        }
+    }
+
+    fn test_disks() -> Vec<DiskEntry> {
+        vec![
+            DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into() },
+            DiskEntry { mount: "/home".into(), used: 80_000_000_000, total: 200_000_000_000, pct: 40.0, kind: DiskKind::SSD, fs: "ext4".into() },
+            DiskEntry { mount: "/data".into(), used: 900_000_000_000, total: 1_000_000_000_000, pct: 90.0, kind: DiskKind::HDD, fs: "xfs".into() },
+            DiskEntry { mount: "/tmp".into(), used: 100_000, total: 500_000_000, pct: 0.02, kind: DiskKind::Unknown(-1), fs: "tmpfs".into() },
+        ]
+    }
+
+    fn test_app() -> App {
+        let stats = SysStats::default();
+        let disks = test_disks();
+        let shared = Arc::new(Mutex::new((stats.clone(), disks.clone())));
+        let mut app = App::new(shared);
+        app.disks = disks;
+        app.stats = stats;
+        app
+    }
+
+    // ── Column width helpers ───────────────────────────────
+
+    #[test]
+    fn mount_col_width_default() {
+        let p = Prefs::default();
+        let w = mount_col_width(120, &p);
+        assert_eq!(w, 40); // 120/3
+    }
+
+    #[test]
+    fn mount_col_width_compact() {
+        let mut p = Prefs::default();
+        p.compact = true;
+        assert_eq!(mount_col_width(120, &p), 16);
+    }
+
+    #[test]
+    fn mount_col_width_custom() {
+        let mut p = Prefs::default();
+        p.col_mount_w = 25;
+        assert_eq!(mount_col_width(120, &p), 25);
+    }
+
+    #[test]
+    fn mount_col_width_custom_clamped() {
+        let mut p = Prefs::default();
+        p.col_mount_w = 200;
+        let w = mount_col_width(120, &p);
+        assert!(w <= 100); // clamped to inner_w - 20
+    }
+
+    #[test]
+    fn right_col_width_static_default() {
+        let p = Prefs::default();
+        assert_eq!(right_col_width_static(&p), 22); // show_used=true
+    }
+
+    #[test]
+    fn right_col_width_static_no_used() {
+        let mut p = Prefs::default();
+        p.show_used = false;
+        assert_eq!(right_col_width_static(&p), 7);
+    }
+
+    #[test]
+    fn right_col_width_static_custom() {
+        let mut p = Prefs::default();
+        p.col_bar_end_w = 30;
+        assert_eq!(right_col_width_static(&p), 30);
+    }
+
+    #[test]
+    fn right_col_width_static_custom_min() {
+        let mut p = Prefs::default();
+        p.col_bar_end_w = 2; // below min
+        assert_eq!(right_col_width_static(&p), 5);
+    }
+
+    // ── Sorting ────────────────────────────────────────────
+
+    #[test]
+    fn sorted_disks_by_name() {
+        let mut app = test_app();
+        app.prefs.sort_mode = SortMode::Name;
+        app.prefs.sort_rev = false;
+        let disks = app.sorted_disks();
+        let names: Vec<&str> = disks.iter().map(|d| d.mount.as_str()).collect();
+        assert_eq!(names, vec!["/", "/data", "/home", "/tmp"]);
+    }
+
+    #[test]
+    fn sorted_disks_by_name_reversed() {
+        let mut app = test_app();
+        app.prefs.sort_mode = SortMode::Name;
+        app.prefs.sort_rev = true;
+        let disks = app.sorted_disks();
+        let names: Vec<&str> = disks.iter().map(|d| d.mount.as_str()).collect();
+        assert_eq!(names, vec!["/tmp", "/home", "/data", "/"]);
+    }
+
+    #[test]
+    fn sorted_disks_by_pct() {
+        let mut app = test_app();
+        app.prefs.sort_mode = SortMode::Pct;
+        app.prefs.sort_rev = false;
+        let disks = app.sorted_disks();
+        let pcts: Vec<f64> = disks.iter().map(|d| d.pct).collect();
+        assert!(pcts.windows(2).all(|w| w[0] <= w[1]));
+    }
+
+    #[test]
+    fn sorted_disks_by_size() {
+        let mut app = test_app();
+        app.prefs.sort_mode = SortMode::Size;
+        app.prefs.sort_rev = false;
+        let disks = app.sorted_disks();
+        let sizes: Vec<u64> = disks.iter().map(|d| d.total).collect();
+        assert!(sizes.windows(2).all(|w| w[0] <= w[1]));
+    }
+
+    // ── Filtering ──────────────────────────────────────────
+
+    #[test]
+    fn sorted_disks_filter() {
+        let mut app = test_app();
+        app.filter = "home".into();
+        let disks = app.sorted_disks();
+        assert_eq!(disks.len(), 1);
+        assert_eq!(disks[0].mount, "/home");
+    }
+
+    #[test]
+    fn sorted_disks_filter_case_insensitive() {
+        let mut app = test_app();
+        app.filter = "HOME".into();
+        let disks = app.sorted_disks();
+        assert_eq!(disks.len(), 1);
+        assert_eq!(disks[0].mount, "/home");
+    }
+
+    #[test]
+    fn sorted_disks_filter_no_match() {
+        let mut app = test_app();
+        app.filter = "nonexistent".into();
+        let disks = app.sorted_disks();
+        assert!(disks.is_empty());
+    }
+
+    #[test]
+    fn sorted_disks_show_all_off_filters_tmpfs() {
+        let mut app = test_app();
+        app.prefs.show_all = false;
+        let disks = app.sorted_disks();
+        assert!(!disks.iter().any(|d| d.fs == "tmpfs"));
+    }
+
+    // ── Key handling — quit ────────────────────────────────
+
+    #[test]
+    fn key_q_quits() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('q')));
+        assert!(app.quit);
+    }
+
+    #[test]
+    fn key_upper_q_quits() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('Q')));
+        assert!(app.quit);
+    }
+
+    // ── Key handling — help ────────────────────────────────
+
+    #[test]
+    fn key_h_toggles_help() {
+        let mut app = test_app();
+        assert!(!app.show_help);
+        app.handle_key(make_key(KeyCode::Char('h')));
+        assert!(app.show_help);
+        // dismiss with h
+        app.handle_key(make_key(KeyCode::Char('h')));
+        assert!(!app.show_help);
+    }
+
+    #[test]
+    fn key_question_mark_opens_help() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('?')));
+        assert!(app.show_help);
+    }
+
+    #[test]
+    fn help_dismisses_with_esc() {
+        let mut app = test_app();
+        app.show_help = true;
+        app.handle_key(make_key(KeyCode::Esc));
+        assert!(!app.show_help);
+    }
+
+    #[test]
+    fn help_dismisses_with_j() {
+        let mut app = test_app();
+        app.show_help = true;
+        app.handle_key(make_key(KeyCode::Char('j')));
+        assert!(!app.show_help);
+    }
+
+    // ── Key handling — pause ───────────────────────────────
+
+    #[test]
+    fn key_p_toggles_pause() {
+        let mut app = test_app();
+        assert!(!app.paused);
+        app.handle_key(make_key(KeyCode::Char('p')));
+        assert!(app.paused);
+        app.handle_key(make_key(KeyCode::Char('p')));
+        assert!(!app.paused);
+    }
+
+    // ── Key handling — sort ────────────────────────────────
+
+    #[test]
+    fn key_n_sorts_by_name() {
+        let mut app = test_app();
+        app.prefs.sort_mode = SortMode::Size;
+        app.handle_key(make_key(KeyCode::Char('n')));
+        assert_eq!(app.prefs.sort_mode, SortMode::Name);
+        assert!(!app.prefs.sort_rev);
+    }
+
+    #[test]
+    fn key_n_toggles_reverse_if_active() {
+        let mut app = test_app();
+        app.prefs.sort_mode = SortMode::Name;
+        app.prefs.sort_rev = false;
+        app.handle_key(make_key(KeyCode::Char('n')));
+        assert!(app.prefs.sort_rev);
+    }
+
+    #[test]
+    fn key_u_sorts_by_pct() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('u')));
+        assert_eq!(app.prefs.sort_mode, SortMode::Pct);
+    }
+
+    #[test]
+    fn key_s_sorts_by_size() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('s')));
+        assert_eq!(app.prefs.sort_mode, SortMode::Size);
+    }
+
+    #[test]
+    fn key_r_reverses_sort() {
+        let mut app = test_app();
+        assert!(!app.prefs.sort_rev);
+        app.handle_key(make_key(KeyCode::Char('r')));
+        assert!(app.prefs.sort_rev);
+    }
+
+    // ── Key handling — display toggles ─────────────────────
+
+    #[test]
+    fn key_b_cycles_bar_style() {
+        let mut app = test_app();
+        assert_eq!(app.prefs.bar_style, BarStyle::Gradient);
+        app.handle_key(make_key(KeyCode::Char('b')));
+        assert_eq!(app.prefs.bar_style, BarStyle::Solid);
+        app.handle_key(make_key(KeyCode::Char('b')));
+        assert_eq!(app.prefs.bar_style, BarStyle::Thin);
+        app.handle_key(make_key(KeyCode::Char('b')));
+        assert_eq!(app.prefs.bar_style, BarStyle::Ascii);
+        app.handle_key(make_key(KeyCode::Char('b')));
+        assert_eq!(app.prefs.bar_style, BarStyle::Gradient);
+    }
+
+    #[test]
+    fn key_c_cycles_color_mode() {
+        let mut app = test_app();
+        assert_eq!(app.prefs.color_mode, ColorMode::Default);
+        app.handle_key(make_key(KeyCode::Char('c')));
+        assert_eq!(app.prefs.color_mode, ColorMode::Green);
+        app.handle_key(make_key(KeyCode::Char('c')));
+        assert_eq!(app.prefs.color_mode, ColorMode::Blue);
+        app.handle_key(make_key(KeyCode::Char('c')));
+        assert_eq!(app.prefs.color_mode, ColorMode::Purple);
+        app.handle_key(make_key(KeyCode::Char('c')));
+        assert_eq!(app.prefs.color_mode, ColorMode::Default);
+    }
+
+    #[test]
+    fn key_i_cycles_unit_mode() {
+        let mut app = test_app();
+        assert_eq!(app.prefs.unit_mode, UnitMode::Human);
+        app.handle_key(make_key(KeyCode::Char('i')));
+        assert_eq!(app.prefs.unit_mode, UnitMode::GiB);
+        app.handle_key(make_key(KeyCode::Char('i')));
+        assert_eq!(app.prefs.unit_mode, UnitMode::MiB);
+        app.handle_key(make_key(KeyCode::Char('i')));
+        assert_eq!(app.prefs.unit_mode, UnitMode::Bytes);
+        app.handle_key(make_key(KeyCode::Char('i')));
+        assert_eq!(app.prefs.unit_mode, UnitMode::Human);
+    }
+
+    #[test]
+    fn key_v_toggles_bars() {
+        let mut app = test_app();
+        assert!(app.prefs.show_bars);
+        app.handle_key(make_key(KeyCode::Char('v')));
+        assert!(!app.prefs.show_bars);
+    }
+
+    #[test]
+    fn key_x_toggles_border() {
+        let mut app = test_app();
+        assert!(app.prefs.show_border);
+        app.handle_key(make_key(KeyCode::Char('x')));
+        assert!(!app.prefs.show_border);
+    }
+
+    #[test]
+    fn key_g_toggles_header() {
+        let mut app = test_app();
+        assert!(app.prefs.show_header);
+        app.handle_key(make_key(KeyCode::Char('g')));
+        assert!(!app.prefs.show_header);
+    }
+
+    #[test]
+    fn key_d_toggles_show_used() {
+        let mut app = test_app();
+        assert!(app.prefs.show_used);
+        app.handle_key(make_key(KeyCode::Char('d')));
+        assert!(!app.prefs.show_used);
+        assert_eq!(app.prefs.col_bar_end_w, 0); // reset
+    }
+
+    #[test]
+    fn key_m_toggles_compact() {
+        let mut app = test_app();
+        assert!(!app.prefs.compact);
+        app.handle_key(make_key(KeyCode::Char('m')));
+        assert!(app.prefs.compact);
+        assert_eq!(app.prefs.col_mount_w, 0); // reset
+    }
+
+    #[test]
+    fn key_w_toggles_full_mount() {
+        let mut app = test_app();
+        assert!(!app.prefs.full_mount);
+        app.handle_key(make_key(KeyCode::Char('w')));
+        assert!(app.prefs.full_mount);
+    }
+
+    // ── Key handling — thresholds ──────────────────────────
+
+    #[test]
+    fn key_t_cycles_warn_threshold() {
+        let mut app = test_app();
+        assert_eq!(app.prefs.thresh_warn, 70);
+        app.handle_key(make_key(KeyCode::Char('t')));
+        assert_eq!(app.prefs.thresh_warn, 80);
+        app.handle_key(make_key(KeyCode::Char('t')));
+        assert_eq!(app.prefs.thresh_warn, 50);
+    }
+
+    #[test]
+    fn key_upper_t_cycles_crit_threshold() {
+        let mut app = test_app();
+        assert_eq!(app.prefs.thresh_crit, 90);
+        app.handle_key(make_key(KeyCode::Char('T')));
+        assert_eq!(app.prefs.thresh_crit, 95);
+        app.handle_key(make_key(KeyCode::Char('T')));
+        assert_eq!(app.prefs.thresh_crit, 80);
+    }
+
+    #[test]
+    fn key_f_cycles_refresh_rate() {
+        let mut app = test_app();
+        assert_eq!(app.prefs.refresh_rate, 1);
+        app.handle_key(make_key(KeyCode::Char('f')));
+        assert_eq!(app.prefs.refresh_rate, 2);
+        app.handle_key(make_key(KeyCode::Char('f')));
+        assert_eq!(app.prefs.refresh_rate, 5);
+        app.handle_key(make_key(KeyCode::Char('f')));
+        assert_eq!(app.prefs.refresh_rate, 10);
+        app.handle_key(make_key(KeyCode::Char('f')));
+        assert_eq!(app.prefs.refresh_rate, 1);
+    }
+
+    // ── Key handling — navigation ──────────────────────────
+
+    #[test]
+    fn key_j_selects_next() {
+        let mut app = test_app();
+        assert_eq!(app.selected, None);
+        app.handle_key(make_key(KeyCode::Char('j')));
+        assert_eq!(app.selected, Some(0));
+        app.handle_key(make_key(KeyCode::Char('j')));
+        assert_eq!(app.selected, Some(1));
+    }
+
+    #[test]
+    fn key_k_selects_prev() {
+        let mut app = test_app();
+        app.selected = Some(2);
+        app.handle_key(make_key(KeyCode::Char('k')));
+        assert_eq!(app.selected, Some(1));
+        app.handle_key(make_key(KeyCode::Char('k')));
+        assert_eq!(app.selected, Some(0));
+        app.handle_key(make_key(KeyCode::Char('k')));
+        assert_eq!(app.selected, Some(0)); // stays at 0
+    }
+
+    #[test]
+    fn key_j_stops_at_end() {
+        let mut app = test_app();
+        let count = app.sorted_disks().len();
+        app.selected = Some(count - 1);
+        app.handle_key(make_key(KeyCode::Char('j')));
+        assert_eq!(app.selected, Some(count - 1));
+    }
+
+    #[test]
+    fn key_upper_g_jumps_to_last() {
+        let mut app = test_app();
+        let count = app.sorted_disks().len();
+        app.handle_key(make_key(KeyCode::Char('G')));
+        assert_eq!(app.selected, Some(count - 1));
+    }
+
+    #[test]
+    fn key_home_jumps_to_first() {
+        let mut app = test_app();
+        app.selected = Some(3);
+        app.handle_key(make_key(KeyCode::Home));
+        assert_eq!(app.selected, Some(0));
+    }
+
+    #[test]
+    fn key_end_jumps_to_last() {
+        let mut app = test_app();
+        let count = app.sorted_disks().len();
+        app.handle_key(make_key(KeyCode::End));
+        assert_eq!(app.selected, Some(count - 1));
+    }
+
+    #[test]
+    fn key_esc_deselects() {
+        let mut app = test_app();
+        app.selected = Some(2);
+        app.handle_key(make_key(KeyCode::Esc));
+        assert_eq!(app.selected, None);
+    }
+
+    #[test]
+    fn ctrl_d_half_page_down() {
+        let mut app = test_app();
+        app.selected = Some(0);
+        let count = app.sorted_disks().len();
+        app.handle_key(make_ctrl_key(KeyCode::Char('d')));
+        assert_eq!(app.selected, Some((count / 2).min(count - 1)));
+    }
+
+    #[test]
+    fn ctrl_u_half_page_up() {
+        let mut app = test_app();
+        let count = app.sorted_disks().len();
+        app.selected = Some(count - 1);
+        app.handle_key(make_ctrl_key(KeyCode::Char('u')));
+        let expected = (count - 1).saturating_sub(count / 2);
+        assert_eq!(app.selected, Some(expected));
+    }
+
+    #[test]
+    fn ctrl_g_jumps_to_first() {
+        let mut app = test_app();
+        app.selected = Some(3);
+        app.handle_key(make_ctrl_key(KeyCode::Char('g')));
+        assert_eq!(app.selected, Some(0));
+    }
+
+    // ── Key handling — filter mode ─────────────────────────
+
+    #[test]
+    fn slash_enters_filter_mode() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        assert!(app.filter_mode);
+    }
+
+    #[test]
+    fn filter_mode_typing() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('h')));
+        app.handle_key(make_key(KeyCode::Char('o')));
+        app.handle_key(make_key(KeyCode::Char('m')));
+        assert_eq!(app.filter_buf, "hom");
+        // Live filter should be applied
+        assert_eq!(app.filter, "hom");
+    }
+
+    #[test]
+    fn filter_mode_enter_closes() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Enter));
+        assert!(!app.filter_mode);
+        assert_eq!(app.filter, "a");
+    }
+
+    #[test]
+    fn filter_mode_esc_restores_previous() {
+        let mut app = test_app();
+        app.filter = "old".into();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('x')));
+        app.handle_key(make_key(KeyCode::Esc));
+        assert!(!app.filter_mode);
+        assert_eq!(app.filter, "old");
+    }
+
+    #[test]
+    fn filter_mode_backspace() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_key(KeyCode::Backspace));
+        assert_eq!(app.filter_buf, "a");
+        assert_eq!(app.filter_cursor, 1);
+    }
+
+    #[test]
+    fn filter_mode_ctrl_a_moves_to_start() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        assert_eq!(app.filter_cursor, 2);
+        app.handle_key(make_ctrl_key(KeyCode::Char('a')));
+        assert_eq!(app.filter_cursor, 0);
+    }
+
+    #[test]
+    fn filter_mode_ctrl_e_moves_to_end() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_ctrl_key(KeyCode::Char('a'))); // go to start
+        app.handle_key(make_ctrl_key(KeyCode::Char('e'))); // go to end
+        assert_eq!(app.filter_cursor, 2);
+    }
+
+    #[test]
+    fn filter_mode_ctrl_u_clears_before_cursor() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_key(KeyCode::Char('c')));
+        // cursor at 3, clear before
+        app.handle_key(make_ctrl_key(KeyCode::Char('u')));
+        assert_eq!(app.filter_buf, "");
+        assert_eq!(app.filter_cursor, 0);
+    }
+
+    #[test]
+    fn filter_mode_ctrl_k_kills_to_end() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('/')));
+        app.handle_key(make_key(KeyCode::Char('a')));
+        app.handle_key(make_key(KeyCode::Char('b')));
+        app.handle_key(make_key(KeyCode::Char('c')));
+        app.handle_key(make_ctrl_key(KeyCode::Char('a'))); // go to start
+        app.handle_key(make_key(KeyCode::Right)); // move to pos 1
+        app.handle_key(make_ctrl_key(KeyCode::Char('k'))); // kill from pos 1
+        assert_eq!(app.filter_buf, "a");
+    }
+
+    #[test]
+    fn key_0_clears_filter() {
+        let mut app = test_app();
+        app.filter = "test".into();
+        app.filter_buf = "test".into();
+        app.handle_key(make_key(KeyCode::Char('0')));
+        assert!(app.filter.is_empty());
+        assert!(app.filter_buf.is_empty());
+    }
+
+    // ── Key handling — filter swallows in help mode ────────
+
+    #[test]
+    fn keys_swallowed_in_help_mode() {
+        let mut app = test_app();
+        app.show_help = true;
+        app.handle_key(make_key(KeyCode::Char('b'))); // should not cycle bar style
+        assert_eq!(app.prefs.bar_style, BarStyle::Gradient); // unchanged
+        assert!(!app.show_help); // but help should be... wait, 'b' doesn't dismiss help
+    }
+
+    // ── Key handling — ctrl swallows unknown combos ────────
+
+    #[test]
+    fn ctrl_unknown_swallowed() {
+        let mut app = test_app();
+        let prev_sort = app.prefs.sort_mode;
+        app.handle_key(make_ctrl_key(KeyCode::Char('z')));
+        assert_eq!(app.prefs.sort_mode, prev_sort); // unchanged
+    }
+
+    // ── refresh_data while paused ──────────────────────────
+
+    #[test]
+    fn refresh_data_paused_does_nothing() {
+        let mut app = test_app();
+        app.paused = true;
+        let old_disks_len = app.disks.len();
+        app.refresh_data();
+        assert_eq!(app.disks.len(), old_disks_len);
+    }
+}

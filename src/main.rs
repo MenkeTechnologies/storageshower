@@ -1,10 +1,3 @@
-mod app;
-mod helpers;
-mod prefs;
-mod system;
-mod types;
-mod ui;
-
 use crossterm::event::{self, EnableMouseCapture, DisableMouseCapture, Event};
 use ratatui::DefaultTerminal;
 use std::io;
@@ -12,10 +5,10 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use sysinfo::System;
 
-use app::App;
-use system::{collect_disk_entries, collect_sys_stats, spawn_bg_collector};
-use types::{DiskEntry, SysStats};
-use ui::draw;
+use storageshower::app::App;
+use storageshower::system::{collect_disk_entries, collect_sys_stats, spawn_bg_collector};
+use storageshower::types::{DiskEntry, SysStats};
+use storageshower::ui::draw;
 
 fn main() -> io::Result<()> {
     let sys = System::new_all();
