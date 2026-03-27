@@ -1,5 +1,5 @@
 use clap::Parser;
-use crossterm::event::{self, EnableMouseCapture, DisableMouseCapture, Event};
+use crossterm::event::{self, EnableMouseCapture, DisableMouseCapture, EnableFocusChange, DisableFocusChange, Event};
 use ratatui::DefaultTerminal;
 use std::io;
 use std::sync::{Arc, Mutex};
@@ -45,10 +45,10 @@ fn main() -> io::Result<()> {
     spawn_bg_collector(Arc::clone(&shared));
 
     let mut terminal = ratatui::init();
-    crossterm::execute!(std::io::stdout(), EnableMouseCapture)?;
+    crossterm::execute!(std::io::stdout(), EnableMouseCapture, EnableFocusChange)?;
     let mut app = App::new(Arc::clone(&shared), &cli);
     let result = run_app(&mut terminal, &mut app);
-    crossterm::execute!(std::io::stdout(), DisableMouseCapture)?;
+    crossterm::execute!(std::io::stdout(), DisableMouseCapture, DisableFocusChange)?;
     ratatui::restore();
     app.save();
     result
@@ -95,6 +95,9 @@ fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<()> {
                 Event::Mouse(mouse) => {
                     let size = terminal.size()?;
                     app.handle_mouse(mouse, size.width, size.height);
+                }
+                Event::FocusLost => {
+                    app.hover = Default::default();
                 }
                 Event::Resize(_, _) => {}
                 _ => {}
