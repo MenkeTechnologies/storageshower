@@ -44,6 +44,20 @@ pub fn format_latency(ms: f64) -> String {
     }
 }
 
+pub fn format_rate(bytes_per_sec: f64) -> String {
+    if bytes_per_sec < 1.0 {
+        "0B/s".into()
+    } else if bytes_per_sec < 1024.0 {
+        format!("{:.0}B/s", bytes_per_sec)
+    } else if bytes_per_sec < 1_048_576.0 {
+        format!("{:.1}K/s", bytes_per_sec / 1024.0)
+    } else if bytes_per_sec < 1_073_741_824.0 {
+        format!("{:.1}M/s", bytes_per_sec / 1_048_576.0)
+    } else {
+        format!("{:.1}G/s", bytes_per_sec / 1_073_741_824.0)
+    }
+}
+
 pub fn truncate_mount(mount: &str, width: usize) -> String {
     if mount.chars().count() <= width {
         format!("{:<width$}", mount, width = width)
@@ -290,5 +304,34 @@ mod tests {
     fn format_latency_seconds() {
         assert_eq!(format_latency(1000.0), "1.0s");
         assert_eq!(format_latency(2500.0), "2.5s");
+    }
+
+    // ── format_rate ─────────────────────────────────────
+
+    #[test]
+    fn format_rate_zero() {
+        assert_eq!(format_rate(0.0), "0B/s");
+    }
+
+    #[test]
+    fn format_rate_bytes() {
+        assert_eq!(format_rate(512.0), "512B/s");
+    }
+
+    #[test]
+    fn format_rate_kilobytes() {
+        assert_eq!(format_rate(1024.0), "1.0K/s");
+        assert_eq!(format_rate(10240.0), "10.0K/s");
+    }
+
+    #[test]
+    fn format_rate_megabytes() {
+        assert_eq!(format_rate(1_048_576.0), "1.0M/s");
+        assert_eq!(format_rate(52_428_800.0), "50.0M/s");
+    }
+
+    #[test]
+    fn format_rate_gigabytes() {
+        assert_eq!(format_rate(1_073_741_824.0), "1.0G/s");
     }
 }

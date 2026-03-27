@@ -926,10 +926,10 @@ mod tests {
 
     fn test_disks() -> Vec<DiskEntry> {
         vec![
-            DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None },
-            DiskEntry { mount: "/home".into(), used: 80_000_000_000, total: 200_000_000_000, pct: 40.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None },
-            DiskEntry { mount: "/data".into(), used: 900_000_000_000, total: 1_000_000_000_000, pct: 90.0, kind: DiskKind::HDD, fs: "xfs".into(), latency_ms: None },
-            DiskEntry { mount: "/tmp".into(), used: 100_000, total: 500_000_000, pct: 0.02, kind: DiskKind::Unknown(-1), fs: "tmpfs".into(), latency_ms: None },
+            DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+            DiskEntry { mount: "/home".into(), used: 80_000_000_000, total: 200_000_000_000, pct: 40.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+            DiskEntry { mount: "/data".into(), used: 900_000_000_000, total: 1_000_000_000_000, pct: 90.0, kind: DiskKind::HDD, fs: "xfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+            DiskEntry { mount: "/tmp".into(), used: 100_000, total: 500_000_000, pct: 0.02, kind: DiskKind::Unknown(-1), fs: "tmpfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
         ]
     }
 
@@ -1876,6 +1876,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/sys/kernel".into(), used: 0, total: 100, pct: 0.0,
             kind: DiskKind::Unknown(-1), fs: "sysfs".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1888,6 +1889,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/proc".into(), used: 0, total: 100, pct: 0.0,
             kind: DiskKind::Unknown(-1), fs: "proc".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1900,6 +1902,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/dev/shm".into(), used: 0, total: 100, pct: 0.0,
             kind: DiskKind::Unknown(-1), fs: "tmpfs".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1912,6 +1915,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/run/lock".into(), used: 0, total: 100, pct: 0.0,
             kind: DiskKind::Unknown(-1), fs: "tmpfs".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1924,6 +1928,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/snap/core".into(), used: 0, total: 100, pct: 0.0,
             kind: DiskKind::Unknown(-1), fs: "squashfs".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1936,6 +1941,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/var/lib/docker".into(), used: 0, total: 100, pct: 0.0,
             kind: DiskKind::Unknown(-1), fs: "overlay".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1948,6 +1954,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/dev".into(), used: 0, total: 100, pct: 0.0,
             kind: DiskKind::Unknown(-1), fs: "devtmpfs".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1960,6 +1967,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/dev".into(), used: 0, total: 100, pct: 0.0,
             kind: DiskKind::Unknown(-1), fs: "devfs".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1972,6 +1980,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/net".into(), used: 0, total: 100, pct: 0.0,
             kind: DiskKind::Unknown(-1), fs: "autofs".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1984,6 +1993,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/net".into(), used: 0, total: 100, pct: 0.0,
             kind: DiskKind::Unknown(-1), fs: "map".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -1996,6 +2006,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/empty".into(), used: 0, total: 0, pct: 0.0,
             kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.prefs.show_all = false;
         let disks = app.sorted_disks();
@@ -2149,6 +2160,7 @@ mod tests {
         app.disks.push(DiskEntry {
             mount: "/data2".into(), used: 200_000_000_000, total: 400_000_000_000,
             pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None,
         });
         app.filter = "data".into();
         app.prefs.sort_mode = SortMode::Size;

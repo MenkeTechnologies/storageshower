@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v4.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v5.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -82,6 +82,13 @@ cargo install storageshower
   │   ├── timed read_dir with 2s timeout (no root needed)
   │   ├── color-coded badge: green(<50ms) / warn / red
   │   └── detects: nfs, nfs4, cifs, smbfs, afp, sshfs, s3fs, 9p
+  │
+[DISK_IO]
+  ├── Live disk I/O throughput ─── per-mount read/write rates
+  │   ├── macOS: IOKit IOBlockStorageDriver byte counters
+  │   ├── Linux: /proc/diskstats sector counters
+  │   ├── auto device→mount mapping via getmntinfo / /proc/mounts
+  │   └── overlay on bar: ▲1.2M/s ▼500K/s (shown when active)
   │
 [PLATFORM_COMPAT]
   ├── macOS ── SUPPORTED

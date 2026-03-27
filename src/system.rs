@@ -1,4 +1,5 @@
-use std::time::Duration;
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
 use std::sync::{Arc, Mutex};
 use sysinfo::{DiskKind, System};
 
@@ -250,7 +251,7 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 } else {
                     None
                 };
-                DiskEntry { mount, used, total, pct, kind, fs: fstype, latency_ms }
+                DiskEntry { mount, used, total, pct, kind, fs: fstype, latency_ms, io_read_rate: None, io_write_rate: None }
             })
             .collect()
     }
@@ -302,6 +303,8 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 kind: DiskKind::Unknown(-1),
                 fs: fstype,
                 latency_ms,
+                io_read_rate: None,
+                io_write_rate: None,
             })
         })
         .collect()
@@ -338,6 +341,8 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 kind: d.kind(),
                 fs,
                 latency_ms,
+                io_read_rate: None,
+                io_write_rate: None,
             }
         })
         .collect()
@@ -364,14 +369,200 @@ pub fn collect_sys_stats(sys: &System) -> SysStats {
     }
 }
 
+// ─── Disk I/O collection ──────────────────────────────────────────────────
+
+/// Per-device I/O counters: (bytes_read, bytes_written)
+type IoSnapshot = HashMap<String, (u64, u64)>;
+
+/// Per-mount I/O rates: (read_bytes_per_sec, write_bytes_per_sec)
+type IoRates = HashMap<String, (f64, f64)>;
+
+/// Map mount points to their underlying device names.
+#[cfg(target_os = "macos")]
+fn mount_to_device_map() -> HashMap<String, String> {
+    use std::ffi::CStr;
+    let mut map = HashMap::new();
+    unsafe {
+        let mut mntbuf: *mut libc::statfs = std::ptr::null_mut();
+        let count = libc::getmntinfo(&mut mntbuf, libc::MNT_NOWAIT);
+        if count > 0 && !mntbuf.is_null() {
+            let entries = std::slice::from_raw_parts(mntbuf, count as usize);
+            for fs in entries {
+                let mount = CStr::from_ptr(fs.f_mntonname.as_ptr())
+                    .to_string_lossy().to_string();
+                let device = CStr::from_ptr(fs.f_mntfromname.as_ptr())
+                    .to_string_lossy().to_string();
+                // Extract base device: /dev/disk3s1 -> disk3
+                if let Some(dev) = device.strip_prefix("/dev/") {
+                    let base: String = dev.chars()
+                        .take_while(|c| c.is_ascii_alphanumeric())
+                        .collect();
+                    if !base.is_empty() {
+                        map.insert(mount, base);
+                    }
+                }
+            }
+        }
+    }
+    map
+}
+
+#[cfg(target_os = "linux")]
+fn mount_to_device_map() -> HashMap<String, String> {
+    let mut map = HashMap::new();
+    if let Ok(content) = std::fs::read_to_string("/proc/mounts") {
+        for line in content.lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                let device = parts[0];
+                let mount = parts[1].to_string();
+                // Extract base device: /dev/sda1 -> sda, /dev/nvme0n1p1 -> nvme0n1
+                if let Some(dev) = device.strip_prefix("/dev/") {
+                    let base = dev.trim_end_matches(|c: char| c.is_ascii_digit())
+                        .trim_end_matches('p');
+                    if !base.is_empty() {
+                        map.insert(mount, base.to_string());
+                    }
+                }
+            }
+        }
+    }
+    map
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn mount_to_device_map() -> HashMap<String, String> {
+    HashMap::new()
+}
+
+/// Read current per-device I/O byte counters.
+#[cfg(target_os = "macos")]
+fn read_io_counters() -> IoSnapshot {
+    use std::process::Command;
+    let mut snap = HashMap::new();
+    // Parse ioreg for IOBlockStorageDriver statistics
+    let output = match Command::new("ioreg")
+        .args(["-c", "IOBlockStorageDriver", "-r", "-d", "1"])
+        .output()
+    {
+        Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
+        Err(_) => return snap,
+    };
+
+    let mut current_device = String::new();
+    for line in output.lines() {
+        let trimmed = line.trim();
+        if trimmed.contains("\"BSD Name\"") {
+            if let Some(name) = trimmed.split('"').nth(3) {
+                // Normalize to base device (disk0s1 -> disk0)
+                current_device = name.chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() && !c.is_ascii_digit())
+                    .chain(name.chars().skip_while(|c| !c.is_ascii_digit()).take_while(|c| c.is_ascii_digit()))
+                    .collect();
+            }
+        }
+        if trimmed.contains("\"Bytes (Read)\"") {
+            if let Some(val) = extract_ioreg_number(trimmed, "Bytes (Read)") {
+                let entry = snap.entry(current_device.clone()).or_insert((0, 0));
+                entry.0 = val;
+            }
+        }
+        if trimmed.contains("\"Bytes (Write)\"") {
+            if let Some(val) = extract_ioreg_number(trimmed, "Bytes (Write)") {
+                let entry = snap.entry(current_device.clone()).or_insert((0, 0));
+                entry.1 = val;
+            }
+        }
+    }
+    snap
+}
+
+#[cfg(target_os = "macos")]
+fn extract_ioreg_number(line: &str, key: &str) -> Option<u64> {
+    let pattern = format!("\"{}\"=", key);
+    if let Some(pos) = line.find(&pattern) {
+        let after = &line[pos + pattern.len()..];
+        let num_str: String = after.chars().take_while(|c| c.is_ascii_digit()).collect();
+        num_str.parse().ok()
+    } else {
+        None
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn read_io_counters() -> IoSnapshot {
+    let mut snap = HashMap::new();
+    if let Ok(content) = std::fs::read_to_string("/proc/diskstats") {
+        for line in content.lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            // Format: major minor name rd_ios rd_merges rd_sectors rd_ticks
+            //         wr_ios wr_merges wr_sectors wr_ticks ...
+            if parts.len() >= 10 {
+                let name = parts[2].to_string();
+                let rd_sectors: u64 = parts[5].parse().unwrap_or(0);
+                let wr_sectors: u64 = parts[9].parse().unwrap_or(0);
+                // Sectors are typically 512 bytes
+                snap.insert(name, (rd_sectors * 512, wr_sectors * 512));
+            }
+        }
+    }
+    snap
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn read_io_counters() -> IoSnapshot {
+    HashMap::new()
+}
+
+fn compute_io_rates(
+    prev: &IoSnapshot,
+    curr: &IoSnapshot,
+    elapsed_secs: f64,
+    mount_dev: &HashMap<String, String>,
+) -> IoRates {
+    let mut rates = HashMap::new();
+    if elapsed_secs <= 0.0 {
+        return rates;
+    }
+    for (mount, device) in mount_dev {
+        if let (Some(prev_io), Some(curr_io)) = (prev.get(device), curr.get(device)) {
+            let rd = curr_io.0.saturating_sub(prev_io.0) as f64 / elapsed_secs;
+            let wr = curr_io.1.saturating_sub(prev_io.1) as f64 / elapsed_secs;
+            rates.insert(mount.clone(), (rd, wr));
+        }
+    }
+    rates
+}
+
+fn apply_io_rates(entries: &mut [DiskEntry], rates: &IoRates) {
+    for entry in entries.iter_mut() {
+        if let Some(&(rd, wr)) = rates.get(&entry.mount) {
+            entry.io_read_rate = Some(rd);
+            entry.io_write_rate = Some(wr);
+        }
+    }
+}
+
 pub fn spawn_bg_collector(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>) {
     std::thread::spawn(move || {
         let mut sys = System::new_all();
+        let mut prev_io = read_io_counters();
+        let mut prev_time = Instant::now();
         loop {
             std::thread::sleep(Duration::from_secs(3));
             sys.refresh_all();
             let stats = collect_sys_stats(&sys);
-            let entries = collect_disk_entries();
+            let mut entries = collect_disk_entries();
+
+            let curr_io = read_io_counters();
+            let now = Instant::now();
+            let elapsed = now.duration_since(prev_time).as_secs_f64();
+            let mount_dev = mount_to_device_map();
+            let rates = compute_io_rates(&prev_io, &curr_io, elapsed, &mount_dev);
+            apply_io_rates(&mut entries, &rates);
+            prev_io = curr_io;
+            prev_time = now;
+
             {
                 let mut lock = shared.lock().unwrap();
                 *lock = (stats, entries);

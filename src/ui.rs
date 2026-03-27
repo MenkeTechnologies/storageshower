@@ -6,7 +6,7 @@ use ratatui::{
 use std::time::Duration;
 
 use crate::app::{mount_col_width, right_col_width, App};
-use crate::helpers::{format_bytes, format_latency, format_uptime, truncate_mount};
+use crate::helpers::{format_bytes, format_latency, format_rate, format_uptime, truncate_mount};
 use crate::system::{chrono_now, get_battery, get_local_ip, get_tty, get_username};
 use crate::types::*;
 
@@ -515,6 +515,29 @@ pub fn draw(frame: &mut Frame, app: &App) {
 
                 if bar_end < w.saturating_sub(rm) {
                     set_cell(buf, bar_end, row, "\u{2502}", border_s);
+                }
+
+                // I/O rate overlay on bar
+                let has_io = disk.io_read_rate.is_some_and(|r| r > 0.0)
+                    || disk.io_write_rate.is_some_and(|w| w > 0.0);
+                if has_io && bar_w > 20 {
+                    let rd = disk.io_read_rate.unwrap_or(0.0);
+                    let wr = disk.io_write_rate.unwrap_or(0.0);
+                    let io_str = if rd > 0.0 && wr > 0.0 {
+                        format!("\u{25B2}{} \u{25BC}{}", format_rate(rd), format_rate(wr))
+                    } else if rd > 0.0 {
+                        format!("\u{25B2}{}", format_rate(rd))
+                    } else {
+                        format!("\u{25BC}{}", format_rate(wr))
+                    };
+                    let io_len = io_str.chars().count() as u16;
+                    let io_x = bar_end.saturating_sub(io_len + 1);
+                    if io_x > bar_start {
+                        let io_style = Style::default()
+                            .fg(Color::Indexed(248))
+                            .add_modifier(Modifier::DIM);
+                        set_str(buf, io_x, row, &io_str, io_style, io_len);
+                    }
                 }
             }
         }

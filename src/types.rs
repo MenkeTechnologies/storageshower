@@ -108,6 +108,8 @@ pub struct DiskEntry {
     pub kind: DiskKind,
     pub fs: String,
     pub latency_ms: Option<f64>,
+    pub io_read_rate: Option<f64>,
+    pub io_write_rate: Option<f64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -207,6 +209,8 @@ mod tests {
             kind: DiskKind::SSD,
             fs: "ext4".into(),
             latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
         };
         let c = d.clone();
         assert_eq!(c.mount, "/mnt");

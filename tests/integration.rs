@@ -24,9 +24,9 @@ fn make_key(code: KeyCode) -> KeyEvent {
 
 fn sample_disks() -> Vec<DiskEntry> {
     vec![
-        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None },
-        DiskEntry { mount: "/data".into(), used: 900_000_000_000, total: 1_000_000_000_000, pct: 90.0, kind: DiskKind::HDD, fs: "xfs".into(), latency_ms: None },
-        DiskEntry { mount: "/home".into(), used: 80_000_000_000, total: 200_000_000_000, pct: 40.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None },
+        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+        DiskEntry { mount: "/data".into(), used: 900_000_000_000, total: 1_000_000_000_000, pct: 90.0, kind: DiskKind::HDD, fs: "xfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+        DiskEntry { mount: "/home".into(), used: 80_000_000_000, total: 200_000_000_000, pct: 40.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
     ]
 }
 
@@ -359,6 +359,8 @@ fn refresh_data_updates_from_shared() {
         kind: DiskKind::SSD,
         fs: "ext4".into(),
         latency_ms: None,
+        io_read_rate: None,
+        io_write_rate: None,
     };
     {
         let mut lock = shared.lock().unwrap();
@@ -557,7 +559,7 @@ fn mount_col_width_all_terminal_sizes() {
 #[test]
 fn right_col_width_with_different_unit_modes() {
     let disks = vec![
-        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None },
+        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
     ];
     for mode in [UnitMode::Human, UnitMode::GiB, UnitMode::MiB, UnitMode::Bytes] {
         let shared = Arc::new(Mutex::new((SysStats::default(), disks.clone())));
@@ -575,9 +577,9 @@ fn right_col_width_with_different_unit_modes() {
 #[test]
 fn sort_stability_equal_pct() {
     let disks = vec![
-        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None },
-        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None },
-        DiskEntry { mount: "/c".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None },
+        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+        DiskEntry { mount: "/c".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
     ];
     let mut app = make_app_with_disks(disks);
     app.prefs.sort_mode = SortMode::Pct;
@@ -589,8 +591,8 @@ fn sort_stability_equal_pct() {
 #[test]
 fn sort_stability_equal_size() {
     let disks = vec![
-        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None },
-        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None },
+        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
     ];
     let mut app = make_app_with_disks(disks);
     app.prefs.sort_mode = SortMode::Size;
@@ -612,6 +614,8 @@ fn sort_and_filter_many_disks() {
             kind: DiskKind::SSD,
             fs: "ext4".into(),
             latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
         });
     }
     let mut app = make_app_with_disks(disks);

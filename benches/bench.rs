@@ -19,6 +19,8 @@ fn sample_disks(n: usize) -> Vec<DiskEntry> {
             kind: DiskKind::SSD,
             fs: "apfs".into(),
             latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
         })
         .collect()
 }
