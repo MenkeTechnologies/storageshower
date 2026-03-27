@@ -882,13 +882,15 @@ pub fn draw(frame: &mut Frame, app: &App) {
         draw_theme_editor(buf, w, h, app);
     }
 
-    // ─── Hover tooltip (1s delay) ───
+    // ─── Hover tooltip (1s delay for title/footer, right-click only for disk rows) ───
     if !app.show_help && !app.theme_edit.active && !app.theme_chooser.active && !app.filter.active && app.hover_ready() {
         match app.hovered_zone(h) {
             HoverZone::DiskRow(idx) => {
-                let disks = app.sorted_disks();
-                if let Some(disk) = disks.get(idx) {
-                    draw_hover_tooltip(buf, w, h, app, disk);
+                if app.hover.right_click {
+                    let disks = app.sorted_disks();
+                    if let Some(disk) = disks.get(idx) {
+                        draw_hover_tooltip(buf, w, h, app, disk);
+                    }
                 }
             }
             HoverZone::TitleBar => {
@@ -1234,8 +1236,8 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
         }
     }
 
-    // ─── Hover tooltip for drill-down entries ───
-    if app.hover_ready() {
+    // ─── Hover tooltip for drill-down entries (right-click only) ───
+    if app.hover_ready() && app.hover.right_click {
         if let Some(idx) = app.hovered_drill_index() {
             if let Some(entry) = app.drill.entries.get(idx) {
                 draw_hover_drill_tooltip(buf, w, h, app, entry);
@@ -1602,7 +1604,7 @@ fn title_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
              ("  Close".into(), "Same keys or Esc to dismiss".into()),
              ("  Layout".into(), "3-column keybind reference".into()),
              ("  Categories".into(), "Navigation, Display, Sort, I/O, Theme".into()),
-             ("  Mouse".into(), "Click headers, scroll, hover for tips".into())]
+             ("  Mouse".into(), "Click headers, scroll, R-click for tips".into())]
     } else {
         vec![("\u{25B6} Info".into(), segment.to_string())]
     }
@@ -2188,8 +2190,8 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         HelpEntry { key: "Click", desc: "Select row", val_fn: empty_val, is_section: false },
         HelpEntry { key: "Click\u{00D7}2", desc: "Drill into", val_fn: empty_val, is_section: false },
         HelpEntry { key: "Drag", desc: "Resize cols", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "R-Click", desc: "Show tooltip", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Hover", desc: "Tooltip (2s)", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "R-Click", desc: "Mount tooltip", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "Hover", desc: "Bar tooltip", val_fn: empty_val, is_section: false },
     ];
 
     let columns = [col1, col2, col3];

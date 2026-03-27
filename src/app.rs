@@ -60,6 +60,7 @@ pub struct AlertState {
 pub struct HoverState {
     pub pos: Option<(u16, u16)>,
     pub since: Option<Instant>,
+    pub right_click: bool,
 }
 
 pub struct ThemeEditState {
@@ -147,6 +148,7 @@ impl App {
             hover: HoverState {
                 pos: None,
                 since: None,
+                right_click: false,
             },
             theme_edit: ThemeEditState {
                 active: false,
@@ -203,6 +205,7 @@ impl App {
             hover: HoverState {
                 pos: None,
                 since: None,
+                right_click: false,
             },
             theme_edit: ThemeEditState {
                 active: false,
@@ -1147,7 +1150,7 @@ impl App {
         let mount_w = mount_col_width(inner_w, &self.prefs);
         let mount_sep_x = lm + 3 + mount_w as u16;
 
-        let right_w = right_col_width_static(&self.prefs);
+        let right_w = right_col_width(self);
         let bar_end_x = term_w.saturating_sub(rm + right_w + 1);
         let pct_w: u16 = if self.prefs.col_pct_w > 0 { self.prefs.col_pct_w } else { 5 };
         let right_start = term_w.saturating_sub(rm + right_w);
@@ -1160,7 +1163,14 @@ impl App {
                 let x = event.column;
                 let y = event.row;
 
-                if self.prefs.show_header && y == header_row {
+                // Column separator drag detection (checked first, before header sort)
+                if x.abs_diff(mount_sep_x) <= 1 {
+                    self.drag = Some(DragTarget::MountSep);
+                } else if self.prefs.show_used && x.abs_diff(pct_sep_x) <= 1 {
+                    self.drag = Some(DragTarget::PctSep);
+                } else if x.abs_diff(bar_end_x) <= 1 {
+                    self.drag = Some(DragTarget::BarEndSep);
+                } else if self.prefs.show_header && y == header_row {
                     let clicked_sort = if x >= lm && x < mount_sep_x {
                         Some(SortMode::Name)
                     } else if x > bar_end_x && x < right_start {
@@ -1181,17 +1191,7 @@ impl App {
                             self.prefs.sort_rev = false;
                         }
                         self.save();
-                        return;
                     }
-                }
-
-                // Column separator drag detection (checked before row click)
-                if x.abs_diff(mount_sep_x) <= 1 {
-                    self.drag = Some(DragTarget::MountSep);
-                } else if self.prefs.show_used && x.abs_diff(pct_sep_x) <= 1 {
-                    self.drag = Some(DragTarget::PctSep);
-                } else if x.abs_diff(bar_end_x) <= 1 {
-                    self.drag = Some(DragTarget::BarEndSep);
                 } else {
                     // Click on disk row to select
                     let first_disk_row: u16 = if show_border { 1 } else { 0 }
@@ -1250,12 +1250,14 @@ impl App {
                 // Right-click triggers instant hover tooltip at click position
                 self.hover.pos = Some((event.column, event.row));
                 self.hover.since = Some(Instant::now() - std::time::Duration::from_secs(2));
+                self.hover.right_click = true;
             }
             MouseEventKind::Moved => {
                 let new_pos = (event.column, event.row);
                 if self.hover.pos != Some(new_pos) {
                     self.hover.pos = Some(new_pos);
                     self.hover.since = Some(Instant::now());
+                    self.hover.right_click = false;
                 }
             }
             MouseEventKind::ScrollDown => {
@@ -3054,5 +3056,148 @@ mod tests {
         );
         assert_eq!(app.theme_chooser.selected, 0);
         assert_eq!(app.prefs.color_mode, ColorMode::ALL[0]);
+    }
+
+    // ── Right-click tooltip flag ──────────────────────────────
+
+    #[test]
+    fn right_click_sets_hover_right_click_flag() {
+        let mut app = test_app();
+        assert!(!app.hover.right_click);
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 15, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.hover.right_click);
+        assert_eq!(app.hover.pos, Some((15, 5)));
+        assert!(app.hover_ready());
+    }
+
+    #[test]
+    fn mouse_move_clears_right_click_flag() {
+        let mut app = test_app();
+        // Right-click first
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 15, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.hover.right_click);
+        // Move mouse
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(!app.hover.right_click);
+        assert_eq!(app.hover.pos, Some((20, 5)));
+    }
+
+    #[test]
+    fn mouse_move_same_pos_keeps_right_click_flag() {
+        let mut app = test_app();
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 15, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.hover.right_click);
+        // Move to same position — should not clear
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Moved, column: 15, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.hover.right_click);
+    }
+
+    // ── Drag priority over header sort ────────────────────────
+
+    #[test]
+    fn drag_pct_sep_takes_priority_over_sort() {
+        let mut app = test_app();
+        app.prefs.show_used = true;
+        let right_w = right_col_width(&app);
+        let pct_w: u16 = if app.prefs.col_pct_w > 0 { app.prefs.col_pct_w } else { 5 };
+        let right_start = 80u16.saturating_sub(1 + right_w);
+        let pct_sep_x = right_start + pct_w;
+        let header_row: u16 = 3; // show_border default = true, so header_row = 3
+
+        // Click at pct separator on header row
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: pct_sep_x, row: header_row, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        // Should start drag, not sort
+        assert!(matches!(app.drag, Some(DragTarget::PctSep)));
+    }
+
+    #[test]
+    fn drag_bar_end_sep_takes_priority_over_sort() {
+        let mut app = test_app();
+        let right_w = right_col_width(&app);
+        let bar_end_x = 80u16.saturating_sub(1 + right_w + 1);
+        let header_row: u16 = 3;
+
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: bar_end_x, row: header_row, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(matches!(app.drag, Some(DragTarget::BarEndSep)));
+    }
+
+    #[test]
+    fn drag_pct_sep_and_release() {
+        let mut app = test_app();
+        app.prefs.show_used = true;
+        let right_w = right_col_width(&app);
+        let pct_w: u16 = if app.prefs.col_pct_w > 0 { app.prefs.col_pct_w } else { 5 };
+        let right_start = 80u16.saturating_sub(1 + right_w);
+        let pct_sep_x = right_start + pct_w;
+
+        // Start drag
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: pct_sep_x, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(matches!(app.drag, Some(DragTarget::PctSep)));
+
+        // Drag to new position
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: pct_sep_x + 3, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.prefs.col_pct_w > 0);
+
+        // Release
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: pct_sep_x + 3, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.drag.is_none());
+    }
+
+    #[test]
+    fn drag_bar_end_sep_and_release() {
+        let mut app = test_app();
+        let right_w = right_col_width(&app);
+        let bar_end_x = 80u16.saturating_sub(1 + right_w + 1);
+
+        // Start drag
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: bar_end_x, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(matches!(app.drag, Some(DragTarget::BarEndSep)));
+
+        // Drag
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: bar_end_x - 5, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.prefs.col_bar_end_w > 0);
+
+        // Release
+        app.handle_mouse(
+            MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: bar_end_x - 5, row: 5, modifiers: KeyModifiers::NONE },
+            80, 24,
+        );
+        assert!(app.drag.is_none());
     }
 }

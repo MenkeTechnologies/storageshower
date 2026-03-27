@@ -1835,3 +1835,126 @@ fn theme_chooser_scroll_auto_applies() {
     assert_eq!(app.theme_chooser.selected, 1);
     assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
 }
+
+// ─── Right-click tooltip flag ──────────────────────────────────────────────
+
+#[test]
+fn right_click_sets_right_click_flag() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert!(!app.hover.right_click);
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 10, row: 5, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.right_click);
+    assert!(app.hover_ready());
+}
+
+#[test]
+fn hover_move_clears_right_click_flag() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 10, row: 5, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.right_click);
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 8, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(!app.hover.right_click);
+}
+
+#[test]
+fn hover_move_same_pos_preserves_right_click() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 10, row: 5, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.right_click);
+    // Same position — flag preserved
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 5, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.hover.right_click);
+}
+
+// ─── Drag pct/bar-end separators ───────────────────────────────────────────
+
+#[test]
+fn drag_pct_separator_resizes_column() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.show_used = true;
+    let right_w = right_col_width(&app);
+    let pct_w: u16 = if app.prefs.col_pct_w > 0 { app.prefs.col_pct_w } else { 5 };
+    let rm: u16 = 1; // show_border default
+    let right_start = 80u16.saturating_sub(rm + right_w);
+    let pct_sep_x = right_start + pct_w;
+
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: pct_sep_x, row: 6, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(matches!(app.drag, Some(DragTarget::PctSep)));
+
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: pct_sep_x + 2, row: 6, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.prefs.col_pct_w > 0);
+
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: pct_sep_x + 2, row: 6, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.drag.is_none());
+}
+
+#[test]
+fn drag_bar_end_separator_resizes_column() {
+    let mut app = make_app_with_disks(sample_disks());
+    let right_w = right_col_width(&app);
+    let rm: u16 = 1;
+    let bar_end_x = 80u16.saturating_sub(rm + right_w + 1);
+
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: bar_end_x, row: 6, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(matches!(app.drag, Some(DragTarget::BarEndSep)));
+
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: bar_end_x - 4, row: 6, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.prefs.col_bar_end_w > 0);
+
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: bar_end_x - 4, row: 6, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.drag.is_none());
+}
+
+#[test]
+fn drag_on_header_row_takes_priority_over_sort() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.show_used = true;
+    let right_w = right_col_width(&app);
+    let pct_w: u16 = if app.prefs.col_pct_w > 0 { app.prefs.col_pct_w } else { 5 };
+    let rm: u16 = 1;
+    let right_start = 80u16.saturating_sub(rm + right_w);
+    let pct_sep_x = right_start + pct_w;
+    let header_row: u16 = 3; // border + title + sep
+
+    let sort_before = app.prefs.sort_mode;
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: pct_sep_x, row: header_row, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    // Should start drag, NOT change sort
+    assert!(matches!(app.drag, Some(DragTarget::PctSep)));
+    assert_eq!(app.prefs.sort_mode, sort_before);
+}

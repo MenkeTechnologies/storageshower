@@ -1,6 +1,6 @@
 [package]
 name = "storageshower"
-version = "0.20.0"
+version = "0.21.0"
 edition = "2021"
 description = "Cyberpunk disk usage TUI"
 license = "MIT"
