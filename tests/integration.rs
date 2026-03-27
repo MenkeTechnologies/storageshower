@@ -1576,3 +1576,48 @@ fn hover_delay_is_one_second() {
     app.hover_since = Some(std::time::Instant::now() - std::time::Duration::from_millis(1100));
     assert!(app.hover_ready());
 }
+
+// ─── HoverZone consistency ───────────────────────────────────────────────
+
+#[test]
+fn hover_zone_matches_hovered_disk_index() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover_pos = Some((10, 5));
+    assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(0));
+    assert_eq!(app.hovered_disk_index(), Some(0));
+
+    app.hover_pos = Some((10, 7));
+    assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(2));
+    assert_eq!(app.hovered_disk_index(), Some(2));
+}
+
+#[test]
+fn hover_zone_title_not_disk() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover_pos = Some((10, 1));
+    assert_eq!(app.hovered_zone(40), HoverZone::TitleBar);
+    assert!(app.hovered_disk_index().is_none());
+}
+
+// ─── Drill-down hover index with scroll offset ──────────────────────────
+
+#[test]
+fn drill_hover_index_none_on_header() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: true },
+    ];
+    // Row 3 is header area in drill-down (border + breadcrumb + sep + header)
+    app.hover_pos = Some((10, 3));
+    assert!(app.hovered_drill_index().is_none());
+}
+
+// ─── Version string accessible ──────────────────────────────────────────
+
+#[test]
+fn cargo_version_available() {
+    let ver = env!("CARGO_PKG_VERSION");
+    assert!(!ver.is_empty());
+    assert!(ver.contains('.'));
+}

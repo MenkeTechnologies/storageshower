@@ -1108,45 +1108,52 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
     let mut lines: Vec<(String, String)> = Vec::new();
     lines.push(("\u{25B6} Mount".into(), disk.mount.clone()));
     lines.push(("  Filesystem".into(), disk.fs.clone()));
-    lines.push(("  Usage".into(), format!("{:.1}% ({}/{})",
-        disk.pct,
-        format_bytes(disk.used, app.prefs.unit_mode),
-        format_bytes(disk.total, app.prefs.unit_mode),
-    )));
+    lines.push(("  Used".into(), format_bytes(disk.used, app.prefs.unit_mode)));
     let free = disk.total.saturating_sub(disk.used);
     lines.push(("  Free".into(), format_bytes(free, app.prefs.unit_mode)));
+    lines.push(("  Total".into(), format_bytes(disk.total, app.prefs.unit_mode)));
+    lines.push(("  Usage".into(), format!("{:.1}%", disk.pct)));
     lines.push(("  Kind".into(), match disk.kind {
-        sysinfo::DiskKind::SSD => "SSD".into(),
-        sysinfo::DiskKind::HDD => "HDD".into(),
+        sysinfo::DiskKind::SSD => "SSD (Solid State Drive)".into(),
+        sysinfo::DiskKind::HDD => "HDD (Hard Disk Drive)".into(),
         _ => "Unknown".into(),
     }));
-    let thresh_status = if disk.pct >= app.prefs.thresh_crit as f64 {
-        "\u{2716} CRITICAL"
+    let (thresh_status, thresh_desc) = if disk.pct >= app.prefs.thresh_crit as f64 {
+        ("\u{2716} CRITICAL", format!("Above crit threshold ({}%)", app.prefs.thresh_crit))
     } else if disk.pct >= app.prefs.thresh_warn as f64 {
-        "\u{26A0} WARNING"
+        ("\u{26A0} WARNING", format!("Above warn threshold ({}%)", app.prefs.thresh_warn))
     } else {
-        "\u{25C8} Nominal"
+        ("\u{25C8} Nominal", format!("Below warn threshold ({}%)", app.prefs.thresh_warn))
     };
     lines.push(("  Status".into(), thresh_status.into()));
+    lines.push(("  Threshold".into(), thresh_desc));
     if let Some(smart) = disk.smart_status {
-        lines.push(("  SMART".into(), match smart {
-            SmartHealth::Verified => "\u{2714} Verified".into(),
-            SmartHealth::Failing => "\u{2718} FAILING".into(),
-            SmartHealth::Unknown => "? Unknown".into(),
-        }));
+        let (smart_val, smart_src) = match smart {
+            SmartHealth::Verified => ("\u{2714} Verified", "diskutil info (macOS) or /sys/block (Linux)"),
+            SmartHealth::Failing => ("\u{2718} FAILING — replace drive!", "diskutil info (macOS) or /sys/block (Linux)"),
+            SmartHealth::Unknown => ("? Unknown", "SMART not available for this device"),
+        };
+        lines.push(("  SMART".into(), smart_val.into()));
+        lines.push(("  SMART src".into(), smart_src.into()));
     }
     if let Some(lat) = disk.latency_ms {
         lines.push(("  Latency".into(), format_latency(lat)));
+        lines.push(("  Lat src".into(), "timed read_dir with 2s timeout".into()));
     }
     if let Some(rd) = disk.io_read_rate {
-        if rd > 0.0 { lines.push(("  \u{25B2} Read".into(), format_rate(rd))); }
+        if rd > 0.0 { lines.push(("  \u{25B2} Read".into(), format!("{}/s", format_rate(rd)))); }
     }
     if let Some(wr) = disk.io_write_rate {
-        if wr > 0.0 { lines.push(("  \u{25BC} Write".into(), format_rate(wr))); }
+        if wr > 0.0 { lines.push(("  \u{25BC} Write".into(), format!("{}/s", format_rate(wr)))); }
+    }
+    if disk.io_read_rate.is_some() || disk.io_write_rate.is_some() {
+        lines.push(("  I/O src".into(), "IOKit (macOS) or /proc/diskstats (Linux)".into()));
     }
     if app.prefs.bookmarks.contains(&disk.mount) {
-        lines.push(("  \u{2605} Bookmark".into(), "pinned".into()));
+        lines.push(("  \u{2605} Pinned".into(), "Bookmarked — appears at top of list".into()));
     }
+    lines.push(("  Source".into(), "getmntinfo (macOS) / /proc/mounts (Linux)".into()));
+    lines.push(("  Actions".into(), "Enter=drill  o=open  y=copy  B=bookmark".into()));
 
     render_tooltip(buf, w, h, hover_x, hover_y, app, &lines);
 }
@@ -1218,47 +1225,72 @@ fn segment_at_x(rendered: &str, hover_x: u16, bar_start_x: u16) -> Option<String
 fn title_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
     let seg_lower = segment.to_lowercase();
     if seg_lower.contains("disk matrix") {
-        vec![("App".into(), "STORAGESHOWER — Cyberpunk Disk TUI".into()),
-             ("by".into(), "MenkeTechnologies".into())]
+        vec![("\u{25B6} App".into(), "STORAGESHOWER".into()),
+             ("  Version".into(), format!("v{}", env!("CARGO_PKG_VERSION"))),
+             ("  Desc".into(), "Cyberpunk disk usage TUI monitor".into()),
+             ("  Author".into(), "MenkeTechnologies".into()),
+             ("  Repo".into(), "github.com/MenkeTechnologies/storageshower".into()),
+             ("  License".into(), "MIT".into()),
+             ("  Install".into(), "cargo install storageshower".into())]
     } else if seg_lower.starts_with("node:") {
-        vec![("Hostname".into(), app.stats.hostname.clone()),
-             ("OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
-             ("Kernel".into(), app.stats.kernel.clone()),
-             ("Arch".into(), app.stats.arch.clone())]
+        vec![("\u{25B6} Hostname".into(), app.stats.hostname.clone()),
+             ("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
+             ("  Kernel".into(), app.stats.kernel.clone()),
+             ("  Arch".into(), app.stats.arch.clone()),
+             ("  Source".into(), "sysinfo::System::host_name()".into())]
     } else if seg_lower.starts_with("date:") || seg_lower.starts_with("clock:") {
         let now = chrono_now();
-        vec![("Date".into(), now.0), ("Time".into(), now.1)]
+        vec![("\u{25B6} Date".into(), now.0),
+             ("  Time".into(), now.1),
+             ("  Source".into(), "libc::localtime_r (UNIX epoch)".into())]
     } else if seg_lower.starts_with("load:") {
         let l = app.stats.load_avg;
-        vec![("Load 1m".into(), format!("{:.2}", l.0)),
-             ("Load 5m".into(), format!("{:.2}", l.1)),
-             ("Load 15m".into(), format!("{:.2}", l.2)),
-             ("Desc".into(), "System load average (runnable processes)".into())]
+        vec![("\u{25B6} Load Average".into(), String::new()),
+             ("  1 min".into(), format!("{:.2}", l.0)),
+             ("  5 min".into(), format!("{:.2}", l.1)),
+             ("  15 min".into(), format!("{:.2}", l.2)),
+             ("  Desc".into(), "Average runnable+uninterruptible processes".into()),
+             ("  Source".into(), "sysinfo::System::load_average()".into())]
     } else if seg_lower.starts_with("mem:") {
         let pct = if app.stats.mem_total > 0 { (app.stats.mem_used as f64 / app.stats.mem_total as f64) * 100.0 } else { 0.0 };
-        vec![("Used".into(), format_bytes(app.stats.mem_used, UnitMode::Human)),
-             ("Total".into(), format_bytes(app.stats.mem_total, UnitMode::Human)),
-             ("Usage".into(), format!("{:.1}%", pct)),
-             ("Free".into(), format_bytes(app.stats.mem_total.saturating_sub(app.stats.mem_used), UnitMode::Human))]
+        let free = app.stats.mem_total.saturating_sub(app.stats.mem_used);
+        vec![("\u{25B6} Memory".into(), String::new()),
+             ("  Used".into(), format_bytes(app.stats.mem_used, UnitMode::Human)),
+             ("  Free".into(), format_bytes(free, UnitMode::Human)),
+             ("  Total".into(), format_bytes(app.stats.mem_total, UnitMode::Human)),
+             ("  Usage".into(), format!("{:.1}%", pct)),
+             ("  Source".into(), "sysinfo::System::used_memory()".into())]
     } else if seg_lower.starts_with("cpu:") {
-        vec![("CPUs".into(), format!("{}", app.stats.cpu_count)),
-             ("Desc".into(), "Logical CPU cores".into())]
+        vec![("\u{25B6} CPU".into(), String::new()),
+             ("  Cores".into(), format!("{} logical", app.stats.cpu_count)),
+             ("  Source".into(), "sysinfo::System::cpus().len()".into())]
     } else if seg_lower.starts_with("procs:") {
-        vec![("Processes".into(), format!("{}", app.stats.process_count)),
-             ("Desc".into(), "Running system processes".into())]
+        vec![("\u{25B6} Processes".into(), format!("{}", app.stats.process_count)),
+             ("  Desc".into(), "Total running system processes".into()),
+             ("  Source".into(), "sysinfo::System::processes().len()".into())]
     } else if seg_lower.starts_with("swap:") {
-        vec![("Used".into(), format_bytes(app.stats.swap_used, UnitMode::Human)),
-             ("Total".into(), format_bytes(app.stats.swap_total, UnitMode::Human))]
+        let swap_free = app.stats.swap_total.saturating_sub(app.stats.swap_used);
+        vec![("\u{25B6} Swap".into(), String::new()),
+             ("  Used".into(), format_bytes(app.stats.swap_used, UnitMode::Human)),
+             ("  Free".into(), format_bytes(swap_free, UnitMode::Human)),
+             ("  Total".into(), format_bytes(app.stats.swap_total, UnitMode::Human)),
+             ("  Source".into(), "sysinfo::System::used_swap()".into())]
     } else if seg_lower.starts_with("kern:") {
-        vec![("Kernel".into(), app.stats.kernel.clone())]
+        vec![("\u{25B6} Kernel".into(), app.stats.kernel.clone()),
+             ("  Source".into(), "sysinfo::System::kernel_version()".into())]
     } else if seg_lower.starts_with("arch:") {
-        vec![("Arch".into(), app.stats.arch.clone())]
+        vec![("\u{25B6} Architecture".into(), app.stats.arch.clone()),
+             ("  Source".into(), "sysinfo::System::cpu_arch()".into())]
     } else if seg_lower.contains("paused") {
-        vec![("Status".into(), "Data refresh PAUSED (press p to resume)".into())]
+        vec![("\u{25B6} \u{23F8} PAUSED".into(), String::new()),
+             ("  Desc".into(), "Data refresh is paused".into()),
+             ("  Resume".into(), "Press p to resume live data".into())]
     } else if seg_lower.contains("h=help") {
-        vec![("Help".into(), "Press h/H/? to open help overlay".into())]
+        vec![("\u{25B6} Help".into(), String::new()),
+             ("  Open".into(), "Press h / H / ? to show keybinds".into()),
+             ("  Close".into(), "Same keys or Esc to dismiss".into())]
     } else {
-        vec![("Info".into(), segment.to_string())]
+        vec![("\u{25B6} Info".into(), segment.to_string())]
     }
 }
 
@@ -1266,53 +1298,83 @@ fn title_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
 fn footer_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
     let seg_lower = segment.to_lowercase();
     if seg_lower.contains("cyberdeck") || seg_lower.contains("zpwr") {
-        vec![("App".into(), "STORAGESHOWER".into()),
-             ("by".into(), "MenkeTechnologies".into())]
+        vec![("\u{25B6} App".into(), "STORAGESHOWER".into()),
+             ("  Version".into(), format!("v{}", env!("CARGO_PKG_VERSION"))),
+             ("  Author".into(), "MenkeTechnologies".into()),
+             ("  Config".into(), "~/.storageshower.conf".into()),
+             ("  Desc".into(), "Settings auto-saved on change".into())]
     } else if seg_lower.starts_with("vol:") {
-        vec![("Volumes".into(), segment.trim_start_matches("vol:").into()),
-             ("Desc".into(), "Visible disk count".into())]
+        let total = app.disks.len();
+        let visible: usize = segment.trim_start_matches("vol:").parse().unwrap_or(0);
+        vec![("\u{25B6} Volumes".into(), format!("{} visible", visible)),
+             ("  Total".into(), format!("{} mounted filesystems", total)),
+             ("  Hidden".into(), format!("{}", total.saturating_sub(visible))),
+             ("  Desc".into(), "Filtered by show_all/show_local/filter".into())]
     } else if seg_lower.starts_with("sort:") {
-        vec![("Sort".into(), format!("{:?}", app.prefs.sort_mode)),
-             ("Direction".into(), if app.prefs.sort_rev { "Descending \u{25BC}" } else { "Ascending \u{25B2}" }.into()),
-             ("Keys".into(), "n=name  u=usage%  s=size  r=reverse".into())]
+        vec![("\u{25B6} Sort Mode".into(), format!("{:?}", app.prefs.sort_mode)),
+             ("  Direction".into(), if app.prefs.sort_rev { "Descending \u{25BC}" } else { "Ascending \u{25B2}" }.into()),
+             ("  Keys".into(), "n=name  u=usage%  s=size".into()),
+             ("  Reverse".into(), "r or press same key again".into()),
+             ("  Mouse".into(), "Click column header to sort".into()),
+             ("  Config".into(), "sort_mode / sort_rev in prefs".into())]
     } else if seg_lower.ends_with('s') && seg_lower.chars().next().is_some_and(|c| c.is_ascii_digit()) {
-        vec![("Refresh".into(), format!("{}s interval", app.prefs.refresh_rate)),
-             ("Key".into(), "f/F to cycle (1→2→5→10)".into())]
+        vec![("\u{25B6} Refresh Rate".into(), format!("{}s", app.prefs.refresh_rate)),
+             ("  Desc".into(), "How often disk data is re-collected".into()),
+             ("  Key".into(), "f/F to cycle (1→2→5→10)".into()),
+             ("  Source".into(), "Background thread via Arc<Mutex<>>".into()),
+             ("  Config".into(), "refresh_rate in prefs".into())]
     } else if seg_lower == "gradient" || seg_lower == "solid" || seg_lower == "thin" || seg_lower == "ascii" {
-        vec![("Bar style".into(), format!("{:?}", app.prefs.bar_style)),
-             ("Key".into(), "b to cycle".into())]
+        vec![("\u{25B6} Bar Style".into(), format!("{:?}", app.prefs.bar_style)),
+             ("  Options".into(), "gradient / solid / thin / ascii".into()),
+             ("  Key".into(), "b to cycle through styles".into()),
+             ("  Config".into(), "bar_style in prefs".into())]
     } else if seg_lower.starts_with("up:") {
-        vec![("Uptime".into(), format_uptime(app.stats.uptime)),
-             ("Seconds".into(), format!("{}", app.stats.uptime))]
+        vec![("\u{25B6} System Uptime".into(), format_uptime(app.stats.uptime)),
+             ("  Raw".into(), format!("{} seconds", app.stats.uptime)),
+             ("  Source".into(), "sysinfo::System::uptime()".into())]
     } else if seg_lower.starts_with("user:") {
-        vec![("User".into(), segment.trim_start_matches("user:").into())]
+        vec![("\u{25B6} User".into(), segment.trim_start_matches("user:").into()),
+             ("  Source".into(), "$USER or $USERNAME env var".into())]
     } else if seg_lower.starts_with("ip:") {
-        vec![("Local IP".into(), segment.trim_start_matches("ip:").into()),
-             ("Desc".into(), "Primary network interface address".into())]
+        vec![("\u{25B6} Local IP".into(), segment.trim_start_matches("ip:").into()),
+             ("  Desc".into(), "Primary interface address".into()),
+             ("  Source".into(), "UDP socket bind to 8.8.8.8:80".into())]
     } else if seg_lower.starts_with("os:") {
-        vec![("OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version))]
+        vec![("\u{25B6} OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
+             ("  Source".into(), "sysinfo::System::name() + os_version()".into())]
     } else if seg_lower.starts_with("sh:") {
-        vec![("Shell".into(), segment.trim_start_matches("sh:").into())]
+        vec![("\u{25B6} Shell".into(), segment.trim_start_matches("sh:").into()),
+             ("  Source".into(), "$SHELL environment variable".into())]
     } else if seg_lower.starts_with("tty:") {
-        vec![("TTY".into(), segment.trim_start_matches("tty:").into())]
+        vec![("\u{25B6} TTY".into(), segment.trim_start_matches("tty:").into()),
+             ("  Source".into(), "libc::ttyname(0) (stdin fd)".into())]
     } else if seg_lower.starts_with("bat:") {
-        vec![("Battery".into(), segment.trim_start_matches("bat:").into())]
+        vec![("\u{25B6} Battery".into(), segment.trim_start_matches("bat:").into()),
+             ("  Source".into(), "pmset (macOS) or /sys/class/power_supply (Linux)".into())]
     } else if seg_lower.starts_with("disks:") {
-        vec![("Disks".into(), segment.trim_start_matches("disks:").into())]
+        vec![("\u{25B6} Disk Count".into(), segment.trim_start_matches("disks:").into()),
+             ("  Desc".into(), "Total visible filesystems".into())]
     } else if seg_lower.contains("filter>") {
-        vec![("Filter".into(), app.filter_buf.clone()),
-             ("Keys".into(), "Enter=confirm  Esc=cancel".into())]
+        vec![("\u{25B6} Filter Active".into(), app.filter_buf.clone()),
+             ("  Desc".into(), "Case-insensitive mount path substring".into()),
+             ("  Keys".into(), "Enter=confirm  Esc=cancel".into()),
+             ("  Edit".into(), "Ctrl+w=word  Ctrl+u=line  Ctrl+k=end".into())]
     } else {
-        // Theme or unit name
         let color_name = if let Some(ref n) = app.prefs.active_theme { n.clone() } else { app.prefs.color_mode.name().into() };
         if segment.trim() == color_name {
-            return vec![("Theme".into(), color_name),
-                        ("Key".into(), "c=cycle  C=editor".into())];
+            return vec![("\u{25B6} Color Theme".into(), color_name),
+                        ("  Builtins".into(), format!("{} palettes", ColorMode::ALL.len())),
+                        ("  Custom".into(), format!("{} user themes", app.prefs.custom_themes.len())),
+                        ("  Key".into(), "c=cycle  C=theme editor".into()),
+                        ("  CLI".into(), "--color, --theme, --export-theme".into()),
+                        ("  Config".into(), "color_mode / active_theme in prefs".into())];
         }
         let unit_name = match app.prefs.unit_mode { UnitMode::Human=>"human", UnitMode::GiB=>"GiB", UnitMode::MiB=>"MiB", UnitMode::Bytes=>"bytes" };
         if segment.trim() == unit_name {
-            return vec![("Units".into(), unit_name.into()),
-                        ("Key".into(), "i/I to cycle".into())];
+            return vec![("\u{25B6} Unit Mode".into(), unit_name.into()),
+                        ("  Options".into(), "Human / GiB / MiB / Bytes".into()),
+                        ("  Key".into(), "i/I to cycle".into()),
+                        ("  Config".into(), "unit_mode in prefs".into())];
         }
         vec![("Info".into(), segment.to_string())]
     }
@@ -1494,10 +1556,10 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         set_cell(buf, x0 + box_w - 1, y, "\u{2551}", border_s);
     }
 
-    let title = "\u{2328} DISK MATRIX \u{2014} KEYBOARD SHORTCUTS";
+    let title = format!("\u{2328} DISK MATRIX v{} \u{2014} KEYBOARD SHORTCUTS", env!("CARGO_PKG_VERSION"));
     let tlen = title.chars().count() as u16;
     let tx = x0 + (box_w.saturating_sub(tlen)) / 2;
-    set_str(buf, tx, y0 + 1, title, title_s, box_w - 2);
+    set_str(buf, tx, y0 + 1, &title, title_s, box_w - 2);
 
     let byline = "by MenkeTechnologies";
     let byline_s = Style::default().fg(Color::Indexed(240)).bg(HELP_BG);
