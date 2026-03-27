@@ -28,6 +28,7 @@ pub struct App {
     pub quit: bool,
     pub drag: Option<DragTarget>,
     pub selected: Option<usize>,
+    pub scroll_offset: usize,
     pub status_msg: Option<(String, Instant)>,
     // Hover state
     pub hover_pos: Option<(u16, u16)>,
@@ -49,6 +50,7 @@ pub struct App {
     pub drill_path: Vec<String>,
     pub drill_entries: Vec<DirEntry>,
     pub drill_selected: usize,
+    pub drill_scroll_offset: usize,
     pub drill_scanning: bool,
     pub drill_scan_result: Arc<Mutex<Option<Vec<DirEntry>>>>,
     pub drill_scan_count: Arc<Mutex<usize>>,
@@ -74,6 +76,7 @@ impl App {
             filter_cursor: 0,
             quit: false,
             selected: None,
+            scroll_offset: 0,
             status_msg: None,
             drag: None,
             hover_pos: None,
@@ -92,6 +95,7 @@ impl App {
             drill_path: Vec::new(),
             drill_entries: Vec::new(),
             drill_selected: 0,
+            drill_scroll_offset: 0,
             drill_scanning: false,
             drill_scan_result: Arc::new(Mutex::new(None)),
             drill_scan_count: Arc::new(Mutex::new(0)),
@@ -117,6 +121,7 @@ impl App {
             filter_cursor: 0,
             quit: false,
             selected: None,
+            scroll_offset: 0,
             status_msg: None,
             drag: None,
             hover_pos: None,
@@ -135,6 +140,7 @@ impl App {
             drill_path: Vec::new(),
             drill_entries: Vec::new(),
             drill_selected: 0,
+            drill_scroll_offset: 0,
             drill_scanning: false,
             drill_scan_result: Arc::new(Mutex::new(None)),
             drill_scan_count: Arc::new(Mutex::new(0)),
@@ -199,7 +205,7 @@ impl App {
 
     pub fn hover_ready(&self) -> bool {
         self.hover_since
-            .map(|t| t.elapsed().as_millis() >= 2000)
+            .map(|t| t.elapsed().as_millis() >= 1000)
             .unwrap_or(false)
     }
 
@@ -243,6 +249,17 @@ impl App {
         if idx < count { Some(idx) } else { None }
     }
 
+    pub fn hovered_drill_index(&self) -> Option<usize> {
+        let (_, y) = self.hover_pos?;
+        // Drill-down layout: border(0/1) + breadcrumb + separator + header + separator = first entry row
+        let first_entry_row: u16 = if self.prefs.show_border { 1 } else { 0 } + 4;
+        if y < first_entry_row {
+            return None;
+        }
+        let idx = (y - first_entry_row) as usize;
+        if idx < self.drill_entries.len() { Some(idx) } else { None }
+    }
+
     pub fn drill_current_path(&self) -> String {
         self.drill_path.last().cloned().unwrap_or_default()
     }
@@ -256,6 +273,27 @@ impl App {
             self.drill_entries.reverse();
         }
         self.drill_selected = 0;
+        self.drill_scroll_offset = 0;
+    }
+
+    /// Adjust scroll_offset so `selected` is visible in `visible_rows` window.
+    pub fn ensure_visible(&mut self, visible_rows: usize) {
+        if let Some(sel) = self.selected {
+            if sel < self.scroll_offset {
+                self.scroll_offset = sel;
+            } else if sel >= self.scroll_offset + visible_rows {
+                self.scroll_offset = sel.saturating_sub(visible_rows - 1);
+            }
+        }
+    }
+
+    /// Adjust drill_scroll_offset so drill_selected is visible.
+    pub fn ensure_drill_visible(&mut self, visible_rows: usize) {
+        if self.drill_selected < self.drill_scroll_offset {
+            self.drill_scroll_offset = self.drill_selected;
+        } else if self.drill_selected >= self.drill_scroll_offset + visible_rows {
+            self.drill_scroll_offset = self.drill_selected.saturating_sub(visible_rows - 1);
+        }
     }
 
     pub fn sorted_disks(&self) -> Vec<DiskEntry> {
@@ -1031,13 +1069,43 @@ impl App {
                 }
             }
             MouseEventKind::Down(MouseButton::Right) => {
-                self.show_help = !self.show_help;
+                // Right-click triggers instant hover tooltip at click position
+                self.hover_pos = Some((event.column, event.row));
+                self.hover_since = Some(Instant::now() - std::time::Duration::from_secs(2));
             }
             MouseEventKind::Moved => {
                 let new_pos = (event.column, event.row);
                 if self.hover_pos != Some(new_pos) {
                     self.hover_pos = Some(new_pos);
                     self.hover_since = Some(Instant::now());
+                }
+            }
+            MouseEventKind::ScrollDown => {
+                if self.view_mode == ViewMode::DrillDown {
+                    if !self.drill_entries.is_empty() {
+                        self.drill_selected = (self.drill_selected + 1).min(self.drill_entries.len() - 1);
+                    }
+                } else {
+                    let count = self.sorted_disks().len();
+                    if count > 0 {
+                        self.selected = Some(match self.selected {
+                            Some(i) => (i + 1).min(count - 1),
+                            None => 0,
+                        });
+                    }
+                }
+            }
+            MouseEventKind::ScrollUp => {
+                if self.view_mode == ViewMode::DrillDown {
+                    self.drill_selected = self.drill_selected.saturating_sub(1);
+                } else {
+                    let count = self.sorted_disks().len();
+                    if count > 0 {
+                        self.selected = Some(match self.selected {
+                            Some(i) => i.saturating_sub(1),
+                            None => 0,
+                        });
+                    }
                 }
             }
             _ => {}
@@ -2435,19 +2503,16 @@ mod tests {
     // ── Mouse handling ────────────────────────────────────
 
     #[test]
-    fn mouse_right_click_toggles_help() {
+    fn mouse_right_click_triggers_hover() {
         let mut app = test_app();
-        assert!(!app.show_help);
+        assert!(app.hover_pos.is_none());
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 10, row: 10, modifiers: KeyModifiers::NONE },
+            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 15, row: 5, modifiers: KeyModifiers::NONE },
             80,
         );
-        assert!(app.show_help);
-        app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 10, row: 10, modifiers: KeyModifiers::NONE },
-            80,
-        );
-        assert!(!app.show_help);
+        assert_eq!(app.hover_pos, Some((15, 5)));
+        // Should be instantly ready (timestamp set in the past)
+        assert!(app.hover_ready());
     }
 
     #[test]

@@ -64,6 +64,21 @@ fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<()> {
             last_data_refresh = Instant::now();
         }
 
+        // Adjust scroll offsets to keep selection visible
+        {
+            let size = terminal.size()?;
+            let border_rows: u16 = if app.prefs.show_border { 1 } else { 0 };
+            let header_rows: u16 = if app.prefs.show_header { 2 } else { 0 };
+            let footer_rows: u16 = 2 + border_rows;
+            let chrome = border_rows + 2 + header_rows + footer_rows;
+            let visible = size.height.saturating_sub(chrome) as usize;
+            app.ensure_visible(visible.max(1));
+            if app.view_mode == storageshower::types::ViewMode::DrillDown {
+                let drill_chrome: u16 = border_rows + 4 + footer_rows;
+                let drill_visible = size.height.saturating_sub(drill_chrome) as usize;
+                app.ensure_drill_visible(drill_visible.max(1));
+            }
+        }
         terminal.draw(|f| draw(f, app))?;
 
         if event::poll(Duration::from_millis(200))? {

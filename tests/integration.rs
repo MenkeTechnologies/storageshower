@@ -1462,3 +1462,117 @@ fn hover_resets_on_move() {
     );
     assert!(!app.hover_ready(), "Hover delay should reset on move");
 }
+
+// ─── Scroll offset ───────────────────────────────────────────────────────
+
+#[test]
+fn scroll_offset_follows_selection_down() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.scroll_offset = 0;
+    app.selected = Some(2);
+    app.ensure_visible(2); // only 2 visible rows
+    assert_eq!(app.scroll_offset, 1, "Should scroll to keep selection visible");
+}
+
+#[test]
+fn scroll_offset_follows_selection_up() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.scroll_offset = 2;
+    app.selected = Some(0);
+    app.ensure_visible(2);
+    assert_eq!(app.scroll_offset, 0, "Should scroll up to show selection");
+}
+
+#[test]
+fn scroll_offset_stays_when_visible() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.scroll_offset = 0;
+    app.selected = Some(1);
+    app.ensure_visible(3);
+    assert_eq!(app.scroll_offset, 0, "Should not scroll when selection is visible");
+}
+
+#[test]
+fn drill_scroll_offset_follows_selection() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill_selected = 5;
+    app.drill_scroll_offset = 0;
+    app.ensure_drill_visible(3);
+    assert_eq!(app.drill_scroll_offset, 3);
+}
+
+// ─── Mouse scroll wheel ─────────────────────────────────────────────────
+
+#[test]
+fn mouse_scroll_down_selects_next() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert!(app.selected.is_none());
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::ScrollDown, column: 10, row: 5, modifiers: KeyModifiers::NONE },
+        80,
+    );
+    assert_eq!(app.selected, Some(0));
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::ScrollDown, column: 10, row: 5, modifiers: KeyModifiers::NONE },
+        80,
+    );
+    assert_eq!(app.selected, Some(1));
+}
+
+#[test]
+fn mouse_scroll_up_selects_prev() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.selected = Some(2);
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::ScrollUp, column: 10, row: 5, modifiers: KeyModifiers::NONE },
+        80,
+    );
+    assert_eq!(app.selected, Some(1));
+}
+
+// ─── Right-click triggers instant tooltip ────────────────────────────────
+
+#[test]
+fn right_click_sets_hover_instantly() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 30, row: 7, modifiers: KeyModifiers::NONE },
+        80,
+    );
+    assert_eq!(app.hover_pos, Some((30, 7)));
+    assert!(app.hover_ready());
+    assert!(!app.show_help, "Right-click should not toggle help");
+}
+
+// ─── Drill-down hover index ─────────────────────────────────────────────
+
+#[test]
+fn hovered_drill_index_resolves() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: true },
+        DirEntry { path: "/b".into(), name: "b".into(), size: 20, is_dir: false },
+    ];
+    // First entry at row 5 (border=1 + 4 chrome rows)
+    app.hover_pos = Some((10, 5));
+    assert_eq!(app.hovered_drill_index(), Some(0));
+    app.hover_pos = Some((10, 6));
+    assert_eq!(app.hovered_drill_index(), Some(1));
+    app.hover_pos = Some((10, 50));
+    assert!(app.hovered_drill_index().is_none());
+}
+
+// ─── Hover delay value ──────────────────────────────────────────────────
+
+#[test]
+fn hover_delay_is_one_second() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover_pos = Some((10, 5));
+    // Just under 1 second — not ready
+    app.hover_since = Some(std::time::Instant::now() - std::time::Duration::from_millis(900));
+    assert!(!app.hover_ready());
+    // Over 1 second — ready
+    app.hover_since = Some(std::time::Instant::now() - std::time::Duration::from_millis(1100));
+    assert!(app.hover_ready());
+}

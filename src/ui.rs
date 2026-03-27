@@ -409,10 +409,10 @@ pub fn draw(frame: &mut Frame, app: &App) {
     let footer_rows: u16 = 2 + (if show_border { 1 } else { 0 });
     let disk_area_end = h.saturating_sub(footer_rows);
 
-    // ─── Disk rows ───
+    // ─── Disk rows (with scroll offset) ───
     let mount_w = mount_col_width(inner_w, &app.prefs);
 
-    for (di, disk) in disks.iter().enumerate() {
+    for (di, disk) in disks.iter().enumerate().skip(app.scroll_offset) {
         if row >= disk_area_end {
             break;
         }
@@ -962,7 +962,7 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     // ─── Entries ───
     let max_size = app.drill_entries.first().map(|e| e.size).unwrap_or(1).max(1);
 
-    for (i, entry) in app.drill_entries.iter().enumerate() {
+    for (i, entry) in app.drill_entries.iter().enumerate().skip(app.drill_scroll_offset) {
         if row >= entry_area_end {
             break;
         }
@@ -1067,6 +1067,36 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
             set_str(buf, lm, frow, &footer_display, footer_s, inner_w);
         }
     }
+
+    // ─── Hover tooltip for drill-down entries ───
+    if app.hover_ready() {
+        if let Some(idx) = app.hovered_drill_index() {
+            if let Some(entry) = app.drill_entries.get(idx) {
+                draw_hover_drill_tooltip(buf, w, h, app, entry);
+            }
+        }
+    }
+}
+
+fn draw_hover_drill_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, entry: &DirEntry) {
+    let (hover_x, hover_y) = match app.hover_pos {
+        Some(pos) => pos,
+        None => return,
+    };
+
+    let mut lines: Vec<(String, String)> = Vec::new();
+    let kind = if entry.is_dir { "\u{1F4C1} Directory" } else { "\u{25CB} File" };
+    lines.push(("\u{25B6} Name".into(), entry.name.clone()));
+    lines.push(("  Type".into(), kind.into()));
+    lines.push(("  Size".into(), format_bytes(entry.size, app.prefs.unit_mode)));
+    lines.push(("  Path".into(), entry.path.clone()));
+    let parent_total: u64 = app.drill_entries.iter().map(|e| e.size).sum();
+    if parent_total > 0 {
+        let pct = (entry.size as f64 / parent_total as f64) * 100.0;
+        lines.push(("  Share".into(), format!("{:.1}% of directory", pct)));
+    }
+
+    render_tooltip(buf, w, h, hover_x, hover_y, app, &lines);
 }
 
 fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEntry) {
@@ -1075,13 +1105,6 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
         None => return,
     };
 
-    let (_, pal_green, _, pal_lpurple, _, _) = palette_for_prefs(&app.prefs);
-    let bc = border_color(app);
-    let border_s = Style::default().fg(bc);
-    let label_s = Style::default().fg(pal_lpurple).bg(HELP_BG);
-    let val_s = Style::default().fg(pal_green).bg(HELP_BG);
-
-    // Build tooltip lines
     let mut lines: Vec<(String, String)> = Vec::new();
     lines.push(("\u{25B6} Mount".into(), disk.mount.clone()));
     lines.push(("  Filesystem".into(), disk.fs.clone()));
@@ -1097,8 +1120,6 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
         sysinfo::DiskKind::HDD => "HDD".into(),
         _ => "Unknown".into(),
     }));
-
-    // Status line
     let thresh_status = if disk.pct >= app.prefs.thresh_crit as f64 {
         "\u{2716} CRITICAL"
     } else if disk.pct >= app.prefs.thresh_warn as f64 {
@@ -1107,7 +1128,6 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
         "\u{25C8} Nominal"
     };
     lines.push(("  Status".into(), thresh_status.into()));
-
     if let Some(smart) = disk.smart_status {
         lines.push(("  SMART".into(), match smart {
             SmartHealth::Verified => "\u{2714} Verified".into(),
@@ -1119,30 +1139,34 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
         lines.push(("  Latency".into(), format_latency(lat)));
     }
     if let Some(rd) = disk.io_read_rate {
-        if rd > 0.0 {
-            lines.push(("  \u{25B2} Read".into(), format_rate(rd)));
-        }
+        if rd > 0.0 { lines.push(("  \u{25B2} Read".into(), format_rate(rd))); }
     }
     if let Some(wr) = disk.io_write_rate {
-        if wr > 0.0 {
-            lines.push(("  \u{25BC} Write".into(), format_rate(wr)));
-        }
+        if wr > 0.0 { lines.push(("  \u{25BC} Write".into(), format_rate(wr))); }
     }
     if app.prefs.bookmarks.contains(&disk.mount) {
         lines.push(("  \u{2605} Bookmark".into(), "pinned".into()));
     }
 
-    // Compute box dimensions
-    let max_label_w = lines.iter().map(|(l, _)| l.chars().count()).max().unwrap_or(10);
-    let max_val_w = lines.iter().map(|(_, v)| v.chars().count()).max().unwrap_or(10);
+    render_tooltip(buf, w, h, hover_x, hover_y, app, &lines);
+}
+
+/// Render a small tooltip popup with given lines near the hover cursor.
+fn render_tooltip(buf: &mut Buffer, w: u16, h: u16, hover_x: u16, hover_y: u16, app: &App, lines: &[(String, String)]) {
+    let (_, pal_green, _, pal_lpurple, _, _) = palette_for_prefs(&app.prefs);
+    let bc = border_color(app);
+    let border_s = Style::default().fg(bc);
+    let label_s = Style::default().fg(pal_lpurple).bg(HELP_BG);
+    let val_s = Style::default().fg(pal_green).bg(HELP_BG);
+
+    let max_label_w = lines.iter().map(|(l, _)| l.chars().count()).max().unwrap_or(6);
+    let max_val_w = lines.iter().map(|(_, v)| v.chars().count()).max().unwrap_or(6);
     let box_w = (max_label_w + max_val_w + 5).min(w as usize - 4) as u16;
     let box_h = (lines.len() + 2) as u16;
 
-    // Position: below and right of cursor, clamped to screen
     let x0 = if hover_x + box_w + 2 < w { hover_x + 2 } else { w.saturating_sub(box_w + 2) };
     let y0 = if hover_y + box_h + 1 < h { hover_y + 1 } else { h.saturating_sub(box_h + 1) };
 
-    // Draw box background
     for y in y0..y0 + box_h {
         for x in x0..x0 + box_w {
             if x < w && y < h {
@@ -1150,8 +1174,6 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
             }
         }
     }
-
-    // Draw border
     set_cell(buf, x0, y0, "\u{256D}", border_s);
     set_cell(buf, x0 + box_w - 1, y0, "\u{256E}", border_s);
     set_cell(buf, x0, y0 + box_h - 1, "\u{2570}", border_s);
@@ -1164,17 +1186,135 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
         set_cell(buf, x0, y, "\u{2502}", border_s);
         set_cell(buf, x0 + box_w - 1, y, "\u{2502}", border_s);
     }
-
-    // Draw content
-    let content_w = box_w.saturating_sub(2);
+    let lw = max_label_w + 1;
     for (i, (label, val)) in lines.iter().enumerate() {
         let y = y0 + 1 + i as u16;
         if y >= y0 + box_h - 1 { break; }
-        let lw = max_label_w + 1;
         set_str(buf, x0 + 1, y, label, label_s, lw as u16);
-        let vx = x0 + 1 + lw as u16 + 1;
-        let remaining = content_w.saturating_sub(lw as u16 + 2);
-        set_str(buf, vx, y, val, val_s, remaining);
+        if !val.is_empty() {
+            let vx = x0 + 1 + lw as u16 + 1;
+            let remaining = box_w.saturating_sub(lw as u16 + 3);
+            set_str(buf, vx, y, val, val_s, remaining);
+        }
+    }
+}
+
+/// Find which pipe-delimited segment the cursor x falls into, return the segment text.
+fn segment_at_x(rendered: &str, hover_x: u16, bar_start_x: u16) -> Option<String> {
+    let rel_x = hover_x.saturating_sub(bar_start_x) as usize;
+    let mut pos = 0usize;
+    for segment in rendered.split('\u{2502}') {
+        let seg_len = segment.chars().count() + 1; // +1 for the pipe
+        if rel_x < pos + seg_len {
+            return Some(segment.trim().to_string());
+        }
+        pos += seg_len;
+    }
+    // Last segment (no trailing pipe)
+    rendered.split('\u{2502}').next_back().map(|s| s.trim().to_string())
+}
+
+/// Build tooltip lines for a title-bar segment.
+fn title_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
+    let seg_lower = segment.to_lowercase();
+    if seg_lower.contains("disk matrix") {
+        vec![("App".into(), "STORAGESHOWER — Cyberpunk Disk TUI".into()),
+             ("by".into(), "MenkeTechnologies".into())]
+    } else if seg_lower.starts_with("node:") {
+        vec![("Hostname".into(), app.stats.hostname.clone()),
+             ("OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
+             ("Kernel".into(), app.stats.kernel.clone()),
+             ("Arch".into(), app.stats.arch.clone())]
+    } else if seg_lower.starts_with("date:") || seg_lower.starts_with("clock:") {
+        let now = chrono_now();
+        vec![("Date".into(), now.0), ("Time".into(), now.1)]
+    } else if seg_lower.starts_with("load:") {
+        let l = app.stats.load_avg;
+        vec![("Load 1m".into(), format!("{:.2}", l.0)),
+             ("Load 5m".into(), format!("{:.2}", l.1)),
+             ("Load 15m".into(), format!("{:.2}", l.2)),
+             ("Desc".into(), "System load average (runnable processes)".into())]
+    } else if seg_lower.starts_with("mem:") {
+        let pct = if app.stats.mem_total > 0 { (app.stats.mem_used as f64 / app.stats.mem_total as f64) * 100.0 } else { 0.0 };
+        vec![("Used".into(), format_bytes(app.stats.mem_used, UnitMode::Human)),
+             ("Total".into(), format_bytes(app.stats.mem_total, UnitMode::Human)),
+             ("Usage".into(), format!("{:.1}%", pct)),
+             ("Free".into(), format_bytes(app.stats.mem_total.saturating_sub(app.stats.mem_used), UnitMode::Human))]
+    } else if seg_lower.starts_with("cpu:") {
+        vec![("CPUs".into(), format!("{}", app.stats.cpu_count)),
+             ("Desc".into(), "Logical CPU cores".into())]
+    } else if seg_lower.starts_with("procs:") {
+        vec![("Processes".into(), format!("{}", app.stats.process_count)),
+             ("Desc".into(), "Running system processes".into())]
+    } else if seg_lower.starts_with("swap:") {
+        vec![("Used".into(), format_bytes(app.stats.swap_used, UnitMode::Human)),
+             ("Total".into(), format_bytes(app.stats.swap_total, UnitMode::Human))]
+    } else if seg_lower.starts_with("kern:") {
+        vec![("Kernel".into(), app.stats.kernel.clone())]
+    } else if seg_lower.starts_with("arch:") {
+        vec![("Arch".into(), app.stats.arch.clone())]
+    } else if seg_lower.contains("paused") {
+        vec![("Status".into(), "Data refresh PAUSED (press p to resume)".into())]
+    } else if seg_lower.contains("h=help") {
+        vec![("Help".into(), "Press h/H/? to open help overlay".into())]
+    } else {
+        vec![("Info".into(), segment.to_string())]
+    }
+}
+
+/// Build tooltip lines for a footer-bar segment.
+fn footer_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
+    let seg_lower = segment.to_lowercase();
+    if seg_lower.contains("cyberdeck") || seg_lower.contains("zpwr") {
+        vec![("App".into(), "STORAGESHOWER".into()),
+             ("by".into(), "MenkeTechnologies".into())]
+    } else if seg_lower.starts_with("vol:") {
+        vec![("Volumes".into(), segment.trim_start_matches("vol:").into()),
+             ("Desc".into(), "Visible disk count".into())]
+    } else if seg_lower.starts_with("sort:") {
+        vec![("Sort".into(), format!("{:?}", app.prefs.sort_mode)),
+             ("Direction".into(), if app.prefs.sort_rev { "Descending \u{25BC}" } else { "Ascending \u{25B2}" }.into()),
+             ("Keys".into(), "n=name  u=usage%  s=size  r=reverse".into())]
+    } else if seg_lower.ends_with('s') && seg_lower.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+        vec![("Refresh".into(), format!("{}s interval", app.prefs.refresh_rate)),
+             ("Key".into(), "f/F to cycle (1→2→5→10)".into())]
+    } else if seg_lower == "gradient" || seg_lower == "solid" || seg_lower == "thin" || seg_lower == "ascii" {
+        vec![("Bar style".into(), format!("{:?}", app.prefs.bar_style)),
+             ("Key".into(), "b to cycle".into())]
+    } else if seg_lower.starts_with("up:") {
+        vec![("Uptime".into(), format_uptime(app.stats.uptime)),
+             ("Seconds".into(), format!("{}", app.stats.uptime))]
+    } else if seg_lower.starts_with("user:") {
+        vec![("User".into(), segment.trim_start_matches("user:").into())]
+    } else if seg_lower.starts_with("ip:") {
+        vec![("Local IP".into(), segment.trim_start_matches("ip:").into()),
+             ("Desc".into(), "Primary network interface address".into())]
+    } else if seg_lower.starts_with("os:") {
+        vec![("OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version))]
+    } else if seg_lower.starts_with("sh:") {
+        vec![("Shell".into(), segment.trim_start_matches("sh:").into())]
+    } else if seg_lower.starts_with("tty:") {
+        vec![("TTY".into(), segment.trim_start_matches("tty:").into())]
+    } else if seg_lower.starts_with("bat:") {
+        vec![("Battery".into(), segment.trim_start_matches("bat:").into())]
+    } else if seg_lower.starts_with("disks:") {
+        vec![("Disks".into(), segment.trim_start_matches("disks:").into())]
+    } else if seg_lower.contains("filter>") {
+        vec![("Filter".into(), app.filter_buf.clone()),
+             ("Keys".into(), "Enter=confirm  Esc=cancel".into())]
+    } else {
+        // Theme or unit name
+        let color_name = if let Some(ref n) = app.prefs.active_theme { n.clone() } else { app.prefs.color_mode.name().into() };
+        if segment.trim() == color_name {
+            return vec![("Theme".into(), color_name),
+                        ("Key".into(), "c=cycle  C=editor".into())];
+        }
+        let unit_name = match app.prefs.unit_mode { UnitMode::Human=>"human", UnitMode::GiB=>"GiB", UnitMode::MiB=>"MiB", UnitMode::Bytes=>"bytes" };
+        if segment.trim() == unit_name {
+            return vec![("Units".into(), unit_name.into()),
+                        ("Key".into(), "i/I to cycle".into())];
+        }
+        vec![("Info".into(), segment.to_string())]
     }
 }
 
@@ -1184,114 +1324,27 @@ fn draw_hover_bar_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, is_title:
         None => return,
     };
 
-    let (_, pal_green, _, pal_lpurple, _, _) = palette_for_prefs(&app.prefs);
-    let bc = border_color(app);
-    let border_s = Style::default().fg(bc);
-    let label_s = Style::default().fg(pal_lpurple).bg(HELP_BG);
-    let val_s = Style::default().fg(pal_green).bg(HELP_BG);
+    let lm: u16 = if app.prefs.show_border { 1 } else { 0 };
 
-    let mut lines: Vec<(String, String)> = Vec::new();
+    // Read the rendered bar text from the buffer at the hover row
+    let mut bar_text = String::new();
+    for x in lm..w.saturating_sub(lm) {
+        let cell = &buf[(x, hover_y)];
+        bar_text.push_str(cell.symbol());
+    }
 
-    if is_title {
-        lines.push(("\u{25B6} SYSTEM INFO".into(), String::new()));
-        lines.push(("  Hostname".into(), app.stats.hostname.clone()));
-        lines.push(("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)));
-        lines.push(("  Kernel".into(), app.stats.kernel.clone()));
-        lines.push(("  Arch".into(), app.stats.arch.clone()));
-        let load = app.stats.load_avg;
-        lines.push(("  Load avg".into(), format!("{:.2} / {:.2} / {:.2}  (1m/5m/15m)", load.0, load.1, load.2)));
-        let mem_pct = if app.stats.mem_total > 0 {
-            (app.stats.mem_used as f64 / app.stats.mem_total as f64) * 100.0
-        } else { 0.0 };
-        lines.push(("  Memory".into(), format!("{} / {} ({:.1}%)",
-            format_bytes(app.stats.mem_used, UnitMode::Human),
-            format_bytes(app.stats.mem_total, UnitMode::Human), mem_pct)));
-        if app.stats.swap_total > 0 {
-            lines.push(("  Swap".into(), format!("{} / {}",
-                format_bytes(app.stats.swap_used, UnitMode::Human),
-                format_bytes(app.stats.swap_total, UnitMode::Human))));
-        }
-        lines.push(("  CPUs".into(), format!("{}", app.stats.cpu_count)));
-        lines.push(("  Processes".into(), format!("{}", app.stats.process_count)));
-        lines.push(("  Uptime".into(), format_uptime(app.stats.uptime)));
-        if app.paused {
-            lines.push(("  \u{23F8} Status".into(), "PAUSED".into()));
-        }
+    let segment = match segment_at_x(&bar_text, hover_x, lm) {
+        Some(s) if !s.is_empty() => s,
+        _ => return,
+    };
+
+    let lines = if is_title {
+        title_segment_tooltip(&segment, app)
     } else {
-        lines.push(("\u{25B6} SETTINGS".into(), String::new()));
-        lines.push(("  Sort mode".into(), format!("{:?} {}", app.prefs.sort_mode,
-            if app.prefs.sort_rev { "\u{25BC}desc" } else { "\u{25B2}asc" })));
-        lines.push(("  Bar style".into(), format!("{:?}", app.prefs.bar_style)));
-        let color_name = if let Some(ref n) = app.prefs.active_theme {
-            n.clone()
-        } else {
-            app.prefs.color_mode.name().into()
-        };
-        lines.push(("  Theme".into(), color_name));
-        lines.push(("  Units".into(), format!("{:?}", app.prefs.unit_mode)));
-        lines.push(("  Refresh".into(), format!("{}s", app.prefs.refresh_rate)));
-        lines.push(("  Warn \u{26A0}".into(), format!("{}%", app.prefs.thresh_warn)));
-        lines.push(("  Crit \u{2716}".into(), format!("{}%", app.prefs.thresh_crit)));
-        lines.push(("  Bars".into(), if app.prefs.show_bars { "on" } else { "off" }.into()));
-        lines.push(("  Border".into(), if app.prefs.show_border { "on" } else { "off" }.into()));
-        lines.push(("  Headers".into(), if app.prefs.show_header { "on" } else { "off" }.into()));
-        lines.push(("  Compact".into(), if app.prefs.compact { "on" } else { "off" }.into()));
-        lines.push(("  Used/Total".into(), if app.prefs.show_used { "on" } else { "off" }.into()));
-        lines.push(("  Full paths".into(), if app.prefs.full_mount { "on" } else { "off" }.into()));
-        lines.push(("  Show all".into(), if app.prefs.show_all { "on" } else { "off" }.into()));
-        lines.push(("  Local only".into(), if app.prefs.show_local { "on" } else { "off" }.into()));
-        if !app.prefs.bookmarks.is_empty() {
-            lines.push(("  \u{2605} Bookmarks".into(), format!("{}", app.prefs.bookmarks.len())));
-        }
-        if !app.filter.is_empty() {
-            lines.push(("  Filter".into(), app.filter.clone()));
-        }
-    }
+        footer_segment_tooltip(&segment, app)
+    };
 
-    // Compute box dimensions
-    let max_label_w = lines.iter().map(|(l, _)| l.chars().count()).max().unwrap_or(10);
-    let max_val_w = lines.iter().map(|(_, v)| v.chars().count()).max().unwrap_or(10);
-    let box_w = (max_label_w + max_val_w + 5).min(w as usize - 4) as u16;
-    let box_h = (lines.len() + 2) as u16;
-
-    let x0 = if hover_x + box_w + 2 < w { hover_x + 2 } else { w.saturating_sub(box_w + 2) };
-    let y0 = if hover_y + box_h + 1 < h { hover_y + 1 } else { h.saturating_sub(box_h + 1) };
-
-    // Draw box background
-    for y in y0..y0 + box_h {
-        for x in x0..x0 + box_w {
-            if x < w && y < h {
-                set_cell(buf, x, y, " ", Style::default().bg(HELP_BG));
-            }
-        }
-    }
-
-    // Draw border
-    set_cell(buf, x0, y0, "\u{256D}", border_s);
-    set_cell(buf, x0 + box_w - 1, y0, "\u{256E}", border_s);
-    set_cell(buf, x0, y0 + box_h - 1, "\u{2570}", border_s);
-    set_cell(buf, x0 + box_w - 1, y0 + box_h - 1, "\u{256F}", border_s);
-    for x in x0 + 1..x0 + box_w - 1 {
-        set_cell(buf, x, y0, "\u{2500}", border_s);
-        set_cell(buf, x, y0 + box_h - 1, "\u{2500}", border_s);
-    }
-    for y in y0 + 1..y0 + box_h - 1 {
-        set_cell(buf, x0, y, "\u{2502}", border_s);
-        set_cell(buf, x0 + box_w - 1, y, "\u{2502}", border_s);
-    }
-
-    // Draw content
-    for (i, (label, val)) in lines.iter().enumerate() {
-        let y = y0 + 1 + i as u16;
-        if y >= y0 + box_h - 1 { break; }
-        let lw = max_label_w + 1;
-        set_str(buf, x0 + 1, y, label, label_s, lw as u16);
-        if !val.is_empty() {
-            let vx = x0 + 1 + lw as u16 + 1;
-            let remaining = box_w.saturating_sub(lw as u16 + 3);
-            set_str(buf, vx, y, val, val_s, remaining);
-        }
-    }
+    render_tooltip(buf, w, h, hover_x, hover_y, app, &lines);
 }
 
 fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
@@ -1519,7 +1572,7 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         HelpEntry { key: "Click", desc: "Select row", val_fn: empty_val, is_section: false },
         HelpEntry { key: "Click\u{00D7}2", desc: "Drill into", val_fn: empty_val, is_section: false },
         HelpEntry { key: "Drag", desc: "Resize cols", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "R-Click", desc: "Toggle help", val_fn: empty_val, is_section: false },
+        HelpEntry { key: "R-Click", desc: "Show tooltip", val_fn: empty_val, is_section: false },
         HelpEntry { key: "Hover", desc: "Tooltip (2s)", val_fn: empty_val, is_section: false },
     ];
 
