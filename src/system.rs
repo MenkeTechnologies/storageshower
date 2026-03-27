@@ -251,7 +251,7 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 } else {
                     None
                 };
-                DiskEntry { mount, used, total, pct, kind, fs: fstype, latency_ms, io_read_rate: None, io_write_rate: None }
+                DiskEntry { mount, used, total, pct, kind, fs: fstype, latency_ms, io_read_rate: None, io_write_rate: None, smart_status: None }
             })
             .collect()
     }
@@ -305,6 +305,7 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 latency_ms,
                 io_read_rate: None,
                 io_write_rate: None,
+                smart_status: None,
             })
         })
         .collect()
@@ -343,6 +344,7 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 latency_ms,
                 io_read_rate: None,
                 io_write_rate: None,
+                smart_status: None,
             }
         })
         .collect()
@@ -543,6 +545,86 @@ fn apply_io_rates(entries: &mut [DiskEntry], rates: &IoRates) {
     }
 }
 
+// ─── SMART health ─────────────────────────────────────────────────────────
+
+type SmartMap = HashMap<String, SmartHealth>;
+
+#[cfg(target_os = "macos")]
+fn collect_smart_status(mount_dev: &HashMap<String, String>) -> SmartMap {
+    use std::process::Command;
+    let mut result = SmartMap::new();
+    let mut checked: HashMap<String, SmartHealth> = HashMap::new();
+    for (mount, base_dev) in mount_dev {
+        if let Some(&status) = checked.get(base_dev) {
+            result.insert(mount.clone(), status);
+            continue;
+        }
+        let status = Command::new("diskutil")
+            .args(["info", base_dev])
+            .output()
+            .ok()
+            .and_then(|o| {
+                let out = String::from_utf8_lossy(&o.stdout);
+                for line in out.lines() {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("SMART Status:") {
+                        let val = trimmed.trim_start_matches("SMART Status:").trim();
+                        return match val {
+                            "Verified" => Some(SmartHealth::Verified),
+                            "Failing" => Some(SmartHealth::Failing),
+                            _ => Some(SmartHealth::Unknown),
+                        };
+                    }
+                }
+                None
+            })
+            .unwrap_or(SmartHealth::Unknown);
+        checked.insert(base_dev.clone(), status);
+        result.insert(mount.clone(), status);
+    }
+    result
+}
+
+#[cfg(target_os = "linux")]
+fn collect_smart_status(mount_dev: &HashMap<String, String>) -> SmartMap {
+    let mut result = SmartMap::new();
+    let mut checked: HashMap<String, SmartHealth> = HashMap::new();
+    for (mount, base_dev) in mount_dev {
+        if let Some(&status) = checked.get(base_dev) {
+            result.insert(mount.clone(), status);
+            continue;
+        }
+        // Try /sys/block/<dev>/device/state first (no root needed)
+        let state_path = format!("/sys/block/{}/device/state", base_dev);
+        let status = std::fs::read_to_string(&state_path)
+            .ok()
+            .map(|s| {
+                match s.trim() {
+                    "running" => SmartHealth::Verified,
+                    "offline" | "dead" | "blocked" => SmartHealth::Failing,
+                    _ => SmartHealth::Unknown,
+                }
+            })
+            .unwrap_or(SmartHealth::Unknown);
+        checked.insert(base_dev.clone(), status);
+        result.insert(mount.clone(), status);
+    }
+    result
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn collect_smart_status(_mount_dev: &HashMap<String, String>) -> SmartMap {
+    SmartMap::new()
+}
+
+fn apply_smart_status(entries: &mut [DiskEntry], smart: &SmartMap) {
+    for entry in entries.iter_mut() {
+        if let Some(&status) = smart.get(&entry.mount) {
+            entry.smart_status = Some(status);
+        }
+    }
+}
+
 pub fn spawn_bg_collector(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>) {
     std::thread::spawn(move || {
         let mut sys = System::new_all();
@@ -560,6 +642,8 @@ pub fn spawn_bg_collector(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>) {
             let mount_dev = mount_to_device_map();
             let rates = compute_io_rates(&prev_io, &curr_io, elapsed, &mount_dev);
             apply_io_rates(&mut entries, &rates);
+            let smart = collect_smart_status(&mount_dev);
+            apply_smart_status(&mut entries, &smart);
             prev_io = curr_io;
             prev_time = now;
 
@@ -662,5 +746,93 @@ mod tests {
     #[test]
     fn get_battery_does_not_panic() {
         let _ = get_battery();
+    }
+
+    #[test]
+    fn is_network_fs_detects_known_types() {
+        assert!(is_network_fs("nfs"));
+        assert!(is_network_fs("nfs4"));
+        assert!(is_network_fs("cifs"));
+        assert!(is_network_fs("smbfs"));
+        assert!(is_network_fs("fuse.sshfs"));
+        assert!(!is_network_fs("apfs"));
+        assert!(!is_network_fs("ext4"));
+        assert!(!is_network_fs("xfs"));
+    }
+
+    #[test]
+    fn compute_io_rates_basic() {
+        let mut prev = IoSnapshot::new();
+        prev.insert("disk0".into(), (1000, 2000));
+        let mut curr = IoSnapshot::new();
+        curr.insert("disk0".into(), (2000, 4000));
+        let mut mount_dev = HashMap::new();
+        mount_dev.insert("/".into(), "disk0".into());
+        let rates = compute_io_rates(&prev, &curr, 1.0, &mount_dev);
+        let (rd, wr) = rates.get("/").unwrap();
+        assert!((rd - 1000.0).abs() < f64::EPSILON);
+        assert!((wr - 2000.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn compute_io_rates_zero_elapsed() {
+        let prev = IoSnapshot::new();
+        let curr = IoSnapshot::new();
+        let mount_dev = HashMap::new();
+        let rates = compute_io_rates(&prev, &curr, 0.0, &mount_dev);
+        assert!(rates.is_empty());
+    }
+
+    #[test]
+    fn apply_io_rates_sets_fields() {
+        let mut entries = vec![DiskEntry {
+            mount: "/".into(), used: 0, total: 0, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "apfs".into(),
+            latency_ms: None, io_read_rate: None, io_write_rate: None,
+            smart_status: None,
+        }];
+        let mut rates = IoRates::new();
+        rates.insert("/".into(), (100.0, 200.0));
+        apply_io_rates(&mut entries, &rates);
+        assert!((entries[0].io_read_rate.unwrap() - 100.0).abs() < f64::EPSILON);
+        assert!((entries[0].io_write_rate.unwrap() - 200.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn apply_smart_status_sets_fields() {
+        let mut entries = vec![DiskEntry {
+            mount: "/".into(), used: 0, total: 0, pct: 0.0,
+            kind: DiskKind::Unknown(-1), fs: "apfs".into(),
+            latency_ms: None, io_read_rate: None, io_write_rate: None,
+            smart_status: None,
+        }];
+        let mut smart = SmartMap::new();
+        smart.insert("/".into(), SmartHealth::Verified);
+        apply_smart_status(&mut entries, &smart);
+        assert_eq!(entries[0].smart_status, Some(SmartHealth::Verified));
+    }
+
+    #[test]
+    fn mount_to_device_map_returns_map() {
+        let map = mount_to_device_map();
+        // On any real system with mounted disks, should have entries
+        // (may be empty in unusual CI environments)
+        if !map.is_empty() {
+            for (mount, dev) in &map {
+                assert!(!mount.is_empty());
+                assert!(!dev.is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn scan_directory_on_tmp() {
+        let entries = scan_directory("/tmp");
+        // /tmp should exist and be readable
+        // entries may be empty but should not panic
+        for e in &entries {
+            assert!(!e.name.is_empty());
+            assert!(!e.path.is_empty());
+        }
     }
 }

@@ -99,6 +99,13 @@ pub enum UnitMode {
     Bytes,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SmartHealth {
+    Verified,
+    Failing,
+    Unknown,
+}
+
 #[derive(Clone)]
 pub struct DiskEntry {
     pub mount: String,
@@ -110,6 +117,7 @@ pub struct DiskEntry {
     pub latency_ms: Option<f64>,
     pub io_read_rate: Option<f64>,
     pub io_write_rate: Option<f64>,
+    pub smart_status: Option<SmartHealth>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -211,6 +219,7 @@ mod tests {
             latency_ms: None,
             io_read_rate: None,
             io_write_rate: None,
+            smart_status: None,
         };
         let c = d.clone();
         assert_eq!(c.mount, "/mnt");

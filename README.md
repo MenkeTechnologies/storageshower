@@ -20,12 +20,17 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v6.0 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX v7.0 ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
   <code>created by MenkeTechnologies</code>
 </p>
+
+<p align="center">
+  <img src="screenshots/cli-help.png" alt="CLI Help — storageshower -h" width="800">
+</p>
+
 
 ```bash
 cargo install storageshower
@@ -90,6 +95,13 @@ cargo install storageshower
   │   ├── auto device→mount mapping via getmntinfo / /proc/mounts
   │   └── overlay on bar: ▲1.2M/s ▼500K/s (shown when active)
   │
+[SMART_HEALTH]
+  ├── SMART drive health status ─── per-device monitoring
+  │   ├── macOS: diskutil info SMART Status (Verified/Failing)
+  │   ├── Linux: /sys/block/*/device/state
+  │   ├── ✔ green for healthy, ✘ red for failing
+  │   └── cached per base device, mapped to all mounts
+  │
 [PLATFORM_COMPAT]
   ├── macOS ── SUPPORTED
   ├── Linux ── SUPPORTED
@@ -110,12 +122,6 @@ cargo install storageshower
 
 <p align="center">
   <img src="screenshots/green-theme.png" alt="Green Theme" width="800">
-</p>
-
-#### `// CLI_HELP`
-
-<p align="center">
-  <img src="screenshots/cli-help.png" alt="CLI Help — storageshower -h" width="800">
 </p>
 
 #### `// HELP_OVERLAY`

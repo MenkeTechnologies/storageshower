@@ -4,7 +4,8 @@ use clap::Parser;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
 use storageshower::app::{mount_col_width, right_col_width, right_col_width_static, App};
 use storageshower::cli::Cli;
-use storageshower::helpers::{format_bytes, format_uptime, truncate_mount};
+use storageshower::helpers::{format_bytes, format_latency, format_rate, format_uptime, truncate_mount};
+use storageshower::system::scan_directory;
 use storageshower::prefs::{load_prefs_from, Prefs};
 use storageshower::system::{chrono_now, collect_disk_entries, collect_sys_stats, epoch_to_local};
 use storageshower::types::*;
@@ -24,9 +25,9 @@ fn make_key(code: KeyCode) -> KeyEvent {
 
 fn sample_disks() -> Vec<DiskEntry> {
     vec![
-        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
-        DiskEntry { mount: "/data".into(), used: 900_000_000_000, total: 1_000_000_000_000, pct: 90.0, kind: DiskKind::HDD, fs: "xfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
-        DiskEntry { mount: "/home".into(), used: 80_000_000_000, total: 200_000_000_000, pct: 40.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        DiskEntry { mount: "/data".into(), used: 900_000_000_000, total: 1_000_000_000_000, pct: 90.0, kind: DiskKind::HDD, fs: "xfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        DiskEntry { mount: "/home".into(), used: 80_000_000_000, total: 200_000_000_000, pct: 40.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
     ]
 }
 
@@ -361,6 +362,7 @@ fn refresh_data_updates_from_shared() {
         latency_ms: None,
         io_read_rate: None,
         io_write_rate: None,
+        smart_status: None,
     };
     {
         let mut lock = shared.lock().unwrap();
@@ -559,7 +561,7 @@ fn mount_col_width_all_terminal_sizes() {
 #[test]
 fn right_col_width_with_different_unit_modes() {
     let disks = vec![
-        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
     ];
     for mode in [UnitMode::Human, UnitMode::GiB, UnitMode::MiB, UnitMode::Bytes] {
         let shared = Arc::new(Mutex::new((SysStats::default(), disks.clone())));
@@ -577,9 +579,9 @@ fn right_col_width_with_different_unit_modes() {
 #[test]
 fn sort_stability_equal_pct() {
     let disks = vec![
-        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
-        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
-        DiskEntry { mount: "/c".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        DiskEntry { mount: "/c".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
     ];
     let mut app = make_app_with_disks(disks);
     app.prefs.sort_mode = SortMode::Pct;
@@ -591,8 +593,8 @@ fn sort_stability_equal_pct() {
 #[test]
 fn sort_stability_equal_size() {
     let disks = vec![
-        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
-        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None },
+        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
     ];
     let mut app = make_app_with_disks(disks);
     app.prefs.sort_mode = SortMode::Size;
@@ -616,6 +618,7 @@ fn sort_and_filter_many_disks() {
             latency_ms: None,
             io_read_rate: None,
             io_write_rate: None,
+            smart_status: None,
         });
     }
     let mut app = make_app_with_disks(disks);
@@ -778,4 +781,213 @@ fn load_prefs_from_invalid_toml_returns_defaults() {
     // Should fall back to defaults
     assert_eq!(prefs.sort_mode, SortMode::Name);
     assert_eq!(prefs.refresh_rate, 1);
+}
+
+// ─── Drill-down state transitions ─────────────────────────────────────────
+
+#[test]
+fn enter_drill_down_and_back() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert_eq!(app.view_mode, ViewMode::Disks);
+
+    // Select first disk and press Enter
+    app.handle_key(make_key(KeyCode::Char('j')));
+    assert_eq!(app.selected, Some(0));
+    app.handle_key(make_key(KeyCode::Enter));
+    assert_eq!(app.view_mode, ViewMode::DrillDown);
+    assert!(!app.drill_path.is_empty());
+
+    // Esc returns to disk view
+    app.handle_key(make_key(KeyCode::Esc));
+    assert_eq!(app.view_mode, ViewMode::Disks);
+    assert!(app.drill_path.is_empty());
+}
+
+#[test]
+fn drill_down_navigation() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_path = vec!["/tmp".into()];
+    app.drill_entries = vec![
+        DirEntry { path: "/tmp/a".into(), name: "a".into(), size: 100, is_dir: true },
+        DirEntry { path: "/tmp/b".into(), name: "b".into(), size: 50, is_dir: false },
+    ];
+    app.drill_selected = 0;
+
+    // j moves down
+    app.handle_key(make_key(KeyCode::Char('j')));
+    assert_eq!(app.drill_selected, 1);
+
+    // k moves up
+    app.handle_key(make_key(KeyCode::Char('k')));
+    assert_eq!(app.drill_selected, 0);
+
+    // G jumps to end
+    app.handle_key(make_key(KeyCode::Char('G')));
+    assert_eq!(app.drill_selected, 1);
+
+    // g jumps to start
+    app.handle_key(make_key(KeyCode::Char('g')));
+    assert_eq!(app.drill_selected, 0);
+}
+
+#[test]
+fn drill_down_quit() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.view_mode = ViewMode::DrillDown;
+    app.drill_path = vec!["/".into()];
+    app.handle_key(make_key(KeyCode::Char('q')));
+    assert!(app.quit);
+}
+
+// ─── Theme editor state transitions ──────────────────────────────────────
+
+#[test]
+fn theme_editor_opens_and_closes() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert!(!app.theme_editor);
+
+    // C opens theme editor
+    app.handle_key(make_key(KeyCode::Char('C')));
+    assert!(app.theme_editor);
+    assert_eq!(app.theme_edit_slot, 0);
+
+    // Esc closes it
+    app.handle_key(make_key(KeyCode::Esc));
+    assert!(!app.theme_editor);
+}
+
+#[test]
+fn theme_editor_navigation() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    assert!(app.theme_editor);
+
+    // j/k navigate slots
+    app.handle_key(make_key(KeyCode::Char('j')));
+    assert_eq!(app.theme_edit_slot, 1);
+    app.handle_key(make_key(KeyCode::Char('j')));
+    assert_eq!(app.theme_edit_slot, 2);
+    app.handle_key(make_key(KeyCode::Char('k')));
+    assert_eq!(app.theme_edit_slot, 1);
+
+    // l increments color value
+    let before = app.theme_edit_colors[1];
+    app.handle_key(make_key(KeyCode::Char('l')));
+    assert_eq!(app.theme_edit_colors[1], before.wrapping_add(1));
+
+    // h decrements
+    app.handle_key(make_key(KeyCode::Char('h')));
+    assert_eq!(app.theme_edit_colors[1], before);
+}
+
+#[test]
+fn theme_editor_save_flow() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    assert!(app.theme_editor);
+
+    // Press s to enter naming mode
+    app.handle_key(make_key(KeyCode::Char('s')));
+    assert!(app.theme_edit_naming);
+
+    // Type a name
+    app.handle_key(make_key(KeyCode::Char('t')));
+    app.handle_key(make_key(KeyCode::Char('e')));
+    app.handle_key(make_key(KeyCode::Char('s')));
+    app.handle_key(make_key(KeyCode::Char('t')));
+    assert_eq!(app.theme_edit_name, "test");
+
+    // Enter saves
+    app.handle_key(make_key(KeyCode::Enter));
+    assert!(!app.theme_editor);
+    assert!(app.prefs.custom_themes.contains_key("test"));
+    assert_eq!(app.prefs.active_theme, Some("test".into()));
+}
+
+// ─── Format helpers ──────────────────────────────────────────────────────
+
+#[test]
+fn format_rate_consistency() {
+    // Rates should be human readable
+    assert!(format_rate(0.0).contains("B/s"));
+    assert!(format_rate(1024.0).contains("K/s"));
+    assert!(format_rate(1_048_576.0).contains("M/s"));
+    assert!(format_rate(1_073_741_824.0).contains("G/s"));
+}
+
+#[test]
+fn format_latency_consistency() {
+    assert!(format_latency(0.5).contains("ms"));
+    assert!(format_latency(100.0).contains("ms"));
+    assert!(format_latency(2000.0).contains("s"));
+}
+
+// ─── Directory scanning ──────────────────────────────────────────────────
+
+#[test]
+fn scan_directory_returns_sorted_by_size() {
+    let entries = scan_directory("/tmp");
+    // Should be sorted descending by size
+    for w in entries.windows(2) {
+        assert!(w[0].size >= w[1].size,
+            "{} ({}) should be >= {} ({})", w[0].name, w[0].size, w[1].name, w[1].size);
+    }
+}
+
+#[test]
+fn scan_directory_nonexistent_returns_empty() {
+    let entries = scan_directory("/nonexistent_path_xyz_12345");
+    assert!(entries.is_empty());
+}
+
+// ─── SmartHealth enum ────────────────────────────────────────────────────
+
+#[test]
+fn smart_health_equality() {
+    assert_eq!(SmartHealth::Verified, SmartHealth::Verified);
+    assert_ne!(SmartHealth::Verified, SmartHealth::Failing);
+    assert_ne!(SmartHealth::Failing, SmartHealth::Unknown);
+}
+
+// ─── Custom themes via prefs ─────────────────────────────────────────────
+
+#[test]
+fn custom_theme_roundtrip_toml() {
+    let mut prefs = Prefs::default();
+    prefs.custom_themes.insert("mytest".into(), ThemeColors {
+        blue: 27, green: 48, purple: 135,
+        light_purple: 141, royal: 63, dark_purple: 99,
+    });
+    prefs.active_theme = Some("mytest".into());
+    let serialized = toml::to_string_pretty(&prefs).unwrap();
+    let deserialized: Prefs = toml::from_str(&serialized).unwrap();
+    assert!(deserialized.custom_themes.contains_key("mytest"));
+    assert_eq!(deserialized.active_theme, Some("mytest".into()));
+    let theme = deserialized.custom_themes.get("mytest").unwrap();
+    assert_eq!(theme.blue, 27);
+    assert_eq!(theme.green, 48);
+}
+
+// ─── Color mode cycling with custom themes ───────────────────────────────
+
+#[test]
+fn color_mode_cycles_through_custom_themes() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.custom_themes.insert("alpha".into(), ThemeColors {
+        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
+    });
+
+    // Cycle through all builtins
+    for _ in 0..ColorMode::ALL.len() - 1 {
+        app.handle_key(make_key(KeyCode::Char('c')));
+    }
+    // One more should enter custom theme
+    app.handle_key(make_key(KeyCode::Char('c')));
+    assert_eq!(app.prefs.active_theme, Some("alpha".into()));
+
+    // One more should wrap back to first builtin
+    app.handle_key(make_key(KeyCode::Char('c')));
+    assert!(app.prefs.active_theme.is_none());
+    assert_eq!(app.prefs.color_mode, ColorMode::ALL[0]);
 }

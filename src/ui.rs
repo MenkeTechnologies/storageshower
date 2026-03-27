@@ -437,6 +437,19 @@ pub fn draw(frame: &mut Frame, app: &App) {
         };
         set_str(buf, lm + 3, row, &mount_display, Style::default().fg(pal_green), mount_w as u16);
 
+        // SMART health indicator (end of mount column)
+        if let Some(smart) = disk.smart_status {
+            if smart != SmartHealth::Unknown {
+                let (smart_icon, smart_color) = match smart {
+                    SmartHealth::Verified => ("\u{2714}", Color::Indexed(48)),
+                    SmartHealth::Failing => ("\u{2718}", Color::Indexed(196)),
+                    SmartHealth::Unknown => unreachable!(),
+                };
+                let smart_x = lm + 3 + mount_w as u16 - 2;
+                set_cell(buf, smart_x, row, smart_icon, Style::default().fg(smart_color).add_modifier(Modifier::DIM));
+            }
+        }
+
         if let Some(lat) = disk.latency_ms {
             let badge = format_latency(lat);
             let lat_color = if lat < 50.0 {

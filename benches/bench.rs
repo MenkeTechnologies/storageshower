@@ -21,6 +21,7 @@ fn sample_disks(n: usize) -> Vec<DiskEntry> {
             latency_ms: None,
             io_read_rate: None,
             io_write_rate: None,
+            smart_status: None,
         })
         .collect()
 }
