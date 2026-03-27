@@ -308,6 +308,94 @@ storageshower --config /tmp/ss.conf  # use alternate config
 
 ---
 
+### `> BENCHMARK_TELEMETRY.dat`
+
+```
+ ┌──────────────────────────────────────────────────┐
+ │         ◈◈◈  PERFORMANCE MATRIX  ◈◈◈            │
+ └──────────────────────────────────────────────────┘
+```
+
+Measured with [Criterion.rs](https://github.com/bheisler/criterion.rs) on Apple Silicon (M-series).
+
+#### `// CORE_FORMATTING`
+
+| `BENCHMARK` | `TIME` |
+|:---|---:|
+| `format_bytes` (Human, 1 GiB) | `~67 ns` |
+| `format_bytes` (GiB, 1 GiB) | `~69 ns` |
+| `format_bytes` (Bytes, zero) | `~20 ns` |
+| `format_uptime` (45m) | `~21 ns` |
+| `format_uptime` (2d14h) | `~39 ns` |
+| `truncate_mount` (w=8) | `~27 ns` |
+| `truncate_mount` (w=32) | `~97 ns` |
+
+#### `// LAYOUT_ENGINE`
+
+| `BENCHMARK` | `TIME` |
+|:---|---:|
+| `mount_col_width` | `~590 ps` |
+| `right_col_width_static` | `~540 ps` |
+
+#### `// COLOR_PIPELINE`
+
+| `BENCHMARK` | `TIME` |
+|:---|---:|
+| `palette` | `~2.4 ns` |
+| `gradient_color_at` | `~0.7–1.1 ns` |
+
+#### `// TIME_OPS`
+
+| `BENCHMARK` | `TIME` |
+|:---|---:|
+| `epoch_to_local` | `~300 ns` |
+| `chrono_now` | `~427 ns` |
+
+#### `// DATA_COLLECTION`
+
+| `BENCHMARK` | `TIME` |
+|:---|---:|
+| `collect_disk_entries` | `~3.2 µs` |
+| `collect_sys_stats` | `~3.8 µs` |
+
+#### `// CONFIG_SERDE`
+
+| `BENCHMARK` | `TIME` |
+|:---|---:|
+| `prefs serialize` (TOML) | `~4.6 µs` |
+| `prefs deserialize` (TOML) | `~5.3 µs` |
+
+#### `// SORT_DISKS`
+
+| `BENCHMARK` | `10` | `50` | `200` |
+|:---|---:|---:|---:|
+| `by_name` | `270 ns` | `1.7 µs` | `7.9 µs` |
+| `by_pct` | `242 ns` | `1.2 µs` | `4.3 µs` |
+| `by_size` | `250 ns` | `1.2 µs` | `4.2 µs` |
+
+#### `// FILTER_DISKS`
+
+| `BENCHMARK` | `10` | `50` | `200` |
+|:---|---:|---:|---:|
+| `substring_match` | `291 ns` | `1.6 µs` | `5.9 µs` |
+| `no_match` | `151 ns` | `746 ns` | `3.0 µs` |
+
+#### `// RENDER_PIPELINE`
+
+| `BENCHMARK` | `TIME` |
+|:---|---:|
+| `format_all_disks` (10) | `~1.5 µs` |
+| `format_all_disks` (50) | `~4.4 µs` |
+| `format_all_disks` (200) | `~15.7 µs` |
+
+```bash
+# ── RUN BENCHMARKS ─────────────────────────────
+cargo bench
+# results in target/criterion/
+```
+
+---
+
 ### `> CONFIG_PERSISTENCE.log`
 
 ```
