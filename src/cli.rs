@@ -54,11 +54,11 @@ pub struct Cli {
 
     /// Reverse sort order
     #[arg(short = 'R', long = "reverse")]
-    pub sort_rev: Option<bool>,
+    pub sort_rev: bool,
 
     /// Show only local disks (HDD/SSD), filter out network/virtual
     #[arg(short = 'l', long = "local-only")]
-    pub show_local: Option<bool>,
+    pub show_local: bool,
 
     /// Data refresh interval in seconds [1, 2, 5, 10]
     #[arg(short = 'r', long = "refresh", value_name = "SECS")]
@@ -94,7 +94,7 @@ pub struct Cli {
 
     /// Compact mount names
     #[arg(short = 'k', long = "compact")]
-    pub compact: Option<bool>,
+    pub compact: bool,
 
     /// Hide used/total size display
     #[arg(long = "no-used")]
@@ -102,7 +102,7 @@ pub struct Cli {
 
     /// Show full mount paths
     #[arg(short = 'f', long = "full-mount")]
-    pub full_mount: Option<bool>,
+    pub full_mount: bool,
 
     /// Hide virtual filesystems (tmpfs, devfs, etc.)
     #[arg(long = "no-virtual")]
@@ -208,11 +208,11 @@ impl Cli {
                 CliSortMode::Size => SortMode::Size,
             };
         }
-        if let Some(v) = self.sort_rev {
-            prefs.sort_rev = v;
+        if self.sort_rev {
+            prefs.sort_rev = true;
         }
-        if let Some(v) = self.show_local {
-            prefs.show_local = v;
+        if self.show_local {
+            prefs.show_local = true;
         }
         if let Some(v) = self.refresh_rate {
             prefs.refresh_rate = v;
@@ -248,14 +248,14 @@ impl Cli {
         if self.no_header {
             prefs.show_header = false;
         }
-        if let Some(v) = self.compact {
-            prefs.compact = v;
+        if self.compact {
+            prefs.compact = true;
         }
         if self.no_used {
             prefs.show_used = false;
         }
-        if let Some(v) = self.full_mount {
-            prefs.full_mount = v;
+        if self.full_mount {
+            prefs.full_mount = true;
         }
         if self.no_virtual {
             prefs.show_all = false;

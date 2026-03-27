@@ -346,7 +346,7 @@ fn refresh_data_updates_from_shared() {
     let stats = SysStats::default();
     let disks = sample_disks();
     let shared = Arc::new(Mutex::new((stats, disks)));
-    let mut app = App::new(Arc::clone(&shared));
+    let mut app = App::new_default(Arc::clone(&shared));
 
     // Modify shared state
     let new_disk = DiskEntry {
@@ -374,7 +374,7 @@ fn refresh_data_blocked_when_paused() {
     let stats = SysStats::default();
     let disks = sample_disks();
     let shared = Arc::new(Mutex::new((stats, disks)));
-    let mut app = App::new(Arc::clone(&shared));
+    let mut app = App::new_default(Arc::clone(&shared));
     let original_count = app.disks.len();
 
     app.paused = true;
