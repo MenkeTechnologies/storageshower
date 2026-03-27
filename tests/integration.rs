@@ -2090,3 +2090,1948 @@ fn hover_workflow_move_wait_autohide() {
     app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_secs(5));
     assert!(!app.hover_ready(), "should auto-hide after 4s");
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW INTEGRATION TESTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── Filter emacs-style editing: Ctrl+U, Ctrl+W, Ctrl+H ─────────────────
+
+#[test]
+fn filter_ctrl_u_kills_to_start() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "hello".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    assert_eq!(app.filter.buf, "hello");
+    // Ctrl+U kills from cursor to start
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('u'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.filter.buf, "");
+    assert_eq!(app.filter.cursor, 0);
+}
+
+#[test]
+fn filter_ctrl_w_kills_word() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "foo bar".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    assert_eq!(app.filter.buf, "foo bar");
+    // Ctrl+W kills previous word
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('w'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.filter.buf, "foo ");
+}
+
+#[test]
+fn filter_ctrl_h_deletes_backward() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "abc".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('h'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.filter.buf, "ab");
+}
+
+#[test]
+fn filter_ctrl_b_moves_left() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "abc".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    assert_eq!(app.filter.cursor, 3);
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('b'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.filter.cursor, 2);
+}
+
+#[test]
+fn filter_ctrl_f_moves_right() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "abc".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    // Move to start, then Ctrl+F forward
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('a'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.filter.cursor, 0);
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('f'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.filter.cursor, 1);
+}
+
+#[test]
+fn filter_ctrl_e_moves_to_end() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "test".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('a'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.filter.cursor, 0);
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('e'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.filter.cursor, 4);
+}
+
+#[test]
+fn filter_home_end_keys() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "test".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    app.handle_key(make_key(KeyCode::Home));
+    assert_eq!(app.filter.cursor, 0);
+    app.handle_key(make_key(KeyCode::End));
+    assert_eq!(app.filter.cursor, 4);
+}
+
+#[test]
+fn filter_left_right_arrow_keys() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "ab".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    app.handle_key(make_key(KeyCode::Left));
+    assert_eq!(app.filter.cursor, 1);
+    app.handle_key(make_key(KeyCode::Right));
+    assert_eq!(app.filter.cursor, 2);
+}
+
+#[test]
+fn filter_delete_key() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "abc".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    // Move to position 1, delete 'b'
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('a'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    app.handle_key(make_key(KeyCode::Right));
+    app.handle_key(make_key(KeyCode::Delete));
+    assert_eq!(app.filter.buf, "ac");
+}
+
+#[test]
+fn filter_backspace_at_start_does_nothing() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "x".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    app.handle_key(make_key(KeyCode::Home));
+    app.handle_key(make_key(KeyCode::Backspace));
+    assert_eq!(app.filter.buf, "x");
+    assert_eq!(app.filter.cursor, 0);
+}
+
+#[test]
+fn filter_esc_restores_previous() {
+    let mut app = make_app_with_disks(sample_disks());
+    // Set existing filter
+    app.filter.text = "old".into();
+    // Enter filter mode
+    app.handle_key(make_key(KeyCode::Char('/')));
+    assert_eq!(app.filter.prev, "old");
+    // Type new text
+    for c in "new".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    // Esc restores
+    app.handle_key(make_key(KeyCode::Esc));
+    assert_eq!(app.filter.text, "old");
+    assert!(!app.filter.active);
+}
+
+#[test]
+fn filter_enter_confirms() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "new".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    app.handle_key(make_key(KeyCode::Enter));
+    assert_eq!(app.filter.text, "new");
+    assert!(!app.filter.active);
+}
+
+#[test]
+fn filter_insert_at_cursor_position() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "ac".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    // Move left once, insert 'b'
+    app.handle_key(make_key(KeyCode::Left));
+    app.handle_key(make_key(KeyCode::Char('b')));
+    assert_eq!(app.filter.buf, "abc");
+    assert_eq!(app.filter.cursor, 2);
+}
+
+// ─── Navigation: Ctrl+D / Ctrl+U half-page ──────────────────────────────
+
+#[test]
+fn ctrl_d_half_page_down() {
+    let mut disks = Vec::new();
+    for i in 0..20 {
+        disks.push(DiskEntry {
+            mount: format!("/mnt/{}", i), used: 50, total: 100, pct: 50.0,
+            kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None, smart_status: None,
+        });
+    }
+    let mut app = make_app_with_disks(disks);
+    app.selected = Some(0);
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('d'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.selected, Some(10)); // half of 20
+}
+
+#[test]
+fn ctrl_u_half_page_up() {
+    let mut disks = Vec::new();
+    for i in 0..20 {
+        disks.push(DiskEntry {
+            mount: format!("/mnt/{}", i), used: 50, total: 100, pct: 50.0,
+            kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None, smart_status: None,
+        });
+    }
+    let mut app = make_app_with_disks(disks);
+    app.selected = Some(15);
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('u'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.selected, Some(5)); // 15 - 10
+}
+
+#[test]
+fn ctrl_d_from_none_starts_at_half() {
+    let mut disks = Vec::new();
+    for i in 0..10 {
+        disks.push(DiskEntry {
+            mount: format!("/mnt/{}", i), used: 50, total: 100, pct: 50.0,
+            kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None, smart_status: None,
+        });
+    }
+    let mut app = make_app_with_disks(disks);
+    assert!(app.selected.is_none());
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('d'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.selected, Some(5));
+}
+
+#[test]
+fn ctrl_u_from_none_goes_to_zero() {
+    let mut disks = Vec::new();
+    for i in 0..10 {
+        disks.push(DiskEntry {
+            mount: format!("/mnt/{}", i), used: 50, total: 100, pct: 50.0,
+            kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
+            io_read_rate: None, io_write_rate: None, smart_status: None,
+        });
+    }
+    let mut app = make_app_with_disks(disks);
+    assert!(app.selected.is_none());
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('u'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.selected, Some(0));
+}
+
+#[test]
+fn ctrl_g_selects_first() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.selected = Some(2);
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('g'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert_eq!(app.selected, Some(0));
+}
+
+// ─── Navigation: Home/End/G ─────────────────────────────────────────────
+
+#[test]
+fn home_selects_first() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.selected = Some(2);
+    app.handle_key(make_key(KeyCode::Home));
+    assert_eq!(app.selected, Some(0));
+}
+
+#[test]
+fn end_selects_last() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.selected = Some(0);
+    app.handle_key(make_key(KeyCode::End));
+    assert_eq!(app.selected, Some(app.sorted_disks().len() - 1));
+}
+
+#[test]
+fn big_g_selects_last() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.selected = Some(0);
+    app.handle_key(make_key(KeyCode::Char('G')));
+    assert_eq!(app.selected, Some(app.sorted_disks().len() - 1));
+}
+
+// ─── Key toggles ────────────────────────────────────────────────────────
+
+#[test]
+fn p_toggles_pause() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert!(!app.paused);
+    app.handle_key(make_key(KeyCode::Char('p')));
+    assert!(app.paused);
+    app.handle_key(make_key(KeyCode::Char('p')));
+    assert!(!app.paused);
+}
+
+#[test]
+fn l_toggles_local_only() {
+    let mut app = make_app_with_disks(sample_disks());
+    let before = app.prefs.show_local;
+    app.handle_key(make_key(KeyCode::Char('l')));
+    assert_eq!(app.prefs.show_local, !before);
+    app.handle_key(make_key(KeyCode::Char('l')));
+    assert_eq!(app.prefs.show_local, before);
+}
+
+#[test]
+fn a_toggles_show_all() {
+    let mut app = make_app_with_disks(sample_disks());
+    let before = app.prefs.show_all;
+    app.handle_key(make_key(KeyCode::Char('a')));
+    assert_eq!(app.prefs.show_all, !before);
+}
+
+#[test]
+fn v_toggles_bars() {
+    let mut app = make_app_with_disks(sample_disks());
+    let before = app.prefs.show_bars;
+    app.handle_key(make_key(KeyCode::Char('v')));
+    assert_eq!(app.prefs.show_bars, !before);
+}
+
+#[test]
+fn d_toggles_used_and_resets_bar_end() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.col_bar_end_w = 30;
+    let before = app.prefs.show_used;
+    app.handle_key(make_key(KeyCode::Char('d')));
+    assert_eq!(app.prefs.show_used, !before);
+    assert_eq!(app.prefs.col_bar_end_w, 0, "col_bar_end_w should reset on toggle");
+}
+
+#[test]
+fn g_toggles_header() {
+    let mut app = make_app_with_disks(sample_disks());
+    let before = app.prefs.show_header;
+    app.handle_key(make_key(KeyCode::Char('g')));
+    assert_eq!(app.prefs.show_header, !before);
+}
+
+#[test]
+fn x_toggles_border() {
+    let mut app = make_app_with_disks(sample_disks());
+    let before = app.prefs.show_border;
+    app.handle_key(make_key(KeyCode::Char('x')));
+    assert_eq!(app.prefs.show_border, !before);
+}
+
+#[test]
+fn m_toggles_compact_and_resets_mount_w() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.col_mount_w = 25;
+    let before = app.prefs.compact;
+    app.handle_key(make_key(KeyCode::Char('m')));
+    assert_eq!(app.prefs.compact, !before);
+    assert_eq!(app.prefs.col_mount_w, 0, "col_mount_w should reset on compact toggle");
+}
+
+#[test]
+fn w_toggles_full_mount() {
+    let mut app = make_app_with_disks(sample_disks());
+    let before = app.prefs.full_mount;
+    app.handle_key(make_key(KeyCode::Char('w')));
+    assert_eq!(app.prefs.full_mount, !before);
+}
+
+// ─── Bar style cycling ──────────────────────────────────────────────────
+
+#[test]
+fn bar_style_cycles_correctly() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert_eq!(app.prefs.bar_style, BarStyle::Gradient);
+    app.handle_key(make_key(KeyCode::Char('b')));
+    assert_eq!(app.prefs.bar_style, BarStyle::Solid);
+    app.handle_key(make_key(KeyCode::Char('b')));
+    assert_eq!(app.prefs.bar_style, BarStyle::Thin);
+    app.handle_key(make_key(KeyCode::Char('b')));
+    assert_eq!(app.prefs.bar_style, BarStyle::Ascii);
+    app.handle_key(make_key(KeyCode::Char('b')));
+    assert_eq!(app.prefs.bar_style, BarStyle::Gradient);
+}
+
+// ─── Unit mode cycling ──────────────────────────────────────────────────
+
+#[test]
+fn unit_mode_cycles_correctly() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert_eq!(app.prefs.unit_mode, UnitMode::Human);
+    app.handle_key(make_key(KeyCode::Char('i')));
+    assert_eq!(app.prefs.unit_mode, UnitMode::GiB);
+    app.handle_key(make_key(KeyCode::Char('i')));
+    assert_eq!(app.prefs.unit_mode, UnitMode::MiB);
+    app.handle_key(make_key(KeyCode::Char('i')));
+    assert_eq!(app.prefs.unit_mode, UnitMode::Bytes);
+    app.handle_key(make_key(KeyCode::Char('i')));
+    assert_eq!(app.prefs.unit_mode, UnitMode::Human);
+}
+
+// ─── Threshold cycling ──────────────────────────────────────────────────
+
+#[test]
+fn warn_threshold_cycles() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert_eq!(app.prefs.thresh_warn, 70);
+    app.handle_key(make_key(KeyCode::Char('t')));
+    assert_eq!(app.prefs.thresh_warn, 80);
+    app.handle_key(make_key(KeyCode::Char('t')));
+    assert_eq!(app.prefs.thresh_warn, 50);
+    app.handle_key(make_key(KeyCode::Char('t')));
+    assert_eq!(app.prefs.thresh_warn, 60);
+    app.handle_key(make_key(KeyCode::Char('t')));
+    assert_eq!(app.prefs.thresh_warn, 70);
+}
+
+#[test]
+fn crit_threshold_cycles() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert_eq!(app.prefs.thresh_crit, 90);
+    app.handle_key(make_key(KeyCode::Char('T')));
+    assert_eq!(app.prefs.thresh_crit, 95);
+    app.handle_key(make_key(KeyCode::Char('T')));
+    assert_eq!(app.prefs.thresh_crit, 80);
+    app.handle_key(make_key(KeyCode::Char('T')));
+    assert_eq!(app.prefs.thresh_crit, 85);
+    app.handle_key(make_key(KeyCode::Char('T')));
+    assert_eq!(app.prefs.thresh_crit, 90);
+}
+
+// ─── Refresh rate cycling ───────────────────────────────────────────────
+
+#[test]
+fn refresh_rate_cycles() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert_eq!(app.prefs.refresh_rate, 1);
+    app.handle_key(make_key(KeyCode::Char('f')));
+    assert_eq!(app.prefs.refresh_rate, 2);
+    app.handle_key(make_key(KeyCode::Char('f')));
+    assert_eq!(app.prefs.refresh_rate, 5);
+    app.handle_key(make_key(KeyCode::Char('f')));
+    assert_eq!(app.prefs.refresh_rate, 10);
+    app.handle_key(make_key(KeyCode::Char('f')));
+    assert_eq!(app.prefs.refresh_rate, 1);
+}
+
+// ─── Sort mode keys n/u/s/r ─────────────────────────────────────────────
+
+#[test]
+fn sort_n_switches_to_name() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.sort_mode = SortMode::Size;
+    app.handle_key(make_key(KeyCode::Char('n')));
+    assert_eq!(app.prefs.sort_mode, SortMode::Name);
+    assert!(!app.prefs.sort_rev);
+}
+
+#[test]
+fn sort_n_toggles_reverse_if_already_name() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.sort_mode = SortMode::Name;
+    app.prefs.sort_rev = false;
+    app.handle_key(make_key(KeyCode::Char('n')));
+    assert!(app.prefs.sort_rev);
+    app.handle_key(make_key(KeyCode::Char('n')));
+    assert!(!app.prefs.sort_rev);
+}
+
+#[test]
+fn sort_u_switches_to_pct() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.sort_mode = SortMode::Name;
+    app.handle_key(make_key(KeyCode::Char('u')));
+    assert_eq!(app.prefs.sort_mode, SortMode::Pct);
+    assert!(!app.prefs.sort_rev);
+}
+
+#[test]
+fn sort_u_toggles_reverse_if_already_pct() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.sort_mode = SortMode::Pct;
+    app.handle_key(make_key(KeyCode::Char('u')));
+    assert!(app.prefs.sort_rev);
+}
+
+#[test]
+fn sort_s_switches_to_size() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.sort_mode = SortMode::Name;
+    app.handle_key(make_key(KeyCode::Char('s')));
+    assert_eq!(app.prefs.sort_mode, SortMode::Size);
+    assert!(!app.prefs.sort_rev);
+}
+
+#[test]
+fn sort_r_toggles_reverse() {
+    let mut app = make_app_with_disks(sample_disks());
+    assert!(!app.prefs.sort_rev);
+    app.handle_key(make_key(KeyCode::Char('r')));
+    assert!(app.prefs.sort_rev);
+    app.handle_key(make_key(KeyCode::Char('r')));
+    assert!(!app.prefs.sort_rev);
+}
+
+// ─── Help overlay blocks other keys ─────────────────────────────────────
+
+#[test]
+fn help_overlay_blocks_navigation() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.show_help = true;
+    app.handle_key(make_key(KeyCode::Char('s'))); // sort
+    // Sort should NOT change because help is shown
+    assert_eq!(app.prefs.sort_mode, SortMode::Name);
+    assert!(!app.show_help); // but help is dismissed
+}
+
+#[test]
+fn help_dismiss_with_q() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.show_help = true;
+    app.handle_key(make_key(KeyCode::Char('q')));
+    assert!(!app.show_help);
+    assert!(!app.quit, "q in help should dismiss help, not quit");
+}
+
+// ─── Theme editor large steps (H/L) ────────────────────────────────────
+
+#[test]
+fn theme_editor_large_step_l() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    assert!(app.theme_edit.active);
+    let before = app.theme_edit.colors[0];
+    app.handle_key(make_key(KeyCode::Char('L')));
+    assert_eq!(app.theme_edit.colors[0], before.wrapping_add(10));
+}
+
+#[test]
+fn theme_editor_large_step_h() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    let before = app.theme_edit.colors[0];
+    app.handle_key(make_key(KeyCode::Char('H')));
+    assert_eq!(app.theme_edit.colors[0], before.wrapping_sub(10));
+}
+
+#[test]
+fn theme_editor_slot_bounds() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    // Navigate past bottom
+    for _ in 0..10 {
+        app.handle_key(make_key(KeyCode::Char('j')));
+    }
+    assert_eq!(app.theme_edit.slot, 5); // max slot
+    // Navigate past top
+    for _ in 0..10 {
+        app.handle_key(make_key(KeyCode::Char('k')));
+    }
+    assert_eq!(app.theme_edit.slot, 0);
+}
+
+#[test]
+fn theme_editor_naming_esc_cancels() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    app.handle_key(make_key(KeyCode::Char('s'))); // enter naming
+    assert!(app.theme_edit.naming);
+    for c in "test".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    app.handle_key(make_key(KeyCode::Esc));
+    assert!(!app.theme_edit.naming);
+    assert!(app.theme_edit.active, "Should stay in editor after naming cancel");
+    assert!(!app.prefs.custom_themes.contains_key("test"));
+}
+
+#[test]
+fn theme_editor_naming_empty_name_does_not_save() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    app.handle_key(make_key(KeyCode::Char('s')));
+    assert!(app.theme_edit.naming);
+    // Enter immediately (empty name)
+    app.handle_key(make_key(KeyCode::Enter));
+    assert!(!app.theme_edit.active);
+    assert!(app.prefs.custom_themes.is_empty());
+}
+
+#[test]
+fn theme_editor_naming_backspace() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    app.handle_key(make_key(KeyCode::Char('s')));
+    for c in "abc".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    app.handle_key(make_key(KeyCode::Backspace));
+    assert_eq!(app.theme_edit.name, "ab");
+}
+
+#[test]
+fn theme_editor_naming_left_right() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    app.handle_key(make_key(KeyCode::Char('s')));
+    for c in "ab".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    assert_eq!(app.theme_edit.cursor, 2);
+    app.handle_key(make_key(KeyCode::Left));
+    assert_eq!(app.theme_edit.cursor, 1);
+    app.handle_key(make_key(KeyCode::Right));
+    assert_eq!(app.theme_edit.cursor, 2);
+}
+
+#[test]
+fn theme_editor_naming_max_length() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    app.handle_key(make_key(KeyCode::Char('s')));
+    // Type 25 characters — max is 20
+    for _ in 0..25 {
+        app.handle_key(make_key(KeyCode::Char('x')));
+    }
+    assert_eq!(app.theme_edit.name.len(), 20);
+}
+
+// ─── Drill-down: Enter on file does nothing ─────────────────────────────
+
+#[test]
+fn drill_enter_on_file_does_not_navigate() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/tmp".into()];
+    app.drill.entries = vec![
+        DirEntry { path: "/tmp/file.txt".into(), name: "file.txt".into(), size: 100, is_dir: false },
+    ];
+    app.drill.selected = 0;
+    let path_len = app.drill.path.len();
+    app.handle_key(make_key(KeyCode::Enter));
+    assert_eq!(app.drill.path.len(), path_len, "Should not drill into a file");
+}
+
+#[test]
+fn drill_enter_on_dir_navigates() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/tmp".into()];
+    app.drill.entries = vec![
+        DirEntry { path: "/tmp/subdir".into(), name: "subdir".into(), size: 100, is_dir: true },
+    ];
+    app.drill.selected = 0;
+    app.handle_key(make_key(KeyCode::Enter));
+    assert_eq!(app.drill.path.len(), 2);
+    assert_eq!(app.drill.path[1], "/tmp/subdir");
+    assert!(app.drill.scanning);
+}
+
+#[test]
+fn drill_open_key_shows_status() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/tmp".into()];
+    app.handle_key(make_key(KeyCode::Char('o')));
+    assert!(app.status_msg.is_some());
+    assert!(app.status_msg.as_ref().unwrap().0.contains("Opened"));
+}
+
+// ─── Drill-down: j/k bounds ────────────────────────────────────────────
+
+#[test]
+fn drill_j_clamps_at_end() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into()];
+    app.drill.entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
+        DirEntry { path: "/b".into(), name: "b".into(), size: 20, is_dir: false },
+    ];
+    app.drill.selected = 0;
+    for _ in 0..10 {
+        app.handle_key(make_key(KeyCode::Char('j')));
+    }
+    assert_eq!(app.drill.selected, 1);
+}
+
+#[test]
+fn drill_k_clamps_at_zero() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into()];
+    app.drill.entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
+    ];
+    app.drill.selected = 0;
+    for _ in 0..5 {
+        app.handle_key(make_key(KeyCode::Char('k')));
+    }
+    assert_eq!(app.drill.selected, 0);
+}
+
+#[test]
+fn drill_empty_entries_j_does_nothing() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.mode = ViewMode::DrillDown;
+    app.drill.path = vec!["/".into()];
+    app.drill.entries = vec![];
+    app.drill.selected = 0;
+    app.handle_key(make_key(KeyCode::Char('j')));
+    assert_eq!(app.drill.selected, 0);
+}
+
+// ─── y key: copy mount path ─────────────────────────────────────────────
+
+#[test]
+fn y_key_without_selection_shows_message() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.selected = None;
+    app.handle_key(make_key(KeyCode::Char('y')));
+    assert!(app.status_msg.is_some());
+    assert!(app.status_msg.as_ref().unwrap().0.contains("Select a disk"));
+}
+
+// ─── ColorMode::next cycling ────────────────────────────────────────────
+
+#[test]
+fn color_mode_next_wraps() {
+    let last = *ColorMode::ALL.last().unwrap();
+    assert_eq!(last.next(), ColorMode::ALL[0]);
+}
+
+#[test]
+fn color_mode_next_all_variants() {
+    let mut mode = ColorMode::Default;
+    for _ in 0..ColorMode::ALL.len() {
+        mode = mode.next();
+    }
+    assert_eq!(mode, ColorMode::Default, "Should wrap around to start");
+}
+
+// ─── ColorMode::name covers all variants ────────────────────────────────
+
+#[test]
+fn color_mode_name_all_non_empty() {
+    for &mode in ColorMode::ALL {
+        let name = mode.name();
+        assert!(!name.is_empty(), "Name for {:?} should not be empty", mode);
+        assert!(name.len() >= 3, "Name '{}' for {:?} too short", name, mode);
+    }
+}
+
+#[test]
+fn color_mode_all_has_correct_count() {
+    assert_eq!(ColorMode::ALL.len(), 30);
+}
+
+// ─── Network filesystem detection ───────────────────────────────────────
+
+#[test]
+fn is_network_fs_detects_nfs() {
+    use storageshower::system::is_network_fs;
+    assert!(is_network_fs("nfs"));
+    assert!(is_network_fs("nfs4"));
+    assert!(is_network_fs("cifs"));
+    assert!(is_network_fs("smbfs"));
+    assert!(is_network_fs("afp"));
+    assert!(is_network_fs("fuse.sshfs"));
+    assert!(is_network_fs("fuse.rclone"));
+    assert!(is_network_fs("fuse.s3fs"));
+    assert!(is_network_fs("9p"));
+    assert!(is_network_fs("afs"));
+    assert!(is_network_fs("ncp"));
+}
+
+#[test]
+fn is_network_fs_rejects_local() {
+    use storageshower::system::is_network_fs;
+    assert!(!is_network_fs("ext4"));
+    assert!(!is_network_fs("apfs"));
+    assert!(!is_network_fs("xfs"));
+    assert!(!is_network_fs("btrfs"));
+    assert!(!is_network_fs("tmpfs"));
+    assert!(!is_network_fs(""));
+}
+
+// ─── Gradient color ─────────────────────────────────────────────────────
+
+#[test]
+fn gradient_color_at_boundary_values() {
+    use storageshower::ui::gradient_color_at;
+    use ratatui::style::Color;
+    // Should not panic at boundaries
+    let c0 = gradient_color_at(0.0, ColorMode::Default);
+    let c33 = gradient_color_at(0.33, ColorMode::Default);
+    let c55 = gradient_color_at(0.55, ColorMode::Default);
+    let c80 = gradient_color_at(0.80, ColorMode::Default);
+    let c100 = gradient_color_at(1.0, ColorMode::Default);
+    // Green at start, escalating through palette
+    assert!(matches!(c0, Color::Indexed(_)));
+    assert!(matches!(c33, Color::Indexed(_)));
+    assert!(matches!(c55, Color::Indexed(_)));
+    assert!(matches!(c80, Color::Indexed(_)));
+    assert!(matches!(c100, Color::Indexed(_)));
+}
+
+#[test]
+fn gradient_color_at_all_color_modes() {
+    use storageshower::ui::gradient_color_at;
+    for &mode in ColorMode::ALL {
+        for frac in [0.0, 0.1, 0.33, 0.5, 0.55, 0.75, 0.80, 0.9, 1.0] {
+            let _ = gradient_color_at(frac, mode); // should not panic
+        }
+    }
+}
+
+// ─── Palette and palette_for_prefs ──────────────────────────────────────
+
+#[test]
+fn palette_all_modes_return_indexed_colors() {
+    use storageshower::ui::palette;
+    use ratatui::style::Color;
+    for &mode in ColorMode::ALL {
+        let (a, b, c, d, e, f) = palette(mode);
+        assert!(matches!(a, Color::Indexed(_)), "palette {:?} slot 0 not indexed", mode);
+        assert!(matches!(b, Color::Indexed(_)));
+        assert!(matches!(c, Color::Indexed(_)));
+        assert!(matches!(d, Color::Indexed(_)));
+        assert!(matches!(e, Color::Indexed(_)));
+        assert!(matches!(f, Color::Indexed(_)));
+    }
+}
+
+#[test]
+fn palette_for_prefs_uses_custom_theme() {
+    use storageshower::ui::palette_for_prefs;
+    use ratatui::style::Color;
+    let mut prefs = Prefs::default();
+    prefs.custom_themes.insert("mine".into(), ThemeColors {
+        blue: 100, green: 101, purple: 102, light_purple: 103, royal: 104, dark_purple: 105,
+    });
+    prefs.active_theme = Some("mine".into());
+    let (a, b, c, d, e, f) = palette_for_prefs(&prefs);
+    assert_eq!(a, Color::Indexed(100));
+    assert_eq!(b, Color::Indexed(101));
+    assert_eq!(c, Color::Indexed(102));
+    assert_eq!(d, Color::Indexed(103));
+    assert_eq!(e, Color::Indexed(104));
+    assert_eq!(f, Color::Indexed(105));
+}
+
+#[test]
+fn palette_for_prefs_missing_custom_falls_back() {
+    use storageshower::ui::palette_for_prefs;
+    let mut prefs = Prefs::default();
+    prefs.active_theme = Some("nonexistent".into());
+    prefs.color_mode = ColorMode::Purple;
+    let p = palette_for_prefs(&prefs);
+    let expected = storageshower::ui::palette(ColorMode::Purple);
+    assert_eq!(p, expected, "Should fall back to builtin when custom theme missing");
+}
+
+// ─── CLI parsing edge cases ─────────────────────────────────────────────
+
+#[test]
+fn cli_all_bar_styles() {
+    for style in ["gradient", "solid", "thin", "ascii"] {
+        let cli = Cli::parse_from(["storageshower", "-b", style]);
+        assert!(cli.bar_style.is_some());
+    }
+}
+
+#[test]
+fn cli_all_sort_modes() {
+    for mode in ["name", "pct", "size"] {
+        let cli = Cli::parse_from(["storageshower", "-s", mode]);
+        assert!(cli.sort_mode.is_some());
+    }
+}
+
+#[test]
+fn cli_all_unit_modes() {
+    for mode in ["human", "gib", "mib", "bytes"] {
+        let cli = Cli::parse_from(["storageshower", "-u", mode]);
+        assert!(cli.unit_mode.is_some());
+    }
+}
+
+#[test]
+fn cli_all_color_modes() {
+    let names = [
+        "default", "green", "blue", "purple", "amber", "cyan", "red",
+        "sakura", "matrix", "sunset", "neon-noir", "chrome-heart",
+        "blade-runner", "void-walker", "toxic-waste", "cyber-frost",
+        "plasma-core", "steel-nerve", "dark-signal", "glitch-pop",
+        "holo-shift", "night-city", "deep-net", "laser-grid",
+        "quantum-flux", "bio-hazard", "darkwave", "overlock", "megacorp", "zaibatsu",
+    ];
+    for name in names {
+        let cli = Cli::parse_from(["storageshower", "--color", name]);
+        assert!(cli.color_mode.is_some(), "Failed to parse color mode: {}", name);
+    }
+}
+
+#[test]
+fn cli_column_width_flags() {
+    let cli = Cli::parse_from(["storageshower", "--col-mount", "25", "--col-bar-end", "30", "--col-pct", "8"]);
+    assert_eq!(cli.col_mount_w, Some(25));
+    assert_eq!(cli.col_bar_end_w, Some(30));
+    assert_eq!(cli.col_pct_w, Some(8));
+}
+
+#[test]
+fn cli_boolean_flag_pairs() {
+    // --bars / --no-bars
+    let cli = Cli::parse_from(["storageshower", "--no-bars"]);
+    assert!(cli.no_bars);
+    let cli = Cli::parse_from(["storageshower", "--bars", "--no-bars"]);
+    assert!(cli.no_bars);
+
+    // --border / --no-border
+    let cli = Cli::parse_from(["storageshower", "--no-border"]);
+    assert!(cli.no_border);
+
+    // --header / --no-header
+    let cli = Cli::parse_from(["storageshower", "--no-header"]);
+    assert!(cli.no_header);
+
+    // --compact / --no-compact
+    let cli = Cli::parse_from(["storageshower", "--compact"]);
+    assert!(cli.compact);
+
+    // --used / --no-used
+    let cli = Cli::parse_from(["storageshower", "--no-used"]);
+    assert!(cli.no_used);
+
+    // --full-mount / --no-full-mount
+    let cli = Cli::parse_from(["storageshower", "--full-mount"]);
+    assert!(cli.full_mount);
+
+    // --virtual / --no-virtual
+    let cli = Cli::parse_from(["storageshower", "--no-virtual"]);
+    assert!(cli.no_virtual);
+}
+
+#[test]
+fn cli_config_path() {
+    let cli = Cli::parse_from(["storageshower", "-c", "/tmp/my.conf"]);
+    assert_eq!(cli.config, Some("/tmp/my.conf".into()));
+}
+
+#[test]
+fn cli_list_colors_flag() {
+    let cli = Cli::parse_from(["storageshower", "--list-colors"]);
+    assert!(cli.list_colors);
+}
+
+#[test]
+fn cli_theme_flag() {
+    let cli = Cli::parse_from(["storageshower", "--theme", "custom1"]);
+    assert_eq!(cli.theme, Some("custom1".into()));
+}
+
+#[test]
+fn cli_help_and_version_flags() {
+    let cli = Cli::parse_from(["storageshower", "-h"]);
+    assert!(cli.help);
+    let cli = Cli::parse_from(["storageshower", "-V"]);
+    assert!(cli.version);
+}
+
+// ─── CLI apply_to does not mutate when flags absent ─────────────────────
+
+#[test]
+fn cli_apply_to_preserves_all_defaults() {
+    let cli = Cli::parse_from(["storageshower"]);
+    let mut prefs = Prefs::default();
+    prefs.sort_mode = SortMode::Size;
+    prefs.bar_style = BarStyle::Thin;
+    prefs.color_mode = ColorMode::Purple;
+    prefs.unit_mode = UnitMode::GiB;
+    prefs.thresh_warn = 55;
+    prefs.thresh_crit = 88;
+    prefs.refresh_rate = 7;
+    prefs.compact = true;
+    prefs.full_mount = true;
+    prefs.show_bars = false;
+    prefs.show_border = false;
+    prefs.show_header = false;
+    prefs.show_used = false;
+    prefs.col_mount_w = 30;
+    prefs.col_bar_end_w = 25;
+    prefs.col_pct_w = 8;
+    cli.apply_to(&mut prefs);
+    assert_eq!(prefs.sort_mode, SortMode::Size);
+    assert_eq!(prefs.bar_style, BarStyle::Thin);
+    assert_eq!(prefs.color_mode, ColorMode::Purple);
+    assert_eq!(prefs.unit_mode, UnitMode::GiB);
+    assert_eq!(prefs.thresh_warn, 55);
+    assert_eq!(prefs.thresh_crit, 88);
+    assert_eq!(prefs.refresh_rate, 7);
+    assert!(prefs.compact);
+    assert!(prefs.full_mount);
+    assert!(!prefs.show_bars);
+    assert!(!prefs.show_border);
+    assert!(!prefs.show_header);
+    assert!(!prefs.show_used);
+    assert_eq!(prefs.col_mount_w, 30);
+    assert_eq!(prefs.col_bar_end_w, 25);
+    assert_eq!(prefs.col_pct_w, 8);
+}
+
+// ─── Prefs custom themes round-trip ─────────────────────────────────────
+
+#[test]
+fn prefs_multiple_custom_themes_roundtrip() {
+    let mut prefs = Prefs::default();
+    prefs.custom_themes.insert("theme1".into(), ThemeColors {
+        blue: 10, green: 20, purple: 30, light_purple: 40, royal: 50, dark_purple: 60,
+    });
+    prefs.custom_themes.insert("theme2".into(), ThemeColors {
+        blue: 100, green: 110, purple: 120, light_purple: 130, royal: 140, dark_purple: 150,
+    });
+    let s = toml::to_string_pretty(&prefs).unwrap();
+    let q: Prefs = toml::from_str(&s).unwrap();
+    assert_eq!(q.custom_themes.len(), 2);
+    assert_eq!(q.custom_themes["theme1"].blue, 10);
+    assert_eq!(q.custom_themes["theme2"].blue, 100);
+}
+
+#[test]
+fn prefs_bookmarks_roundtrip() {
+    let mut prefs = Prefs::default();
+    prefs.bookmarks = vec!["/".into(), "/home".into(), "/data".into()];
+    let s = toml::to_string_pretty(&prefs).unwrap();
+    let q: Prefs = toml::from_str(&s).unwrap();
+    assert_eq!(q.bookmarks, vec!["/", "/home", "/data"]);
+}
+
+// ─── Load prefs from config with custom themes ──────────────────────────
+
+#[test]
+fn load_prefs_with_custom_themes_and_bookmarks() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("themes.conf");
+    std::fs::write(&path, r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+active_theme = "cyber"
+bookmarks = ["/", "/home"]
+
+[custom_themes.cyber]
+blue = 42
+green = 84
+purple = 126
+light_purple = 168
+royal = 210
+dark_purple = 252
+"#).unwrap();
+    let prefs = load_prefs_from(Some(path.to_str().unwrap()));
+    assert_eq!(prefs.active_theme, Some("cyber".into()));
+    assert!(prefs.custom_themes.contains_key("cyber"));
+    assert_eq!(prefs.custom_themes["cyber"].blue, 42);
+    assert_eq!(prefs.bookmarks, vec!["/", "/home"]);
+}
+
+// ─── Disk data with latency, I/O, SMART ─────────────────────────────────
+
+#[test]
+fn disk_entry_with_network_metadata() {
+    let d = DiskEntry {
+        mount: "/nfs".into(), used: 100, total: 200, pct: 50.0,
+        kind: DiskKind::Unknown(-1), fs: "nfs4".into(),
+        latency_ms: Some(15.3),
+        io_read_rate: Some(1_048_576.0),
+        io_write_rate: Some(524_288.0),
+        smart_status: Some(SmartHealth::Verified),
+    };
+    assert_eq!(d.latency_ms, Some(15.3));
+    assert_eq!(d.io_read_rate, Some(1_048_576.0));
+    assert_eq!(d.smart_status, Some(SmartHealth::Verified));
+    // Format helpers work with these values
+    assert_eq!(format_latency(15.3), "15ms");
+    assert_eq!(format_rate(1_048_576.0), "1.0M/s");
+}
+
+#[test]
+fn disk_entry_with_optional_none_fields() {
+    let d = DiskEntry {
+        mount: "/local".into(), used: 50, total: 100, pct: 50.0,
+        kind: DiskKind::SSD, fs: "apfs".into(),
+        latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None,
+    };
+    assert!(d.latency_ms.is_none());
+    assert!(d.io_read_rate.is_none());
+    assert!(d.smart_status.is_none());
+}
+
+// ─── App: ensure_visible edge cases ─────────────────────────────────────
+
+#[test]
+fn ensure_visible_none_selected_does_nothing() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.selected = None;
+    app.scroll_offset = 5;
+    app.ensure_visible(3);
+    assert_eq!(app.scroll_offset, 5);
+}
+
+#[test]
+fn ensure_visible_selected_equals_offset() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.selected = Some(3);
+    app.scroll_offset = 3;
+    app.ensure_visible(5);
+    assert_eq!(app.scroll_offset, 3, "No scroll needed when selected == offset");
+}
+
+#[test]
+fn ensure_drill_visible_at_boundary() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.selected = 4;
+    app.drill.scroll_offset = 2;
+    app.ensure_drill_visible(3); // visible: 2,3,4 — selected=4 is at edge
+    assert_eq!(app.drill.scroll_offset, 2);
+}
+
+// ─── App: all_themes sorting ────────────────────────────────────────────
+
+#[test]
+fn all_themes_custom_sorted_alphabetically() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.custom_themes.insert("zeta".into(), ThemeColors {
+        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
+    });
+    app.prefs.custom_themes.insert("alpha".into(), ThemeColors {
+        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
+    });
+    app.prefs.custom_themes.insert("middle".into(), ThemeColors {
+        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
+    });
+    let themes = app.all_themes();
+    let custom_start = ColorMode::ALL.len();
+    assert_eq!(themes[custom_start].0, "alpha");
+    assert_eq!(themes[custom_start + 1].0, "middle");
+    assert_eq!(themes[custom_start + 2].0, "zeta");
+}
+
+// ─── App: apply_selected_theme ──────────────────────────────────────────
+
+#[test]
+fn apply_selected_theme_builtin_via_chooser() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('c')));
+    // Navigate to index 5 (Cyan)
+    for _ in 0..5 {
+        app.handle_key(make_key(KeyCode::Char('j')));
+    }
+    assert_eq!(app.prefs.color_mode, ColorMode::ALL[5]);
+    app.handle_key(make_key(KeyCode::Enter));
+    assert!(app.prefs.active_theme.is_none());
+}
+
+#[test]
+fn apply_selected_theme_custom_via_chooser() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.custom_themes.insert("mytest".into(), ThemeColors {
+        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
+    });
+    app.handle_key(make_key(KeyCode::Char('c')));
+    let idx = ColorMode::ALL.len(); // first custom theme
+    app.theme_chooser.selected = idx;
+    app.handle_key(make_key(KeyCode::Enter));
+    assert_eq!(app.prefs.active_theme, Some("mytest".into()));
+}
+
+// ─── Drill current path ─────────────────────────────────────────────────
+
+#[test]
+fn drill_current_path_empty() {
+    let app = make_app_with_disks(sample_disks());
+    assert_eq!(app.drill_current_path(), "");
+}
+
+#[test]
+fn drill_current_path_single() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.path = vec!["/home".into()];
+    assert_eq!(app.drill_current_path(), "/home");
+}
+
+#[test]
+fn drill_current_path_nested() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.path = vec!["/".into(), "/usr".into(), "/usr/bin".into()];
+    assert_eq!(app.drill_current_path(), "/usr/bin");
+}
+
+// ─── Sort drill entries ─────────────────────────────────────────────────
+
+#[test]
+fn sort_drill_entries_by_name_case_insensitive() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.entries = vec![
+        DirEntry { path: "/C".into(), name: "Charlie".into(), size: 10, is_dir: false },
+        DirEntry { path: "/a".into(), name: "alpha".into(), size: 30, is_dir: false },
+        DirEntry { path: "/B".into(), name: "bravo".into(), size: 20, is_dir: false },
+    ];
+    app.drill.sort = DrillSortMode::Name;
+    app.drill.sort_rev = false;
+    app.sort_drill_entries();
+    assert_eq!(app.drill.entries[0].name, "alpha");
+    assert_eq!(app.drill.entries[1].name, "bravo");
+    assert_eq!(app.drill.entries[2].name, "Charlie");
+}
+
+#[test]
+fn sort_drill_entries_by_size_desc() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
+        DirEntry { path: "/b".into(), name: "b".into(), size: 30, is_dir: false },
+        DirEntry { path: "/c".into(), name: "c".into(), size: 20, is_dir: false },
+    ];
+    app.drill.sort = DrillSortMode::Size;
+    app.drill.sort_rev = false;
+    app.sort_drill_entries();
+    assert_eq!(app.drill.entries[0].size, 30);
+    assert_eq!(app.drill.entries[1].size, 20);
+    assert_eq!(app.drill.entries[2].size, 10);
+}
+
+#[test]
+fn sort_drill_entries_reversed() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 30, is_dir: false },
+        DirEntry { path: "/b".into(), name: "b".into(), size: 10, is_dir: false },
+    ];
+    app.drill.sort = DrillSortMode::Size;
+    app.drill.sort_rev = true;
+    app.sort_drill_entries();
+    assert_eq!(app.drill.entries[0].size, 10); // reversed
+}
+
+#[test]
+fn sort_drill_entries_resets_selection_and_scroll() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drill.entries = vec![
+        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
+    ];
+    app.drill.selected = 5;
+    app.drill.scroll_offset = 3;
+    app.sort_drill_entries();
+    assert_eq!(app.drill.selected, 0);
+    assert_eq!(app.drill.scroll_offset, 0);
+}
+
+// ─── Hover zone without border ──────────────────────────────────────────
+
+#[test]
+fn hover_zone_no_border() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.show_border = false;
+    // Without border, title is at row 0
+    app.hover.pos = Some((10, 0));
+    assert_eq!(app.hovered_zone(40), HoverZone::TitleBar);
+}
+
+#[test]
+fn hover_zone_no_border_no_header() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.show_border = false;
+    app.prefs.show_header = false;
+    // No border, no header: title=0, first disk at row 2
+    app.hover.pos = Some((10, 2));
+    assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(0));
+}
+
+// ─── Hovered disk index without border ──────────────────────────────────
+
+#[test]
+fn hovered_disk_index_no_border() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.show_border = false;
+    // Without border: title=0, sep, header, sep, first disk at row 4
+    app.hover.pos = Some((10, 4));
+    assert_eq!(app.hovered_disk_index(), Some(0));
+}
+
+#[test]
+fn hovered_disk_index_no_border_no_header() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.show_border = false;
+    app.prefs.show_header = false;
+    // No border, no header: first_disk_row = 0 + 2 + 0 = 2
+    app.hover.pos = Some((10, 2));
+    assert_eq!(app.hovered_disk_index(), Some(0));
+}
+
+// ─── Scan directory with progress ───────────────────────────────────────
+
+#[test]
+fn scan_directory_with_progress_tracks_counters() {
+    use storageshower::system::scan_directory_with_progress;
+    let count = Arc::new(Mutex::new(0usize));
+    let total = Arc::new(Mutex::new(0usize));
+    let entries = scan_directory_with_progress("/tmp", Some(count.clone()), Some(total.clone()));
+    let t = *total.lock().unwrap();
+    let c = *count.lock().unwrap();
+    // count should equal total after completion
+    assert_eq!(c, t, "count should match total after scan");
+    // entries should be sorted by size descending
+    for w in entries.windows(2) {
+        assert!(w[0].size >= w[1].size);
+    }
+}
+
+// ─── Dir entry fields ───────────────────────────────────────────────────
+
+#[test]
+fn dir_entry_is_dir_flag() {
+    let d = DirEntry { path: "/tmp/d".into(), name: "d".into(), size: 0, is_dir: true };
+    assert!(d.is_dir);
+    let f = DirEntry { path: "/tmp/f".into(), name: "f".into(), size: 100, is_dir: false };
+    assert!(!f.is_dir);
+}
+
+// ─── Format helpers: edge/extreme values ────────────────────────────────
+
+#[test]
+fn format_rate_negative_treated_as_zero() {
+    assert_eq!(format_rate(-1.0), "0B/s");
+}
+
+#[test]
+fn format_rate_fractional_bytes() {
+    assert_eq!(format_rate(0.5), "0B/s");
+}
+
+#[test]
+fn format_rate_exact_boundaries() {
+    assert_eq!(format_rate(1023.0), "1023B/s");
+    assert_eq!(format_rate(1024.0), "1.0K/s");
+    assert_eq!(format_rate(1_048_575.0), "1024.0K/s");
+    assert_eq!(format_rate(1_048_576.0), "1.0M/s");
+}
+
+#[test]
+fn format_latency_exact_boundary() {
+    assert_eq!(format_latency(1.0), "1ms");
+    assert_eq!(format_latency(999.0), "999ms");
+    assert_eq!(format_latency(1000.0), "1.0s");
+}
+
+#[test]
+fn format_bytes_human_half_values() {
+    assert_eq!(format_bytes(1536, UnitMode::Human), "1.5K"); // 1.5K
+    assert_eq!(format_bytes(1_572_864, UnitMode::Human), "1.5M"); // 1.5M
+    assert_eq!(format_bytes(1_610_612_736, UnitMode::Human), "1.5G"); // 1.5G
+}
+
+// ─── Prefs: column width override behavior in sorting ───────────────────
+
+#[test]
+fn mount_col_width_with_custom_and_terminal_sizes() {
+    let mut p = Prefs::default();
+    p.col_mount_w = 50;
+    // Should clamp to terminal width - 20
+    let w = mount_col_width(60, &p);
+    assert_eq!(w, 40); // 60 - 20 = 40
+    let w = mount_col_width(200, &p);
+    assert_eq!(w, 50); // fits
+}
+
+// ─── SysStats default ───────────────────────────────────────────────────
+
+#[test]
+fn sys_stats_default_load_avg_zero() {
+    let s = SysStats::default();
+    assert_eq!(s.load_avg, (0.0, 0.0, 0.0));
+    assert_eq!(s.swap_used, 0);
+    assert_eq!(s.swap_total, 0);
+    assert!(s.kernel.is_empty());
+    assert!(s.arch.is_empty());
+    assert!(s.os_name.is_empty());
+    assert!(s.os_version.is_empty());
+}
+
+// ─── Epoch to local: various timestamps ─────────────────────────────────
+
+#[test]
+fn epoch_to_local_recent_date() {
+    // 2024-06-15 12:00:00 UTC = 1718452800
+    let (y, mo, d, h, mi, s) = epoch_to_local(1718452800);
+    assert!(y >= 2024 && y <= 2025);
+    assert!((1..=12).contains(&mo));
+    assert!((1..=31).contains(&d));
+    assert!(h < 24);
+    assert!(mi < 60);
+    assert!(s < 60);
+}
+
+#[test]
+fn epoch_to_local_large_timestamp() {
+    // 2099-12-31 23:59:59 UTC = 4102444799
+    let (y, mo, _d, h, mi, s) = epoch_to_local(4102444799);
+    assert!(y >= 2099);
+    assert!((1..=12).contains(&mo));
+    assert!(h < 24);
+    assert!(mi < 60);
+    assert!(s < 60);
+}
+
+// ─── Alert: multiple disks crossing threshold ───────────────────────────
+
+#[test]
+fn alert_multiple_disks_crossing_threshold() {
+    let disks = vec![
+        DiskEntry { mount: "/".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        DiskEntry { mount: "/data".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+    ];
+    let shared = Arc::new(Mutex::new((SysStats::default(), disks)));
+    let mut app = App::new_default(shared.clone());
+    app.prefs = Prefs::default();
+    app.prefs.thresh_warn = 70;
+
+    // Both under threshold
+    app.refresh_data();
+    assert!(app.alert.flash.is_none());
+
+    // Both over threshold
+    {
+        let mut lock = shared.lock().unwrap();
+        lock.1 = vec![
+            DiskEntry { mount: "/".into(), used: 80, total: 100, pct: 80.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+            DiskEntry { mount: "/data".into(), used: 75, total: 100, pct: 75.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        ];
+    }
+    app.refresh_data();
+    assert!(app.alert.flash.is_some());
+    assert!(app.alert.mounts.contains("/"));
+    assert!(app.alert.mounts.contains("/data"));
+    let msg = &app.status_msg.as_ref().unwrap().0;
+    assert!(msg.contains("/") && msg.contains("/data"));
+}
+
+// ─── Update sorted with empty disk list ─────────────────────────────────
+
+#[test]
+fn update_sorted_empty_disks() {
+    let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+    let mut app = App::new_default(shared);
+    app.update_sorted();
+    assert!(app.sorted_disks().is_empty());
+}
+
+#[test]
+fn update_sorted_single_disk() {
+    let disks = vec![DiskEntry {
+        mount: "/".into(), used: 50, total: 100, pct: 50.0,
+        kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None,
+        io_read_rate: None, io_write_rate: None, smart_status: None,
+    }];
+    let mut app = make_app_with_disks(disks);
+    app.update_sorted();
+    assert_eq!(app.sorted_disks().len(), 1);
+}
+
+// ─── Navigation on empty disk list ──────────────────────────────────────
+
+#[test]
+fn navigate_empty_disks_does_not_crash() {
+    let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+    let mut app = App::new_default(shared);
+    app.test_mode = true;
+    app.handle_key(make_key(KeyCode::Char('j')));
+    app.handle_key(make_key(KeyCode::Char('k')));
+    app.handle_key(make_key(KeyCode::Home));
+    app.handle_key(make_key(KeyCode::End));
+    app.handle_key(make_key(KeyCode::Char('G')));
+    app.handle_key(KeyEvent {
+        code: KeyCode::Char('d'),
+        modifiers: KeyModifiers::CONTROL,
+        kind: KeyEventKind::Press,
+        state: KeyEventState::NONE,
+    });
+    assert!(app.selected.is_none() || app.selected == Some(0));
+}
+
+// ─── Combined workflow: filter + sort + bookmark + navigate ─────────────
+
+#[test]
+fn full_workflow_filter_sort_bookmark_navigate() {
+    let mut app = make_app_with_disks(sample_disks());
+
+    // Sort by size
+    app.handle_key(make_key(KeyCode::Char('s')));
+    app.update_sorted();
+
+    // Select first and bookmark it
+    app.handle_key(make_key(KeyCode::Char('j')));
+    assert_eq!(app.selected, Some(0));
+    let bookmarked_mount = app.sorted_disks()[0].mount.clone();
+    app.handle_key(make_key(KeyCode::Char('B')));
+    assert!(app.prefs.bookmarks.contains(&bookmarked_mount));
+
+    // Update sorted — bookmarked should float to top
+    app.update_sorted();
+    assert_eq!(app.sorted_disks()[0].mount, bookmarked_mount);
+
+    // Filter
+    app.handle_key(make_key(KeyCode::Char('/')));
+    for c in "data".chars() {
+        app.handle_key(make_key(KeyCode::Char(c)));
+    }
+    app.handle_key(make_key(KeyCode::Enter));
+    app.update_sorted();
+    assert!(app.sorted_disks().iter().all(|d| d.mount.contains("data")));
+
+    // Clear filter
+    app.handle_key(make_key(KeyCode::Char('0')));
+    app.update_sorted();
+    assert_eq!(app.sorted_disks().len(), 3); // sample_disks has 3 (show_all=true filters tmpfs)
+}
+
+// ─── Multiple bookmarks ordering preserved ──────────────────────────────
+
+#[test]
+fn bookmarks_preserve_relative_sort_within_groups() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.prefs.sort_mode = SortMode::Name;
+    app.prefs.sort_rev = false;
+    app.prefs.bookmarks = vec!["/home".into(), "/data".into()];
+    app.update_sorted();
+    let disks = app.sorted_disks();
+    // Bookmarked group should be first 2 entries, in name order
+    let bookmarked: Vec<&str> = disks.iter().take(2).map(|d| d.mount.as_str()).collect();
+    assert_eq!(bookmarked, vec!["/data", "/home"]);
+    // Non-bookmarked should follow in name order
+    let rest: Vec<&str> = disks.iter().skip(2).map(|d| d.mount.as_str()).collect();
+    let mut sorted_rest = rest.clone();
+    sorted_rest.sort();
+    assert_eq!(rest, sorted_rest);
+}
+
+// ─── Chrono now returns valid format ────────────────────────────────────
+
+#[test]
+fn chrono_now_returns_valid_format() {
+    let (date, time) = chrono_now();
+    // Date: YYYY-MM-DD
+    assert_eq!(date.len(), 10);
+    assert_eq!(&date[4..5], "-");
+    assert_eq!(&date[7..8], "-");
+    // Time: HH:MM:SS
+    assert_eq!(time.len(), 8);
+    assert_eq!(&time[2..3], ":");
+    assert_eq!(&time[5..6], ":");
+}
+
+// ─── Scan directory on real path ────────────────────────────────────────
+
+#[test]
+fn scan_directory_root_has_entries() {
+    let entries = scan_directory("/");
+    assert!(!entries.is_empty(), "Root directory should have entries");
+    // All entries should have non-empty names
+    for e in &entries {
+        assert!(!e.name.is_empty());
+        assert!(!e.path.is_empty());
+    }
+}
+
+#[test]
+fn scan_directory_entries_have_valid_paths() {
+    let entries = scan_directory("/tmp");
+    for e in &entries {
+        assert!(e.path.starts_with("/tmp/") || e.path == "/tmp",
+            "Path '{}' should start with /tmp/", e.path);
+    }
+}
+
+// ─── Collect disk entries: pct in valid range ───────────────────────────
+
+#[test]
+fn collect_disk_entries_pct_in_range() {
+    let disks = collect_disk_entries();
+    for d in &disks {
+        assert!(d.pct >= 0.0 && d.pct <= 100.0,
+            "Disk {} pct {} out of range", d.mount, d.pct);
+    }
+}
+
+#[test]
+fn collect_disk_entries_mount_not_empty() {
+    let disks = collect_disk_entries();
+    for d in &disks {
+        assert!(!d.mount.is_empty(), "Mount should not be empty");
+    }
+}
+
+// ─── ThemeColors fields ─────────────────────────────────────────────────
+
+#[test]
+fn theme_colors_clone_and_debug() {
+    let t = ThemeColors {
+        blue: 27, green: 48, purple: 135, light_purple: 141, royal: 63, dark_purple: 99,
+    };
+    let c = t.clone();
+    assert_eq!(c.blue, 27);
+    assert_eq!(c.green, 48);
+    assert_eq!(c.purple, 135);
+    assert_eq!(c.light_purple, 141);
+    assert_eq!(c.royal, 63);
+    assert_eq!(c.dark_purple, 99);
+    let dbg = format!("{:?}", c);
+    assert!(dbg.contains("ThemeColors"));
+}
+
+// ─── DrillSortMode ──────────────────────────────────────────────────────
+
+#[test]
+fn drill_sort_mode_equality() {
+    assert_eq!(DrillSortMode::Size, DrillSortMode::Size);
+    assert_eq!(DrillSortMode::Name, DrillSortMode::Name);
+    assert_ne!(DrillSortMode::Size, DrillSortMode::Name);
+}
+
+// ─── Mouse scroll in theme chooser bounds ───────────────────────────────
+
+#[test]
+fn theme_chooser_scroll_up_at_top_stays() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('c')));
+    assert_eq!(app.theme_chooser.selected, 0);
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::ScrollUp, column: 40, row: 12, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert_eq!(app.theme_chooser.selected, 0);
+}
+
+#[test]
+fn theme_chooser_scroll_down_at_bottom_stays() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('c')));
+    let count = app.all_themes().len();
+    app.theme_chooser.selected = count - 1;
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::ScrollDown, column: 40, row: 12, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert_eq!(app.theme_chooser.selected, count - 1);
+}
+
+// ─── Mouse up releases drag ────────────────────────────────────────────
+
+#[test]
+fn mouse_up_releases_drag() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.drag = Some(DragTarget::MountSep);
+    app.handle_mouse(
+        MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: 30, row: 6, modifiers: KeyModifiers::NONE },
+        80, 24,
+    );
+    assert!(app.drag.is_none());
+}
+
+// ─── Truncate mount: various widths with unicode ────────────────────────
+
+#[test]
+fn truncate_mount_ascii_exact_boundary() {
+    let s = "/mnt/data";
+    let r = truncate_mount(s, 9);
+    assert_eq!(r, s);
+}
+
+#[test]
+fn truncate_mount_ascii_one_over() {
+    let s = "/mnt/data";
+    let r = truncate_mount(s, 8);
+    assert_eq!(r.chars().count(), 8);
+    assert!(r.ends_with('\u{2026}'));
+}
+
+// ─── Format bytes: large values in different modes ──────────────────────
+
+#[test]
+fn format_bytes_large_in_all_modes() {
+    let val = 5 * 1_099_511_627_776u64; // 5TB
+    assert_eq!(format_bytes(val, UnitMode::Human), "5.0T");
+    assert!(format_bytes(val, UnitMode::GiB).contains("G"));
+    assert!(format_bytes(val, UnitMode::MiB).contains("M"));
+    assert!(format_bytes(val, UnitMode::Bytes).ends_with("B"));
+}
+
+// ─── Collect sys stats on real system ───────────────────────────────────
+
+#[test]
+fn sys_stats_os_name_not_empty() {
+    let sys = System::new_all();
+    let stats = collect_sys_stats(&sys);
+    assert!(!stats.os_name.is_empty(), "os_name should not be empty");
+}
+
+#[test]
+fn sys_stats_mem_used_le_total() {
+    let sys = System::new_all();
+    let stats = collect_sys_stats(&sys);
+    assert!(stats.mem_used <= stats.mem_total,
+        "mem_used {} > mem_total {}", stats.mem_used, stats.mem_total);
+}
+
+// ─── Hover: hovered_zone with various term heights ──────────────────────
+
+#[test]
+fn hover_zone_small_terminal() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover.pos = Some((5, 1));
+    // Even with small terminal, should not panic
+    let zone = app.hovered_zone(10);
+    assert_eq!(zone, HoverZone::TitleBar);
+}
+
+#[test]
+fn hover_zone_very_large_terminal() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.hover.pos = Some((5, 1));
+    let zone = app.hovered_zone(200);
+    assert_eq!(zone, HoverZone::TitleBar);
+}
+
+// ─── Theme editor enter also enters naming mode ─────────────────────────
+
+#[test]
+fn theme_editor_enter_starts_naming() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('C')));
+    app.handle_key(make_key(KeyCode::Enter));
+    assert!(app.theme_edit.naming);
+}
+
+// ─── Misc: Esc deselects ────────────────────────────────────────────────
+
+#[test]
+fn esc_deselects() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.selected = Some(1);
+    app.handle_key(make_key(KeyCode::Esc));
+    assert!(app.selected.is_none());
+}
+
+// ─── Misc: e key export (check it sets status) ─────────────────────────
+
+#[test]
+fn e_key_sets_export_status() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.handle_key(make_key(KeyCode::Char('e')));
+    assert!(app.status_msg.is_some());
+    let msg = &app.status_msg.as_ref().unwrap().0;
+    assert!(msg.contains("Export") || msg.contains("export"),
+        "Expected export message, got: {}", msg);
+}
+
+// ─── Combined: rapid key presses ────────────────────────────────────────
+
+#[test]
+fn rapid_key_sequence_does_not_crash() {
+    let mut app = make_app_with_disks(sample_disks());
+    // Slam through a bunch of keys rapidly
+    let keys = [
+        KeyCode::Char('j'), KeyCode::Char('j'), KeyCode::Char('k'),
+        KeyCode::Char('s'), KeyCode::Char('n'), KeyCode::Char('u'),
+        KeyCode::Char('b'), KeyCode::Char('i'), KeyCode::Char('v'),
+        KeyCode::Char('d'), KeyCode::Char('g'), KeyCode::Char('x'),
+        KeyCode::Char('m'), KeyCode::Char('w'), KeyCode::Char('t'),
+        KeyCode::Char('T'), KeyCode::Char('f'), KeyCode::Char('r'),
+        KeyCode::Char('p'), KeyCode::Char('p'), // unpause
+        KeyCode::Char('l'), KeyCode::Char('a'),
+        KeyCode::Home, KeyCode::End,
+        KeyCode::Char('G'), KeyCode::Char('0'),
+    ];
+    for &code in &keys {
+        app.handle_key(make_key(code));
+    }
+    // Should not crash
+    app.update_sorted();
+    let _ = app.sorted_disks();
+}
+
+// ─── Stress: sort all modes with many disks ─────────────────────────────
+
+#[test]
+fn stress_sort_all_modes_1000_disks() {
+    let mut disks = Vec::new();
+    for i in 0..1000 {
+        disks.push(DiskEntry {
+            mount: format!("/mount_{:04}", i),
+            used: (i as u64 * 1_000_000) % 1_000_000_000,
+            total: 1_000_000_000,
+            pct: (i as f64 / 10.0) % 100.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        });
+    }
+    let mut app = make_app_with_disks(disks);
+
+    for mode in [SortMode::Name, SortMode::Pct, SortMode::Size] {
+        app.prefs.sort_mode = mode;
+        for rev in [false, true] {
+            app.prefs.sort_rev = rev;
+            app.update_sorted();
+            assert_eq!(app.sorted_disks().len(), 1000);
+        }
+    }
+}
+
+// ─── Stress: filter with special characters ─────────────────────────────
+
+#[test]
+fn filter_special_characters() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.filter.text = "data/sub[1]".into();
+    app.update_sorted();
+    // Should not crash, just return empty
+    assert!(app.sorted_disks().is_empty());
+}
+
+#[test]
+fn filter_unicode_characters() {
+    let mut app = make_app_with_disks(sample_disks());
+    app.filter.text = "日本語".into();
+    app.update_sorted();
+    assert!(app.sorted_disks().is_empty());
+}
+
+// ─── App new with CLI ───────────────────────────────────────────────────
+
+#[test]
+fn app_new_with_full_cli_overrides() {
+    let cli = Cli::parse_from([
+        "storageshower", "-s", "pct", "-R", "-b", "thin",
+        "--color", "amber", "-u", "mib", "-w", "50", "-C", "80",
+        "-r", "10", "--no-bars", "--no-border", "--no-header",
+        "--compact", "--full-mount", "--no-used", "--no-virtual",
+    ]);
+    let shared = Arc::new(Mutex::new((SysStats::default(), sample_disks())));
+    let app = App::new(Arc::clone(&shared), &cli);
+    assert_eq!(app.prefs.sort_mode, SortMode::Pct);
+    assert!(app.prefs.sort_rev);
+    assert_eq!(app.prefs.bar_style, BarStyle::Thin);
+    assert_eq!(app.prefs.color_mode, ColorMode::Amber);
+    assert_eq!(app.prefs.unit_mode, UnitMode::MiB);
+    assert_eq!(app.prefs.thresh_warn, 50);
+    assert_eq!(app.prefs.thresh_crit, 80);
+    assert_eq!(app.prefs.refresh_rate, 10);
+    assert!(!app.prefs.show_bars);
+    assert!(!app.prefs.show_border);
+    assert!(!app.prefs.show_header);
+    assert!(app.prefs.compact);
+    assert!(app.prefs.full_mount);
+    assert!(!app.prefs.show_used);
+}
