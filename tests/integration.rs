@@ -2678,12 +2678,11 @@ fn help_overlay_blocks_navigation() {
 }
 
 #[test]
-fn help_dismiss_with_q() {
+fn help_q_quits_app() {
     let mut app = make_app_with_disks(sample_disks());
     app.show_help = true;
     app.handle_key(make_key(KeyCode::Char('q')));
-    assert!(!app.show_help);
-    assert!(!app.quit, "q in help should dismiss help, not quit");
+    assert!(app.quit, "q in help should quit the app");
 }
 
 // ─── Theme editor large steps (H/L) ────────────────────────────────────

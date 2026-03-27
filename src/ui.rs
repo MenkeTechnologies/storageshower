@@ -2080,17 +2080,18 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     let box_h: u16 = 48u16.min(h.saturating_sub(4));
     let x0 = (w.saturating_sub(box_w)) / 2;
     let y0 = (h.saturating_sub(box_h)) / 2;
+    let (pal_blue, pal_green, _, pal_lpurple, _, pal_dpurple) = palette_for_prefs(&app.prefs);
     let bc = border_color(app);
     let border_s = Style::default().fg(bc);
     let bg_s = Style::default().fg(Color::White).bg(HELP_BG);
-    let key_s = Style::default().fg(Color::Indexed(48)).bg(HELP_BG);
-    let val_s = Style::default().fg(Color::Indexed(141)).bg(HELP_BG);
+    let key_s = Style::default().fg(pal_green).bg(HELP_BG);
+    let val_s = Style::default().fg(pal_lpurple).bg(HELP_BG);
     let title_s = Style::default()
-        .fg(Color::Indexed(27))
+        .fg(pal_blue)
         .bg(HELP_BG)
         .add_modifier(Modifier::BOLD);
     let section_s = Style::default()
-        .fg(Color::Indexed(99))
+        .fg(pal_dpurple)
         .bg(HELP_BG)
         .add_modifier(Modifier::BOLD);
 

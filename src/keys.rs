@@ -92,7 +92,10 @@ impl App {
 
         if self.show_help {
             match key.code {
-                KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Char('h') | KeyCode::Char('H') | KeyCode::Esc
+                KeyCode::Char('q') | KeyCode::Char('Q') => {
+                    self.quit = true;
+                }
+                KeyCode::Char('h') | KeyCode::Char('H') | KeyCode::Esc
                 | KeyCode::Char('j') | KeyCode::Char('k') => {
                     self.show_help = false;
                 }
@@ -1471,12 +1474,11 @@ mod tests {
     // ── Help mode dismissal ───────────────────────────────
 
     #[test]
-    fn help_dismisses_with_q() {
+    fn help_q_quits_app() {
         let mut app = test_app();
         app.show_help = true;
         app.handle_key(make_key(KeyCode::Char('q')));
-        assert!(!app.show_help);
-        assert!(!app.quit); // q in help mode only dismisses, doesn't quit
+        assert!(app.quit);
     }
 
     #[test]
@@ -1488,11 +1490,11 @@ mod tests {
     }
 
     #[test]
-    fn help_dismisses_with_upper_q() {
+    fn help_upper_q_quits_app() {
         let mut app = test_app();
         app.show_help = true;
         app.handle_key(make_key(KeyCode::Char('Q')));
-        assert!(!app.show_help);
+        assert!(app.quit);
     }
 
     #[test]
