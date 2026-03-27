@@ -34,6 +34,7 @@ fn make_app_with_disks(disks: Vec<DiskEntry>) -> App {
     let mut app = App::new(shared);
     app.disks = disks;
     app.stats = stats;
+    app.prefs = Prefs::default();
     app
 }
 
@@ -318,7 +319,11 @@ fn filter_vim_editing_workflow() {
 fn sort_mode_toggle_via_keys() {
     let mut app = make_app_with_disks(sample_disks());
 
-    // Sort by name
+    // Start from size sort so we can test switching
+    app.prefs.sort_mode = SortMode::Size;
+    app.prefs.sort_rev = false;
+
+    // Switch to name
     app.handle_key(make_key(KeyCode::Char('n')));
     assert_eq!(app.prefs.sort_mode, SortMode::Name);
     assert!(!app.prefs.sort_rev);
@@ -331,7 +336,7 @@ fn sort_mode_toggle_via_keys() {
     // Switch to pct
     app.handle_key(make_key(KeyCode::Char('u')));
     assert_eq!(app.prefs.sort_mode, SortMode::Pct);
-    assert!(!app.prefs.sort_rev); // reset
+    assert!(!app.prefs.sort_rev); // reset on mode change
 }
 
 // ─── Shared state refresh ──────────────────────────────────────────────────

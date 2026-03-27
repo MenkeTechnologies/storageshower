@@ -673,7 +673,7 @@ fn draw_filter_popup(buf: &mut Buffer, w: u16, h: u16, app: &App) {
 }
 
 fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
-    let box_w: u16 = 74u16.min(w.saturating_sub(4));
+    let box_w: u16 = 100u16.min(w.saturating_sub(4));
     let box_h: u16 = 40u16.min(h.saturating_sub(4));
     let x0 = (w.saturating_sub(box_w)) / 2;
     let y0 = (h.saturating_sub(box_h)) / 2;

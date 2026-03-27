@@ -112,11 +112,13 @@ impl App {
             match key.code {
                 KeyCode::Enter => {
                     self.filter_mode = false;
+                    return;
                 }
                 KeyCode::Esc => {
                     self.filter = self.filter_prev.clone();
                     self.filter_mode = false;
                     self.filter_cursor = 0;
+                    return;
                 }
                 KeyCode::Backspace => {
                     if self.filter_cursor > 0 {
@@ -645,6 +647,9 @@ mod tests {
         let mut app = App::new(shared);
         app.disks = disks;
         app.stats = stats;
+        // Reset prefs to defaults so tests are deterministic
+        // (load_prefs may read user's config from disk)
+        app.prefs = Prefs::default();
         app
     }
 
@@ -1231,7 +1236,10 @@ mod tests {
         app.show_help = true;
         app.handle_key(make_key(KeyCode::Char('b'))); // should not cycle bar style
         assert_eq!(app.prefs.bar_style, BarStyle::Gradient); // unchanged
-        assert!(!app.show_help); // but help should be... wait, 'b' doesn't dismiss help
+        assert!(app.show_help); // 'b' does not dismiss help
+        // Only q/h/esc/j/k dismiss help
+        app.handle_key(make_key(KeyCode::Esc));
+        assert!(!app.show_help);
     }
 
     // ── Key handling — ctrl swallows unknown combos ────────
