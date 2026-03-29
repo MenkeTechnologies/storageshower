@@ -15,6 +15,7 @@
 
 <p align="center">
   <a href="https://github.com/MenkeTechnologies/storageshower/actions/workflows/ci.yml"><img src="https://github.com/MenkeTechnologies/storageshower/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://docs.rs/storageshower"><img src="https://docs.rs/storageshower/badge.svg" alt="docs.rs"></a>
   <a href="https://crates.io/crates/storageshower"><img src="https://img.shields.io/crates/v/storageshower.svg" alt="crates.io"></a>
   <a href="https://crates.io/crates/storageshower"><img src="https://img.shields.io/crates/d/storageshower.svg" alt="downloads"></a>
   <a href="https://github.com/MenkeTechnologies/storageshower/blob/main/LICENSE"><img src="https://img.shields.io/crates/l/storageshower.svg" alt="license"></a>
