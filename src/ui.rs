@@ -1,11 +1,11 @@
 use ratatui::{
+    Frame,
     buffer::Buffer,
     style::{Color, Modifier, Style},
-    Frame,
 };
 use std::time::Duration;
 
-use crate::app::{mount_col_width, right_col_width, App};
+use crate::app::{App, mount_col_width, right_col_width};
 use crate::helpers::{format_bytes, format_latency, format_rate, format_uptime, truncate_mount};
 use crate::system::{chrono_now, get_battery, get_local_ip, get_tty, get_username};
 use crate::types::*;
@@ -96,186 +96,189 @@ pub fn palette(mode: ColorMode) -> (Color, Color, Color, Color, Color, Color) {
         ),
         // ── New cyberpunk palettes ──────────────────────────────
         ColorMode::NeonNoir => (
-            Color::Indexed(201),  // hot magenta
-            Color::Indexed(231),  // bright white
-            Color::Indexed(93),   // deep violet
-            Color::Indexed(219),  // soft pink
-            Color::Indexed(57),   // blue-violet
-            Color::Indexed(53),   // dark plum
+            Color::Indexed(201), // hot magenta
+            Color::Indexed(231), // bright white
+            Color::Indexed(93),  // deep violet
+            Color::Indexed(219), // soft pink
+            Color::Indexed(57),  // blue-violet
+            Color::Indexed(53),  // dark plum
         ),
         ColorMode::ChromeHeart => (
-            Color::Indexed(250),  // silver
-            Color::Indexed(255),  // bright silver
-            Color::Indexed(246),  // mid gray
-            Color::Indexed(253),  // light gray
-            Color::Indexed(243),  // steel
-            Color::Indexed(239),  // gunmetal
+            Color::Indexed(250), // silver
+            Color::Indexed(255), // bright silver
+            Color::Indexed(246), // mid gray
+            Color::Indexed(253), // light gray
+            Color::Indexed(243), // steel
+            Color::Indexed(239), // gunmetal
         ),
         ColorMode::BladeRunner => (
-            Color::Indexed(208),  // deep orange
-            Color::Indexed(37),   // muted teal
-            Color::Indexed(166),  // burnt orange
-            Color::Indexed(73),   // dusty cyan
-            Color::Indexed(130),  // rust
-            Color::Indexed(23),   // dark teal
+            Color::Indexed(208), // deep orange
+            Color::Indexed(37),  // muted teal
+            Color::Indexed(166), // burnt orange
+            Color::Indexed(73),  // dusty cyan
+            Color::Indexed(130), // rust
+            Color::Indexed(23),  // dark teal
         ),
         ColorMode::VoidWalker => (
-            Color::Indexed(55),   // deep purple
-            Color::Indexed(99),   // medium purple
-            Color::Indexed(54),   // dark magenta
-            Color::Indexed(141),  // light lavender
-            Color::Indexed(92),   // plum
-            Color::Indexed(17),   // abyss blue
+            Color::Indexed(55),  // deep purple
+            Color::Indexed(99),  // medium purple
+            Color::Indexed(54),  // dark magenta
+            Color::Indexed(141), // light lavender
+            Color::Indexed(92),  // plum
+            Color::Indexed(17),  // abyss blue
         ),
         ColorMode::ToxicWaste => (
-            Color::Indexed(118),  // lime green
-            Color::Indexed(190),  // yellow-green
-            Color::Indexed(154),  // chartreuse
-            Color::Indexed(226),  // acid yellow
-            Color::Indexed(82),   // bright green
-            Color::Indexed(58),   // olive
+            Color::Indexed(118), // lime green
+            Color::Indexed(190), // yellow-green
+            Color::Indexed(154), // chartreuse
+            Color::Indexed(226), // acid yellow
+            Color::Indexed(82),  // bright green
+            Color::Indexed(58),  // olive
         ),
         ColorMode::CyberFrost => (
-            Color::Indexed(159),  // pale ice blue
-            Color::Indexed(195),  // frost white
-            Color::Indexed(153),  // powder blue
-            Color::Indexed(189),  // light periwinkle
-            Color::Indexed(111),  // cornflower
-            Color::Indexed(67),   // slate blue
+            Color::Indexed(159), // pale ice blue
+            Color::Indexed(195), // frost white
+            Color::Indexed(153), // powder blue
+            Color::Indexed(189), // light periwinkle
+            Color::Indexed(111), // cornflower
+            Color::Indexed(67),  // slate blue
         ),
         ColorMode::PlasmaCore => (
-            Color::Indexed(199),  // hot pink
-            Color::Indexed(213),  // light pink
-            Color::Indexed(163),  // deep magenta
-            Color::Indexed(207),  // orchid
-            Color::Indexed(126),  // dark magenta
-            Color::Indexed(89),   // purple-red
+            Color::Indexed(199), // hot pink
+            Color::Indexed(213), // light pink
+            Color::Indexed(163), // deep magenta
+            Color::Indexed(207), // orchid
+            Color::Indexed(126), // dark magenta
+            Color::Indexed(89),  // purple-red
         ),
         ColorMode::SteelNerve => (
-            Color::Indexed(68),   // steel blue
-            Color::Indexed(110),  // light steel
-            Color::Indexed(60),   // slate
-            Color::Indexed(146),  // gray-blue
-            Color::Indexed(24),   // navy steel
-            Color::Indexed(236),  // dark iron
+            Color::Indexed(68),  // steel blue
+            Color::Indexed(110), // light steel
+            Color::Indexed(60),  // slate
+            Color::Indexed(146), // gray-blue
+            Color::Indexed(24),  // navy steel
+            Color::Indexed(236), // dark iron
         ),
         ColorMode::DarkSignal => (
-            Color::Indexed(30),   // dark cyan
-            Color::Indexed(43),   // medium spring green
-            Color::Indexed(23),   // deep teal
-            Color::Indexed(79),   // sea green
-            Color::Indexed(29),   // jungle green
-            Color::Indexed(16),   // near black
+            Color::Indexed(30), // dark cyan
+            Color::Indexed(43), // medium spring green
+            Color::Indexed(23), // deep teal
+            Color::Indexed(79), // sea green
+            Color::Indexed(29), // jungle green
+            Color::Indexed(16), // near black
         ),
         ColorMode::GlitchPop => (
-            Color::Indexed(201),  // magenta
-            Color::Indexed(51),   // electric cyan
-            Color::Indexed(226),  // yellow
-            Color::Indexed(47),   // neon green
-            Color::Indexed(196),  // red
-            Color::Indexed(21),   // blue
+            Color::Indexed(201), // magenta
+            Color::Indexed(51),  // electric cyan
+            Color::Indexed(226), // yellow
+            Color::Indexed(47),  // neon green
+            Color::Indexed(196), // red
+            Color::Indexed(21),  // blue
         ),
         ColorMode::HoloShift => (
-            Color::Indexed(123),  // aqua
-            Color::Indexed(219),  // pink
-            Color::Indexed(159),  // light cyan
-            Color::Indexed(183),  // thistle
-            Color::Indexed(87),   // turquoise
-            Color::Indexed(133),  // medium orchid
+            Color::Indexed(123), // aqua
+            Color::Indexed(219), // pink
+            Color::Indexed(159), // light cyan
+            Color::Indexed(183), // thistle
+            Color::Indexed(87),  // turquoise
+            Color::Indexed(133), // medium orchid
         ),
         ColorMode::NightCity => (
-            Color::Indexed(214),  // warm orange
-            Color::Indexed(227),  // warm yellow
-            Color::Indexed(209),  // salmon
-            Color::Indexed(223),  // light salmon
-            Color::Indexed(172),  // dark orange
-            Color::Indexed(94),   // brown
+            Color::Indexed(214), // warm orange
+            Color::Indexed(227), // warm yellow
+            Color::Indexed(209), // salmon
+            Color::Indexed(223), // light salmon
+            Color::Indexed(172), // dark orange
+            Color::Indexed(94),  // brown
         ),
         ColorMode::DeepNet => (
-            Color::Indexed(19),   // navy
-            Color::Indexed(33),   // dodger blue
-            Color::Indexed(17),   // dark navy
-            Color::Indexed(75),   // royal blue
-            Color::Indexed(26),   // medium blue
-            Color::Indexed(16),   // near black
+            Color::Indexed(19), // navy
+            Color::Indexed(33), // dodger blue
+            Color::Indexed(17), // dark navy
+            Color::Indexed(75), // royal blue
+            Color::Indexed(26), // medium blue
+            Color::Indexed(16), // near black
         ),
         ColorMode::LaserGrid => (
-            Color::Indexed(46),   // neon green
-            Color::Indexed(201),  // neon magenta
-            Color::Indexed(51),   // neon cyan
-            Color::Indexed(226),  // neon yellow
-            Color::Indexed(196),  // neon red
-            Color::Indexed(21),   // neon blue
+            Color::Indexed(46),  // neon green
+            Color::Indexed(201), // neon magenta
+            Color::Indexed(51),  // neon cyan
+            Color::Indexed(226), // neon yellow
+            Color::Indexed(196), // neon red
+            Color::Indexed(21),  // neon blue
         ),
         ColorMode::QuantumFlux => (
-            Color::Indexed(135),  // medium purple
-            Color::Indexed(75),   // steel blue
-            Color::Indexed(171),  // plum
-            Color::Indexed(111),  // cornflower
-            Color::Indexed(98),   // slate purple
-            Color::Indexed(61),   // dark slate blue
+            Color::Indexed(135), // medium purple
+            Color::Indexed(75),  // steel blue
+            Color::Indexed(171), // plum
+            Color::Indexed(111), // cornflower
+            Color::Indexed(98),  // slate purple
+            Color::Indexed(61),  // dark slate blue
         ),
         ColorMode::BioHazard => (
-            Color::Indexed(148),  // dark khaki green
-            Color::Indexed(184),  // yellow-green
-            Color::Indexed(106),  // olive drab
-            Color::Indexed(192),  // light green-yellow
-            Color::Indexed(64),   // dark olive
-            Color::Indexed(22),   // deep green
+            Color::Indexed(148), // dark khaki green
+            Color::Indexed(184), // yellow-green
+            Color::Indexed(106), // olive drab
+            Color::Indexed(192), // light green-yellow
+            Color::Indexed(64),  // dark olive
+            Color::Indexed(22),  // deep green
         ),
         ColorMode::Darkwave => (
-            Color::Indexed(53),   // dark plum
-            Color::Indexed(140),  // medium purple
-            Color::Indexed(89),   // dark red-purple
-            Color::Indexed(176),  // light plum
-            Color::Indexed(127),  // magenta-purple
-            Color::Indexed(52),   // dark maroon
+            Color::Indexed(53),  // dark plum
+            Color::Indexed(140), // medium purple
+            Color::Indexed(89),  // dark red-purple
+            Color::Indexed(176), // light plum
+            Color::Indexed(127), // magenta-purple
+            Color::Indexed(52),  // dark maroon
         ),
         ColorMode::Overlock => (
-            Color::Indexed(196),  // red
-            Color::Indexed(208),  // orange
-            Color::Indexed(160),  // dark red
-            Color::Indexed(214),  // gold
-            Color::Indexed(124),  // firebrick
-            Color::Indexed(52),   // maroon
+            Color::Indexed(196), // red
+            Color::Indexed(208), // orange
+            Color::Indexed(160), // dark red
+            Color::Indexed(214), // gold
+            Color::Indexed(124), // firebrick
+            Color::Indexed(52),  // maroon
         ),
         ColorMode::Megacorp => (
-            Color::Indexed(252),  // light gray
-            Color::Indexed(39),   // deepskyblue
-            Color::Indexed(245),  // gray
-            Color::Indexed(81),   // light sky blue
-            Color::Indexed(242),  // dark gray
-            Color::Indexed(236),  // charcoal
+            Color::Indexed(252), // light gray
+            Color::Indexed(39),  // deepskyblue
+            Color::Indexed(245), // gray
+            Color::Indexed(81),  // light sky blue
+            Color::Indexed(242), // dark gray
+            Color::Indexed(236), // charcoal
         ),
         ColorMode::Zaibatsu => (
-            Color::Indexed(167),  // indian red
-            Color::Indexed(216),  // light coral
-            Color::Indexed(131),  // dark red-brown
-            Color::Indexed(224),  // misty rose
-            Color::Indexed(95),   // sienna
-            Color::Indexed(52),   // dark maroon
+            Color::Indexed(167), // indian red
+            Color::Indexed(216), // light coral
+            Color::Indexed(131), // dark red-brown
+            Color::Indexed(224), // misty rose
+            Color::Indexed(95),  // sienna
+            Color::Indexed(52),  // dark maroon
         ),
     }
 }
 
-pub fn palette_for_prefs(prefs: &crate::prefs::Prefs) -> (Color, Color, Color, Color, Color, Color) {
-    if let Some(ref name) = prefs.active_theme {
-        if let Some(theme) = prefs.custom_themes.get(name) {
-            return (
-                Color::Indexed(theme.blue),
-                Color::Indexed(theme.green),
-                Color::Indexed(theme.purple),
-                Color::Indexed(theme.light_purple),
-                Color::Indexed(theme.royal),
-                Color::Indexed(theme.dark_purple),
-            );
-        }
+pub fn palette_for_prefs(
+    prefs: &crate::prefs::Prefs,
+) -> (Color, Color, Color, Color, Color, Color) {
+    if let Some(ref name) = prefs.active_theme
+        && let Some(theme) = prefs.custom_themes.get(name)
+    {
+        return (
+            Color::Indexed(theme.blue),
+            Color::Indexed(theme.green),
+            Color::Indexed(theme.purple),
+            Color::Indexed(theme.light_purple),
+            Color::Indexed(theme.royal),
+            Color::Indexed(theme.dark_purple),
+        );
     }
     palette(prefs.color_mode)
 }
 
 fn is_alert_flashing(app: &App) -> bool {
-    app.alert.flash
+    app.alert
+        .flash
         .map(|t| t.elapsed().as_millis() < 2000 && (t.elapsed().as_millis() / 300) % 2 == 0)
         .unwrap_or(false)
 }
@@ -355,7 +358,14 @@ pub fn draw(frame: &mut Frame, app: &App) {
     let h = area.height;
     if w < 40 || h < 10 {
         let buf = frame.buffer_mut();
-        set_str(buf, 0, 0, "Terminal too small (need 40x10)", Style::default().fg(Color::Red), w);
+        set_str(
+            buf,
+            0,
+            0,
+            "Terminal too small (need 40x10)",
+            Style::default().fg(Color::Red),
+            w,
+        );
         return;
     }
 
@@ -375,7 +385,11 @@ pub fn draw(frame: &mut Frame, app: &App) {
     let rm: u16 = if show_border { 1 } else { 0 };
     let inner_w = w.saturating_sub(lm + rm);
     let right_w = right_col_width(app);
-    let pct_w: u16 = if app.prefs.col_pct_w > 0 { app.prefs.col_pct_w } else { 5 };
+    let pct_w: u16 = if app.prefs.col_pct_w > 0 {
+        app.prefs.col_pct_w
+    } else {
+        5
+    };
 
     // Clear background
     for y in 0..h {
@@ -417,7 +431,10 @@ pub fn draw(frame: &mut Frame, app: &App) {
     // ─── Title banner ───
     {
         let banner_s = Style::default().fg(pal_green).bg(DARK_BG);
-        let accent_s = Style::default().fg(pal_blue).bg(DARK_BG).add_modifier(Modifier::BOLD);
+        let accent_s = Style::default()
+            .fg(pal_blue)
+            .bg(DARK_BG)
+            .add_modifier(Modifier::BOLD);
 
         for x in lm..w.saturating_sub(rm) {
             set_cell(buf, x, row, " ", Style::default().bg(DARK_BG));
@@ -451,7 +468,9 @@ pub fn draw(frame: &mut Frame, app: &App) {
         };
         title.push_str(&format!(
             "{s}load:{:.2}/{:.2}/{:.2}{s}mem:{}/{}({:.0}%){s}cpu:{}",
-            load.0, load.1, load.2,
+            load.0,
+            load.1,
+            load.2,
             format_bytes(app.stats.mem_used, UnitMode::Human),
             format_bytes(app.stats.mem_total, UnitMode::Human),
             mem_pct,
@@ -515,18 +534,36 @@ pub fn draw(frame: &mut Frame, app: &App) {
 
     // ─── Column headers ───
     if app.prefs.show_header {
-        let hdr_s = Style::default().fg(pal_lpurple).add_modifier(Modifier::BOLD);
+        let hdr_s = Style::default()
+            .fg(pal_lpurple)
+            .add_modifier(Modifier::BOLD);
 
         for x in lm..w.saturating_sub(rm) {
             set_cell(buf, x, row, " ", Style::default());
         }
 
         let mount_w = mount_col_width(inner_w, &app.prefs);
-        let sort_arrow = if app.prefs.sort_rev { "\u{25BC}" } else { "\u{25B2}" };
+        let sort_arrow = if app.prefs.sort_rev {
+            "\u{25BC}"
+        } else {
+            "\u{25B2}"
+        };
 
-        let name_arrow = if app.prefs.sort_mode == SortMode::Name { sort_arrow } else { " " };
-        let pct_arrow = if app.prefs.sort_mode == SortMode::Pct { sort_arrow } else { " " };
-        let size_arrow = if app.prefs.sort_mode == SortMode::Size { sort_arrow } else { " " };
+        let name_arrow = if app.prefs.sort_mode == SortMode::Name {
+            sort_arrow
+        } else {
+            " "
+        };
+        let pct_arrow = if app.prefs.sort_mode == SortMode::Pct {
+            sort_arrow
+        } else {
+            " "
+        };
+        let size_arrow = if app.prefs.sort_mode == SortMode::Size {
+            sort_arrow
+        } else {
+            " "
+        };
 
         let mount_hdr = format!(" MOUNT{}", name_arrow);
         set_str(buf, lm, row, &mount_hdr, hdr_s, (mount_w + 3) as u16);
@@ -553,8 +590,11 @@ pub fn draw(frame: &mut Frame, app: &App) {
                 set_cell(buf, pct_sep_x, row, "\u{2502}", border_s);
                 let used_hdr = format!(
                     " {:>uw$}/{:>tw$}{}",
-                    "USED", "SIZE", size_arrow,
-                    uw = max_used_w, tw = max_total_w
+                    "USED",
+                    "SIZE",
+                    size_arrow,
+                    uw = max_used_w,
+                    tw = max_total_w
                 );
                 let remaining = right_w.saturating_sub(pct_w + 1);
                 set_str(buf, pct_sep_x + 1, row, &used_hdr, hdr_s, remaining);
@@ -616,19 +656,32 @@ pub fn draw(frame: &mut Frame, app: &App) {
         } else {
             truncate_mount(&disk.mount, mount_w.saturating_sub(1))
         };
-        set_str(buf, lm + 3, row, &mount_display, Style::default().fg(pal_green), mount_w as u16);
+        set_str(
+            buf,
+            lm + 3,
+            row,
+            &mount_display,
+            Style::default().fg(pal_green),
+            mount_w as u16,
+        );
 
         // SMART health indicator (end of mount column)
-        if let Some(smart) = disk.smart_status {
-            if smart != SmartHealth::Unknown {
-                let (smart_icon, smart_color) = match smart {
-                    SmartHealth::Verified => ("\u{2714}", Color::Indexed(48)),
-                    SmartHealth::Failing => ("\u{2718}", Color::Indexed(196)),
-                    SmartHealth::Unknown => unreachable!(),
-                };
-                let smart_x = lm + 3 + mount_w as u16 - 2;
-                set_cell(buf, smart_x, row, smart_icon, Style::default().fg(smart_color).add_modifier(Modifier::DIM));
-            }
+        if let Some(smart) = disk.smart_status
+            && smart != SmartHealth::Unknown
+        {
+            let (smart_icon, smart_color) = match smart {
+                SmartHealth::Verified => ("\u{2714}", Color::Indexed(48)),
+                SmartHealth::Failing => ("\u{2718}", Color::Indexed(196)),
+                SmartHealth::Unknown => unreachable!(),
+            };
+            let smart_x = lm + 3 + mount_w as u16 - 2;
+            set_cell(
+                buf,
+                smart_x,
+                row,
+                smart_icon,
+                Style::default().fg(smart_color).add_modifier(Modifier::DIM),
+            );
         }
 
         if let Some(lat) = disk.latency_ms {
@@ -642,7 +695,14 @@ pub fn draw(frame: &mut Frame, app: &App) {
             };
             let badge_len = badge.len() as u16;
             let badge_x = lm + 3 + mount_w as u16 - badge_len - 1;
-            set_str(buf, badge_x, row, &badge, Style::default().fg(lat_color).add_modifier(Modifier::DIM), badge_len);
+            set_str(
+                buf,
+                badge_x,
+                row,
+                &badge,
+                Style::default().fg(lat_color).add_modifier(Modifier::DIM),
+                badge_len,
+            );
         }
 
         let bar_col_start = lm + 3 + mount_w as u16;
@@ -684,9 +744,21 @@ pub fn draw(frame: &mut Frame, app: &App) {
                             }
                             BarStyle::Thin => {
                                 if j == filled - 1 {
-                                    set_cell(buf, x, row, "\u{25B8}", Style::default().fg(fg_color));
+                                    set_cell(
+                                        buf,
+                                        x,
+                                        row,
+                                        "\u{25B8}",
+                                        Style::default().fg(fg_color),
+                                    );
                                 } else {
-                                    set_cell(buf, x, row, "\u{25AC}", Style::default().fg(fg_color));
+                                    set_cell(
+                                        buf,
+                                        x,
+                                        row,
+                                        "\u{25AC}",
+                                        Style::default().fg(fg_color),
+                                    );
                                 }
                             }
                             BarStyle::Ascii => {
@@ -749,11 +821,26 @@ pub fn draw(frame: &mut Frame, app: &App) {
             if app.prefs.show_used {
                 let pct_sep_x = right_start + pct_w;
                 set_cell(buf, pct_sep_x, row, "\u{2502}", border_s);
-                let used_s = format!("{:>width$}", format_bytes(disk.used, app.prefs.unit_mode), width = max_used_w);
-                let total_s = format!("{:>width$}", format_bytes(disk.total, app.prefs.unit_mode), width = max_total_w);
+                let used_s = format!(
+                    "{:>width$}",
+                    format_bytes(disk.used, app.prefs.unit_mode),
+                    width = max_used_w
+                );
+                let total_s = format!(
+                    "{:>width$}",
+                    format_bytes(disk.total, app.prefs.unit_mode),
+                    width = max_total_w
+                );
                 let size_str = format!(" {}/{}", used_s, total_s);
                 let remaining = right_w.saturating_sub(pct_w + 1);
-                set_str(buf, pct_sep_x + 1, row, &size_str, Style::default().fg(pal_lpurple), remaining);
+                set_str(
+                    buf,
+                    pct_sep_x + 1,
+                    row,
+                    &size_str,
+                    Style::default().fg(pal_lpurple),
+                    remaining,
+                );
             }
         }
 
@@ -780,7 +867,11 @@ pub fn draw(frame: &mut Frame, app: &App) {
                 SortMode::Pct => "pct",
                 SortMode::Size => "size",
             };
-            let sort_dir = if app.prefs.sort_rev { "\u{25BC}" } else { "\u{25B2}" };
+            let sort_dir = if app.prefs.sort_rev {
+                "\u{25BC}"
+            } else {
+                "\u{25B2}"
+            };
             let bar_name = match app.prefs.bar_style {
                 BarStyle::Gradient => "gradient",
                 BarStyle::Solid => "solid",
@@ -801,15 +892,21 @@ pub fn draw(frame: &mut Frame, app: &App) {
 
             let mut footer = format!(
                 " \u{27E6}zpwr\u{22B7}cyberdeck\u{27E7} \u{25C0}\u{25C0}\u{25C0} vol:{} \u{2502} sort:{}{} \u{2502} {}s \u{2502} {} \u{2502} {} \u{2502} {}",
-                disk_count, sort_name, sort_dir, app.prefs.refresh_rate, bar_name, color_name, unit_name
+                disk_count,
+                sort_name,
+                sort_dir,
+                app.prefs.refresh_rate,
+                bar_name,
+                color_name,
+                unit_name
             );
 
             footer.push_str(&format!(" \u{2502} up:{}", format_uptime(app.stats.uptime)));
 
-            if inner_w > 80 {
-                if let Some(user) = get_username() {
-                    footer.push_str(&format!(" \u{2502} user:{}", user));
-                }
+            if inner_w > 80
+                && let Some(user) = get_username()
+            {
+                footer.push_str(&format!(" \u{2502} user:{}", user));
             }
             if inner_w > 95 {
                 footer.push_str(&format!(" \u{2502} ip:{}", get_local_ip()));
@@ -825,24 +922,24 @@ pub fn draw(frame: &mut Frame, app: &App) {
                     }
                 ));
             }
-            if inner_w > 130 {
-                if let Ok(shell) = std::env::var("SHELL") {
-                    let shell_name = shell.rsplit('/').next().unwrap_or(&shell);
-                    footer.push_str(&format!(" \u{2502} sh:{}", shell_name));
-                }
+            if inner_w > 130
+                && let Ok(shell) = std::env::var("SHELL")
+            {
+                let shell_name = shell.rsplit('/').next().unwrap_or(&shell);
+                footer.push_str(&format!(" \u{2502} sh:{}", shell_name));
             }
-            if inner_w > 140 {
-                if let Some(tty) = get_tty() {
-                    footer.push_str(&format!(" \u{2502} tty:{}", tty));
-                }
+            if inner_w > 140
+                && let Some(tty) = get_tty()
+            {
+                footer.push_str(&format!(" \u{2502} tty:{}", tty));
             }
             if inner_w > 150 {
                 footer.push_str(&format!(" \u{2502} disks:{}", disk_count));
             }
-            if inner_w > 160 {
-                if let Some(bat) = get_battery() {
-                    footer.push_str(&format!(" \u{2502} bat:{}%", bat));
-                }
+            if inner_w > 160
+                && let Some(bat) = get_battery()
+            {
+                footer.push_str(&format!(" \u{2502} bat:{}%", bat));
             }
             if inner_w > 190 {
                 footer.push_str(&format!(" \u{2502} {}x{}", w, h));
@@ -851,10 +948,10 @@ pub fn draw(frame: &mut Frame, app: &App) {
             if app.filter.active {
                 footer.push_str(&format!(" \u{2502} FILTER> {}_", app.filter.buf));
             }
-            if let Some((ref msg, t)) = app.status_msg {
-                if t.elapsed() < Duration::from_secs(3) {
-                    footer.push_str(&format!(" \u{2502} {}", msg));
-                }
+            if let Some((ref msg, t)) = app.status_msg
+                && t.elapsed() < Duration::from_secs(3)
+            {
+                footer.push_str(&format!(" \u{2502} {}", msg));
             }
 
             let footer_display: String = footer.chars().take(inner_w as usize).collect();
@@ -883,7 +980,12 @@ pub fn draw(frame: &mut Frame, app: &App) {
     }
 
     // ─── Hover tooltip (1s delay for title/footer, right-click only for disk rows) ───
-    if !app.show_help && !app.theme_edit.active && !app.theme_chooser.active && !app.filter.active && app.hover_ready() {
+    if !app.show_help
+        && !app.theme_edit.active
+        && !app.theme_chooser.active
+        && !app.filter.active
+        && app.hover_ready()
+    {
         match app.hovered_zone(h) {
             HoverZone::DiskRow(idx) => {
                 if app.hover.right_click {
@@ -935,12 +1037,8 @@ fn draw_filter_popup(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     let input_s = Style::default()
         .fg(Color::Indexed(48))
         .bg(Color::Indexed(235));
-    let hint_s = Style::default()
-        .fg(Color::Indexed(240))
-        .bg(HELP_BG);
-    let label_s = Style::default()
-        .fg(Color::Indexed(141))
-        .bg(HELP_BG);
+    let hint_s = Style::default().fg(Color::Indexed(240)).bg(HELP_BG);
+    let label_s = Style::default().fg(Color::Indexed(141)).bg(HELP_BG);
 
     for y in y0..y0 + box_h {
         for x in x0..x0 + box_w {
@@ -967,9 +1065,20 @@ fn draw_filter_popup(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     set_str(buf, tx, y0 + 1, title, title_s, box_w - 2);
 
     let current_label = "Active: ";
-    let current_val = if app.filter.text.is_empty() { "(none)" } else { &app.filter.text };
+    let current_val = if app.filter.text.is_empty() {
+        "(none)"
+    } else {
+        &app.filter.text
+    };
     set_str(buf, x0 + 2, y0 + 2, current_label, label_s, 8);
-    set_str(buf, x0 + 10, y0 + 2, current_val, bg_s, box_w.saturating_sub(13));
+    set_str(
+        buf,
+        x0 + 10,
+        y0 + 2,
+        current_val,
+        bg_s,
+        box_w.saturating_sub(13),
+    );
 
     let input_w = box_w.saturating_sub(4);
     let field_y = y0 + 3;
@@ -993,12 +1102,21 @@ fn draw_filter_popup(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     };
 
     let display_buf = &app.filter.buf[vis_start..vis_end.min(buf_len)];
-    set_str(buf, x0 + 4, field_y, display_buf, input_s, input_w.saturating_sub(3));
+    set_str(
+        buf,
+        x0 + 4,
+        field_y,
+        display_buf,
+        input_s,
+        input_w.saturating_sub(3),
+    );
 
     let cursor_x = x0 + 4 + (cursor_pos - vis_start) as u16;
     if cursor_x < x0 + 2 + input_w {
         let ch = app.filter.buf.chars().nth(cursor_pos).unwrap_or(' ');
-        let cursor_s = Style::default().fg(Color::Indexed(235)).bg(Color::Indexed(48));
+        let cursor_s = Style::default()
+            .fg(Color::Indexed(235))
+            .bg(Color::Indexed(48));
         set_cell(buf, cursor_x, field_y, &ch.to_string(), cursor_s);
     }
 
@@ -1043,10 +1161,14 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     // Borders
     if show_border {
         set_cell(buf, 0, 0, "\u{2554}", border_s);
-        for x in 1..w - 1 { set_cell(buf, x, 0, "\u{2550}", border_s); }
+        for x in 1..w - 1 {
+            set_cell(buf, x, 0, "\u{2550}", border_s);
+        }
         set_cell(buf, w - 1, 0, "\u{2557}", border_s);
         set_cell(buf, 0, h - 1, "\u{255A}", border_s);
-        for x in 1..w - 1 { set_cell(buf, x, h - 1, "\u{2550}", border_s); }
+        for x in 1..w - 1 {
+            set_cell(buf, x, h - 1, "\u{2550}", border_s);
+        }
         set_cell(buf, w - 1, h - 1, "\u{255D}", border_s);
         for y in 1..h - 1 {
             set_cell(buf, 0, y, "\u{2551}", border_s);
@@ -1059,13 +1181,23 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     // ─── Breadcrumb bar ───
     {
         let banner_s = Style::default().fg(pal_green).bg(DARK_BG);
-        let accent_s = Style::default().fg(pal_blue).bg(DARK_BG).add_modifier(Modifier::BOLD);
+        let accent_s = Style::default()
+            .fg(pal_blue)
+            .bg(DARK_BG)
+            .add_modifier(Modifier::BOLD);
 
         for x in lm..w.saturating_sub(rm) {
             set_cell(buf, x, row, " ", Style::default().bg(DARK_BG));
         }
 
-        set_str(buf, lm, row, " \u{25B6} DRILL DOWN \u{25C0} ", accent_s, inner_w);
+        set_str(
+            buf,
+            lm,
+            row,
+            " \u{25B6} DRILL DOWN \u{25C0} ",
+            accent_s,
+            inner_w,
+        );
         let path_start = lm + 19;
         let path_display = app.drill_current_path();
         let remaining = inner_w.saturating_sub(19);
@@ -1079,11 +1211,32 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
 
     // ─── Column header ───
     {
-        let hdr_s = Style::default().fg(pal_lpurple).add_modifier(Modifier::BOLD);
-        let sort_arrow = if app.drill.sort_rev { "\u{25BC}" } else { "\u{25B2}" };
-        let name_arrow = if app.drill.sort == DrillSortMode::Name { sort_arrow } else { " " };
-        let size_arrow = if app.drill.sort == DrillSortMode::Size { sort_arrow } else { " " };
-        let hdr = format!("   {}{:<name_w$} {:>9}{}", name_arrow, "NAME", "SIZE", size_arrow, name_w = (inner_w as usize).saturating_sub(16));
+        let hdr_s = Style::default()
+            .fg(pal_lpurple)
+            .add_modifier(Modifier::BOLD);
+        let sort_arrow = if app.drill.sort_rev {
+            "\u{25BC}"
+        } else {
+            "\u{25B2}"
+        };
+        let name_arrow = if app.drill.sort == DrillSortMode::Name {
+            sort_arrow
+        } else {
+            " "
+        };
+        let size_arrow = if app.drill.sort == DrillSortMode::Size {
+            sort_arrow
+        } else {
+            " "
+        };
+        let hdr = format!(
+            "   {}{:<name_w$} {:>9}{}",
+            name_arrow,
+            "NAME",
+            "SIZE",
+            size_arrow,
+            name_w = (inner_w as usize).saturating_sub(16)
+        );
         set_str(buf, lm, row, &hdr, hdr_s, inner_w);
         row += 1;
         draw_separator(buf, row, w, show_border, border_s);
@@ -1122,15 +1275,34 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
                 }
             }
         } else {
-            set_str(buf, lm + 2, row, "\u{25CB} Scanning\u{2026}", scanning_s, inner_w);
+            set_str(
+                buf,
+                lm + 2,
+                row,
+                "\u{25CB} Scanning\u{2026}",
+                scanning_s,
+                inner_w,
+            );
         }
         row += 1;
     }
 
     // ─── Entries ───
-    let max_size = app.drill.entries.first().map(|e| e.size).unwrap_or(1).max(1);
+    let max_size = app
+        .drill
+        .entries
+        .first()
+        .map(|e| e.size)
+        .unwrap_or(1)
+        .max(1);
 
-    for (i, entry) in app.drill.entries.iter().enumerate().skip(app.drill.scroll_offset) {
+    for (i, entry) in app
+        .drill
+        .entries
+        .iter()
+        .enumerate()
+        .skip(app.drill.scroll_offset)
+    {
         if row >= entry_area_end {
             break;
         }
@@ -1160,7 +1332,8 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
         // Name
         let size_col_w = 10u16;
         let bar_col_w = 12u16;
-        let name_max = (inner_w as usize).saturating_sub(5 + size_col_w as usize + bar_col_w as usize + 2);
+        let name_max =
+            (inner_w as usize).saturating_sub(5 + size_col_w as usize + bar_col_w as usize + 2);
         let name_display = truncate_mount(&entry.name, name_max);
         let name_style = if is_selected {
             Style::default().fg(pal_green).bg(Color::Indexed(237))
@@ -1201,7 +1374,14 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     // ─── Empty state ───
     if app.drill.entries.is_empty() && !app.drill.scanning {
         let empty_s = Style::default().fg(DIM_BORDER);
-        set_str(buf, lm + 2, row, "(empty or access denied)", empty_s, inner_w);
+        set_str(
+            buf,
+            lm + 2,
+            row,
+            "(empty or access denied)",
+            empty_s,
+            inner_w,
+        );
     }
 
     // ─── Footer separator ───
@@ -1224,12 +1404,17 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
                 DrillSortMode::Size => "size",
                 DrillSortMode::Name => "name",
             };
-            let sort_dir = if app.drill.sort_rev { "\u{25BC}" } else { "\u{25B2}" };
+            let sort_dir = if app.drill.sort_rev {
+                "\u{25BC}"
+            } else {
+                "\u{25B2}"
+            };
             let footer = format!(
                 " \u{27E6}drill\u{22B7}down\u{27E7} \u{25C0}\u{25C0}\u{25C0} items:{} \u{2502} total:{} \u{2502} sort:{}{} \u{2502} s:size \u{2502} n:name \u{2502} r:rev \u{2502} bksp:back",
                 entry_count,
                 format_bytes(total_size, app.prefs.unit_mode),
-                sort_name, sort_dir,
+                sort_name,
+                sort_dir,
             );
             let footer_display: String = footer.chars().take(inner_w as usize).collect();
             set_str(buf, lm, frow, &footer_display, footer_s, inner_w);
@@ -1237,12 +1422,12 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     }
 
     // ─── Hover tooltip for drill-down entries (right-click only) ───
-    if app.hover_ready() && app.hover.right_click {
-        if let Some(idx) = app.hovered_drill_index() {
-            if let Some(entry) = app.drill.entries.get(idx) {
-                draw_hover_drill_tooltip(buf, w, h, app, entry);
-            }
-        }
+    if app.hover_ready()
+        && app.hover.right_click
+        && let Some(idx) = app.hovered_drill_index()
+        && let Some(entry) = app.drill.entries.get(idx)
+    {
+        draw_hover_drill_tooltip(buf, w, h, app, entry);
     }
 }
 
@@ -1253,16 +1438,26 @@ fn draw_hover_drill_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, entry: 
     };
 
     let mut lines: Vec<(String, String)> = Vec::new();
-    let kind = if entry.is_dir { "\u{1F4C1} Directory" } else { "\u{25CB} File" };
+    let kind = if entry.is_dir {
+        "\u{1F4C1} Directory"
+    } else {
+        "\u{25CB} File"
+    };
     lines.push(("\u{25B6} Name".into(), entry.name.clone()));
     lines.push(("  Type".into(), kind.into()));
-    lines.push(("  Size".into(), format_bytes(entry.size, app.prefs.unit_mode)));
+    lines.push((
+        "  Size".into(),
+        format_bytes(entry.size, app.prefs.unit_mode),
+    ));
     // Show size in all unit modes for comparison
     if app.prefs.unit_mode != UnitMode::Bytes {
         lines.push(("  Size (bytes)".into(), format!("{} bytes", entry.size)));
     }
     if app.prefs.unit_mode != UnitMode::Human {
-        lines.push(("  Size (human)".into(), format_bytes(entry.size, UnitMode::Human)));
+        lines.push((
+            "  Size (human)".into(),
+            format_bytes(entry.size, UnitMode::Human),
+        ));
     }
     lines.push(("  Path".into(), entry.path.clone()));
     let parent_total: u64 = app.drill.entries.iter().map(|e| e.size).sum();
@@ -1271,22 +1466,54 @@ fn draw_hover_drill_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, entry: 
         lines.push(("  Share".into(), format!("{:.1}% of directory", pct)));
         // Visual share bar
         let filled = (pct / 5.0).round() as usize;
-        let bar: String = "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
+        let bar: String =
+            "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
         lines.push(("  Share bar".into(), bar));
     }
     // Rank within siblings
-    let rank = app.drill.entries.iter().filter(|e| e.size > entry.size).count() + 1;
+    let rank = app
+        .drill
+        .entries
+        .iter()
+        .filter(|e| e.size > entry.size)
+        .count()
+        + 1;
     let total_siblings = app.drill.entries.len();
-    lines.push(("  Rank".into(), format!("#{} of {} entries", rank, total_siblings)));
+    lines.push((
+        "  Rank".into(),
+        format!("#{} of {} entries", rank, total_siblings),
+    ));
     // Current depth
     let depth = app.drill.path.len();
-    lines.push(("  Depth".into(), format!("{} level{} deep", depth, if depth == 1 { "" } else { "s" })));
-    lines.push(("  Parent".into(), app.drill.path.last().cloned().unwrap_or_default()));
+    lines.push((
+        "  Depth".into(),
+        format!("{} level{} deep", depth, if depth == 1 { "" } else { "s" }),
+    ));
+    lines.push((
+        "  Parent".into(),
+        app.drill.path.last().cloned().unwrap_or_default(),
+    ));
     // Sort info
-    lines.push(("  Sort".into(), format!("{:?} {}", app.drill.sort,
-        if app.drill.sort_rev { "\u{25BC} desc" } else { "\u{25B2} asc" })));
-    lines.push(("  Scan src".into(), "recursive read_dir() with progress".into()));
-    lines.push(("  Actions".into(), "Enter=open  Bksp=up  s=sort  r=reverse".into()));
+    lines.push((
+        "  Sort".into(),
+        format!(
+            "{:?} {}",
+            app.drill.sort,
+            if app.drill.sort_rev {
+                "\u{25BC} desc"
+            } else {
+                "\u{25B2} asc"
+            }
+        ),
+    ));
+    lines.push((
+        "  Scan src".into(),
+        "recursive read_dir() with progress".into(),
+    ));
+    lines.push((
+        "  Actions".into(),
+        "Enter=open  Bksp=up  s=sort  r=reverse".into(),
+    ));
 
     render_tooltip(buf, w, h, hover_x, hover_y, app, &lines);
 }
@@ -1306,7 +1533,10 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
     ];
     let free = disk.total.saturating_sub(disk.used);
     lines.push(("  Free".into(), format_bytes(free, app.prefs.unit_mode)));
-    lines.push(("  Total".into(), format_bytes(disk.total, app.prefs.unit_mode)));
+    lines.push((
+        "  Total".into(),
+        format_bytes(disk.total, app.prefs.unit_mode),
+    ));
     // Show raw bytes alongside human-readable
     if app.prefs.unit_mode != UnitMode::Bytes {
         lines.push(("  Used (bytes)".into(), format!("{}", disk.used)));
@@ -1314,35 +1544,60 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
         lines.push(("  Total (bytes)".into(), format!("{}", disk.total)));
     }
     if app.prefs.unit_mode != UnitMode::Human {
-        lines.push(("  Used (human)".into(), format_bytes(disk.used, UnitMode::Human)));
+        lines.push((
+            "  Used (human)".into(),
+            format_bytes(disk.used, UnitMode::Human),
+        ));
         lines.push(("  Free (human)".into(), format_bytes(free, UnitMode::Human)));
-        lines.push(("  Total (human)".into(), format_bytes(disk.total, UnitMode::Human)));
+        lines.push((
+            "  Total (human)".into(),
+            format_bytes(disk.total, UnitMode::Human),
+        ));
     }
     lines.push(("  Usage".into(), format!("{:.1}%", disk.pct)));
     lines.push(("  Free %".into(), format!("{:.1}%", 100.0 - disk.pct)));
     // Visual usage bar
     let filled = (disk.pct / 5.0).round() as usize;
-    let bar: String = "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
+    let bar: String =
+        "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
     lines.push(("  Usage bar".into(), format!("{} {:.1}%", bar, disk.pct)));
     // Rank among all disks
     let sorted = app.sorted_disks();
     let rank_by_size = sorted.iter().filter(|d| d.total > disk.total).count() + 1;
     let rank_by_usage = sorted.iter().filter(|d| d.pct > disk.pct).count() + 1;
     let disk_count = sorted.len();
-    lines.push(("  Rank (size)".into(), format!("#{} of {} volumes", rank_by_size, disk_count)));
-    lines.push(("  Rank (usage)".into(), format!("#{} of {} volumes", rank_by_usage, disk_count)));
+    lines.push((
+        "  Rank (size)".into(),
+        format!("#{} of {} volumes", rank_by_size, disk_count),
+    ));
+    lines.push((
+        "  Rank (usage)".into(),
+        format!("#{} of {} volumes", rank_by_usage, disk_count),
+    ));
     lines.push(("  \u{2500}\u{2500}\u{2500} Hardware".into(), "\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}".into()));
-    lines.push(("  Kind".into(), match disk.kind {
-        sysinfo::DiskKind::SSD => "SSD (Solid State Drive)".into(),
-        sysinfo::DiskKind::HDD => "HDD (Hard Disk Drive)".into(),
-        _ => "Unknown".into(),
-    }));
+    lines.push((
+        "  Kind".into(),
+        match disk.kind {
+            sysinfo::DiskKind::SSD => "SSD (Solid State Drive)".into(),
+            sysinfo::DiskKind::HDD => "HDD (Hard Disk Drive)".into(),
+            _ => "Unknown".into(),
+        },
+    ));
     let (thresh_status, thresh_desc) = if disk.pct >= app.prefs.thresh_crit as f64 {
-        ("\u{2716} CRITICAL", format!("Above crit threshold ({}%)", app.prefs.thresh_crit))
+        (
+            "\u{2716} CRITICAL",
+            format!("Above crit threshold ({}%)", app.prefs.thresh_crit),
+        )
     } else if disk.pct >= app.prefs.thresh_warn as f64 {
-        ("\u{26A0} WARNING", format!("Above warn threshold ({}%)", app.prefs.thresh_warn))
+        (
+            "\u{26A0} WARNING",
+            format!("Above warn threshold ({}%)", app.prefs.thresh_warn),
+        )
     } else {
-        ("\u{25C8} Nominal", format!("Below warn threshold ({}%)", app.prefs.thresh_warn))
+        (
+            "\u{25C8} Nominal",
+            format!("Below warn threshold ({}%)", app.prefs.thresh_warn),
+        )
     };
     lines.push(("  Status".into(), thresh_status.into()));
     lines.push(("  Threshold".into(), thresh_desc));
@@ -1350,18 +1605,41 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
     let headroom_warn = (app.prefs.thresh_warn as f64 - disk.pct).max(0.0);
     if disk.pct < app.prefs.thresh_crit as f64 {
         let bytes_to_crit = ((headroom_crit / 100.0) * disk.total as f64) as u64;
-        lines.push(("  Headroom (crit)".into(), format!("{:.1}% / {} until critical", headroom_crit, format_bytes(bytes_to_crit, UnitMode::Human))));
+        lines.push((
+            "  Headroom (crit)".into(),
+            format!(
+                "{:.1}% / {} until critical",
+                headroom_crit,
+                format_bytes(bytes_to_crit, UnitMode::Human)
+            ),
+        ));
     }
     if disk.pct < app.prefs.thresh_warn as f64 {
         let bytes_to_warn = ((headroom_warn / 100.0) * disk.total as f64) as u64;
-        lines.push(("  Headroom (warn)".into(), format!("{:.1}% / {} until warning", headroom_warn, format_bytes(bytes_to_warn, UnitMode::Human))));
+        lines.push((
+            "  Headroom (warn)".into(),
+            format!(
+                "{:.1}% / {} until warning",
+                headroom_warn,
+                format_bytes(bytes_to_warn, UnitMode::Human)
+            ),
+        ));
     }
     if let Some(smart) = disk.smart_status {
         lines.push(("  \u{2500}\u{2500}\u{2500} Health".into(), "\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}".into()));
         let (smart_val, smart_src) = match smart {
-            SmartHealth::Verified => ("\u{2714} Verified — drive healthy", "diskutil info (macOS) or /sys/block (Linux)"),
-            SmartHealth::Failing => ("\u{2718} FAILING — replace drive immediately!", "diskutil info (macOS) or /sys/block (Linux)"),
-            SmartHealth::Unknown => ("? Unknown — SMART not available", "SMART not supported or not available for this device"),
+            SmartHealth::Verified => (
+                "\u{2714} Verified — drive healthy",
+                "diskutil info (macOS) or /sys/block (Linux)",
+            ),
+            SmartHealth::Failing => (
+                "\u{2718} FAILING — replace drive immediately!",
+                "diskutil info (macOS) or /sys/block (Linux)",
+            ),
+            SmartHealth::Unknown => (
+                "? Unknown — SMART not available",
+                "SMART not supported or not available for this device",
+            ),
         };
         lines.push(("  SMART".into(), smart_val.into()));
         lines.push(("  SMART src".into(), smart_src.into()));
@@ -1371,10 +1649,23 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
     }
     if let Some(lat) = disk.latency_ms {
         lines.push(("  Latency".into(), format_latency(lat)));
-        let lat_rating = if lat < 1.0 { "Excellent" } else if lat < 10.0 { "Good" } else if lat < 100.0 { "Fair" } else if lat < 1000.0 { "Slow" } else { "Very slow" };
+        let lat_rating = if lat < 1.0 {
+            "Excellent"
+        } else if lat < 10.0 {
+            "Good"
+        } else if lat < 100.0 {
+            "Fair"
+        } else if lat < 1000.0 {
+            "Slow"
+        } else {
+            "Very slow"
+        };
         lines.push(("  Lat rating".into(), lat_rating.into()));
         lines.push(("  Lat raw".into(), format!("{:.3} ms", lat)));
-        lines.push(("  Lat src".into(), "timed read_dir() with 2s timeout".into()));
+        lines.push((
+            "  Lat src".into(),
+            "timed read_dir() with 2s timeout".into(),
+        ));
     }
     if let Some(rd) = disk.io_read_rate {
         lines.push(("  \u{25B2} Read".into(), format!("{}/s", format_rate(rd))));
@@ -1386,43 +1677,95 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
     }
     if disk.io_read_rate.is_some() || disk.io_write_rate.is_some() {
         let total_io = disk.io_read_rate.unwrap_or(0.0) + disk.io_write_rate.unwrap_or(0.0);
-        lines.push(("  \u{25C6} Total I/O".into(), format!("{}/s", format_rate(total_io))));
-        lines.push(("  I/O src".into(), "IOKit (macOS) or /proc/diskstats (Linux)".into()));
+        lines.push((
+            "  \u{25C6} Total I/O".into(),
+            format!("{}/s", format_rate(total_io)),
+        ));
+        lines.push((
+            "  I/O src".into(),
+            "IOKit (macOS) or /proc/diskstats (Linux)".into(),
+        ));
     }
     lines.push(("  \u{2500}\u{2500}\u{2500} Meta".into(), "\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}".into()));
     if app.prefs.bookmarks.contains(&disk.mount) {
-        lines.push(("  \u{2605} Pinned".into(), "Bookmarked — appears at top of list".into()));
+        lines.push((
+            "  \u{2605} Pinned".into(),
+            "Bookmarked — appears at top of list".into(),
+        ));
     } else {
-        lines.push(("  \u{2606} Not pinned".into(), "Press B to bookmark this volume".into()));
+        lines.push((
+            "  \u{2606} Not pinned".into(),
+            "Press B to bookmark this volume".into(),
+        ));
     }
     // Show what percentage this volume is of total system storage
     let global_total: u64 = app.disks.iter().map(|d| d.total).sum();
     if global_total > 0 {
         let vol_share = (disk.total as f64 / global_total as f64) * 100.0;
-        lines.push(("  System share".into(), format!("{:.1}% of total storage ({})", vol_share, format_bytes(global_total, UnitMode::Human))));
+        lines.push((
+            "  System share".into(),
+            format!(
+                "{:.1}% of total storage ({})",
+                vol_share,
+                format_bytes(global_total, UnitMode::Human)
+            ),
+        ));
     }
-    lines.push(("  Source".into(), "getmntinfo (macOS) / /proc/mounts (Linux)".into()));
-    lines.push(("  Data age".into(), format!("Refreshed every {}s", app.prefs.refresh_rate)));
-    lines.push(("  Actions".into(), "Enter=drill  o=open  y=copy  B=bookmark".into()));
+    lines.push((
+        "  Source".into(),
+        "getmntinfo (macOS) / /proc/mounts (Linux)".into(),
+    ));
+    lines.push((
+        "  Data age".into(),
+        format!("Refreshed every {}s", app.prefs.refresh_rate),
+    ));
+    lines.push((
+        "  Actions".into(),
+        "Enter=drill  o=open  y=copy  B=bookmark".into(),
+    ));
 
     render_tooltip(buf, w, h, hover_x, hover_y, app, &lines);
 }
 
 /// Render a small tooltip popup with given lines near the hover cursor.
-fn render_tooltip(buf: &mut Buffer, w: u16, h: u16, hover_x: u16, hover_y: u16, app: &App, lines: &[(String, String)]) {
+fn render_tooltip(
+    buf: &mut Buffer,
+    w: u16,
+    h: u16,
+    hover_x: u16,
+    hover_y: u16,
+    app: &App,
+    lines: &[(String, String)],
+) {
     let (_, pal_green, _, pal_lpurple, _, _) = palette_for_prefs(&app.prefs);
     let bc = border_color(app);
     let border_s = Style::default().fg(bc);
     let label_s = Style::default().fg(pal_lpurple).bg(HELP_BG);
     let val_s = Style::default().fg(pal_green).bg(HELP_BG);
 
-    let max_label_w = lines.iter().map(|(l, _)| l.chars().count()).max().unwrap_or(6);
-    let max_val_w = lines.iter().map(|(_, v)| v.chars().count()).max().unwrap_or(6);
+    let max_label_w = lines
+        .iter()
+        .map(|(l, _)| l.chars().count())
+        .max()
+        .unwrap_or(6);
+    let max_val_w = lines
+        .iter()
+        .map(|(_, v)| v.chars().count())
+        .max()
+        .unwrap_or(6);
     let box_w = (max_label_w + max_val_w + 5).min(w as usize - 4) as u16;
     let box_h = (lines.len() + 2) as u16;
 
-    let x0 = if hover_x + box_w + 2 < w { hover_x + 2 } else { w.saturating_sub(box_w + 2) };
-    let y0 = if hover_y + box_h + 1 < h { hover_y + 1 } else { h.saturating_sub(box_h + 1) };
+    let x0 = if hover_x + box_w + 2 < w {
+        hover_x + 2
+    } else {
+        w.saturating_sub(box_w + 2)
+    };
+    let y0 = if hover_y + box_h + 1 < h {
+        hover_y + 1
+    } else {
+        h.saturating_sub(box_h + 1)
+    };
 
     for y in y0..y0 + box_h {
         for x in x0..x0 + box_w {
@@ -1446,7 +1789,9 @@ fn render_tooltip(buf: &mut Buffer, w: u16, h: u16, hover_x: u16, hover_y: u16, 
     let lw = max_label_w + 1;
     for (i, (label, val)) in lines.iter().enumerate() {
         let y = y0 + 1 + i as u16;
-        if y >= y0 + box_h - 1 { break; }
+        if y >= y0 + box_h - 1 {
+            break;
+        }
         set_str(buf, x0 + 1, y, label, label_s, lw as u16);
         if !val.is_empty() {
             let vx = x0 + 1 + lw as u16 + 1;
@@ -1468,144 +1813,330 @@ fn segment_at_x(rendered: &str, hover_x: u16, bar_start_x: u16) -> Option<String
         pos += seg_len;
     }
     // Last segment (no trailing pipe)
-    rendered.split('\u{2502}').next_back().map(|s| s.trim().to_string())
+    rendered
+        .split('\u{2502}')
+        .next_back()
+        .map(|s| s.trim().to_string())
 }
 
 /// Build tooltip lines for a title-bar segment.
 fn title_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
     let seg_lower = segment.to_lowercase();
     if seg_lower.contains("disk matrix") {
-        vec![("\u{25B6} App".into(), "STORAGESHOWER".into()),
-             ("  Version".into(), format!("v{}", env!("CARGO_PKG_VERSION"))),
-             ("  Desc".into(), "Cyberpunk disk usage TUI monitor".into()),
-             ("  Author".into(), "MenkeTechnologies".into()),
-             ("  Repo".into(), "github.com/MenkeTechnologies/storageshower".into()),
-             ("  Crate".into(), "crates.io/crates/storageshower".into()),
-             ("  License".into(), "MIT".into()),
-             ("  Install".into(), "cargo install storageshower".into()),
-             ("  Platform".into(), format!("{} {}", app.stats.os_name, app.stats.arch)),
-             ("  Built with".into(), "Rust + ratatui + sysinfo + crossterm".into()),
-             ("  Config".into(), "~/.storageshower.conf (TOML)".into()),
-             ("  Volumes".into(), format!("{} mounted", app.disks.len())),
-             ("  Uptime".into(), format_uptime(app.stats.uptime))]
+        vec![
+            ("\u{25B6} App".into(), "STORAGESHOWER".into()),
+            (
+                "  Version".into(),
+                format!("v{}", env!("CARGO_PKG_VERSION")),
+            ),
+            ("  Desc".into(), "Cyberpunk disk usage TUI monitor".into()),
+            ("  Author".into(), "MenkeTechnologies".into()),
+            (
+                "  Repo".into(),
+                "github.com/MenkeTechnologies/storageshower".into(),
+            ),
+            ("  Crate".into(), "crates.io/crates/storageshower".into()),
+            ("  License".into(), "MIT".into()),
+            ("  Install".into(), "cargo install storageshower".into()),
+            (
+                "  Platform".into(),
+                format!("{} {}", app.stats.os_name, app.stats.arch),
+            ),
+            (
+                "  Built with".into(),
+                "Rust + ratatui + sysinfo + crossterm".into(),
+            ),
+            ("  Config".into(), "~/.storageshower.conf (TOML)".into()),
+            ("  Volumes".into(), format!("{} mounted", app.disks.len())),
+            ("  Uptime".into(), format_uptime(app.stats.uptime)),
+        ]
     } else if seg_lower.starts_with("node:") {
-        vec![("\u{25B6} Hostname".into(), app.stats.hostname.clone()),
-             ("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
-             ("  Kernel".into(), app.stats.kernel.clone()),
-             ("  Arch".into(), app.stats.arch.clone()),
-             ("  CPU cores".into(), format!("{} logical", app.stats.cpu_count)),
-             ("  RAM".into(), format_bytes(app.stats.mem_total, UnitMode::Human)),
-             ("  Load".into(), format!("{:.2} / {:.2} / {:.2}", app.stats.load_avg.0, app.stats.load_avg.1, app.stats.load_avg.2)),
-             ("  Processes".into(), format!("{}", app.stats.process_count)),
-             ("  Uptime".into(), format_uptime(app.stats.uptime)),
-             ("  Source".into(), "sysinfo::System::host_name()".into())]
+        vec![
+            ("\u{25B6} Hostname".into(), app.stats.hostname.clone()),
+            (
+                "  OS".into(),
+                format!("{} {}", app.stats.os_name, app.stats.os_version),
+            ),
+            ("  Kernel".into(), app.stats.kernel.clone()),
+            ("  Arch".into(), app.stats.arch.clone()),
+            (
+                "  CPU cores".into(),
+                format!("{} logical", app.stats.cpu_count),
+            ),
+            (
+                "  RAM".into(),
+                format_bytes(app.stats.mem_total, UnitMode::Human),
+            ),
+            (
+                "  Load".into(),
+                format!(
+                    "{:.2} / {:.2} / {:.2}",
+                    app.stats.load_avg.0, app.stats.load_avg.1, app.stats.load_avg.2
+                ),
+            ),
+            ("  Processes".into(), format!("{}", app.stats.process_count)),
+            ("  Uptime".into(), format_uptime(app.stats.uptime)),
+            ("  Source".into(), "sysinfo::System::host_name()".into()),
+        ]
     } else if seg_lower.starts_with("date:") || seg_lower.starts_with("clock:") {
         let now = chrono_now();
-        vec![("\u{25B6} Date".into(), now.0),
-             ("  Time".into(), now.1),
-             ("  Uptime".into(), format_uptime(app.stats.uptime)),
-             ("  Raw uptime".into(), format!("{} seconds", app.stats.uptime)),
-             ("  Timezone".into(), "System local timezone".into()),
-             ("  Source".into(), "libc::localtime_r (UNIX epoch)".into())]
+        vec![
+            ("\u{25B6} Date".into(), now.0),
+            ("  Time".into(), now.1),
+            ("  Uptime".into(), format_uptime(app.stats.uptime)),
+            (
+                "  Raw uptime".into(),
+                format!("{} seconds", app.stats.uptime),
+            ),
+            ("  Timezone".into(), "System local timezone".into()),
+            ("  Source".into(), "libc::localtime_r (UNIX epoch)".into()),
+        ]
     } else if seg_lower.starts_with("load:") {
         let l = app.stats.load_avg;
         let cpus = app.stats.cpu_count as f64;
         let sat_1 = if cpus > 0.0 { l.0 / cpus * 100.0 } else { 0.0 };
         let sat_5 = if cpus > 0.0 { l.1 / cpus * 100.0 } else { 0.0 };
         let sat_15 = if cpus > 0.0 { l.2 / cpus * 100.0 } else { 0.0 };
-        let trend = if l.0 > l.1 && l.1 > l.2 { "\u{25B2} Increasing" }
-                    else if l.0 < l.1 && l.1 < l.2 { "\u{25BC} Decreasing" }
-                    else { "\u{25C6} Stable" };
-        vec![("\u{25B6} Load Average".into(), String::new()),
-             ("  1 min".into(), format!("{:.2} ({:.0}% of {} cores)", l.0, sat_1, app.stats.cpu_count)),
-             ("  5 min".into(), format!("{:.2} ({:.0}% of {} cores)", l.1, sat_5, app.stats.cpu_count)),
-             ("  15 min".into(), format!("{:.2} ({:.0}% of {} cores)", l.2, sat_15, app.stats.cpu_count)),
-             ("  Trend".into(), trend.into()),
-             ("  Desc".into(), "Average runnable+uninterruptible processes".into()),
-             ("  Ideal".into(), format!("< {:.1} (1.0 per core)", cpus)),
-             ("  Source".into(), "sysinfo::System::load_average()".into())]
+        let trend = if l.0 > l.1 && l.1 > l.2 {
+            "\u{25B2} Increasing"
+        } else if l.0 < l.1 && l.1 < l.2 {
+            "\u{25BC} Decreasing"
+        } else {
+            "\u{25C6} Stable"
+        };
+        vec![
+            ("\u{25B6} Load Average".into(), String::new()),
+            (
+                "  1 min".into(),
+                format!(
+                    "{:.2} ({:.0}% of {} cores)",
+                    l.0, sat_1, app.stats.cpu_count
+                ),
+            ),
+            (
+                "  5 min".into(),
+                format!(
+                    "{:.2} ({:.0}% of {} cores)",
+                    l.1, sat_5, app.stats.cpu_count
+                ),
+            ),
+            (
+                "  15 min".into(),
+                format!(
+                    "{:.2} ({:.0}% of {} cores)",
+                    l.2, sat_15, app.stats.cpu_count
+                ),
+            ),
+            ("  Trend".into(), trend.into()),
+            (
+                "  Desc".into(),
+                "Average runnable+uninterruptible processes".into(),
+            ),
+            ("  Ideal".into(), format!("< {:.1} (1.0 per core)", cpus)),
+            ("  Source".into(), "sysinfo::System::load_average()".into()),
+        ]
     } else if seg_lower.starts_with("mem:") {
-        let pct = if app.stats.mem_total > 0 { (app.stats.mem_used as f64 / app.stats.mem_total as f64) * 100.0 } else { 0.0 };
+        let pct = if app.stats.mem_total > 0 {
+            (app.stats.mem_used as f64 / app.stats.mem_total as f64) * 100.0
+        } else {
+            0.0
+        };
         let free = app.stats.mem_total.saturating_sub(app.stats.mem_used);
         let filled = (pct / 5.0).round() as usize;
-        let bar: String = "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
-        let swap_pct = if app.stats.swap_total > 0 { (app.stats.swap_used as f64 / app.stats.swap_total as f64) * 100.0 } else { 0.0 };
-        vec![("\u{25B6} Memory".into(), String::new()),
-             ("  Used".into(), format_bytes(app.stats.mem_used, UnitMode::Human)),
-             ("  Free".into(), format_bytes(free, UnitMode::Human)),
-             ("  Total".into(), format_bytes(app.stats.mem_total, UnitMode::Human)),
-             ("  Usage".into(), format!("{:.1}%", pct)),
-             ("  Usage bar".into(), format!("{} {:.1}%", bar, pct)),
-             ("  Used (bytes)".into(), format!("{}", app.stats.mem_used)),
-             ("  Total (bytes)".into(), format!("{}", app.stats.mem_total)),
-             ("  Per process".into(), format!("~{} across {} processes",
-                 format_bytes(if app.stats.process_count > 0 { app.stats.mem_used / app.stats.process_count as u64 } else { 0 }, UnitMode::Human),
-                 app.stats.process_count)),
-             ("  Swap used".into(), format!("{} / {} ({:.1}%)", format_bytes(app.stats.swap_used, UnitMode::Human), format_bytes(app.stats.swap_total, UnitMode::Human), swap_pct)),
-             ("  Source".into(), "sysinfo::System::used_memory()".into())]
+        let bar: String =
+            "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
+        let swap_pct = if app.stats.swap_total > 0 {
+            (app.stats.swap_used as f64 / app.stats.swap_total as f64) * 100.0
+        } else {
+            0.0
+        };
+        vec![
+            ("\u{25B6} Memory".into(), String::new()),
+            (
+                "  Used".into(),
+                format_bytes(app.stats.mem_used, UnitMode::Human),
+            ),
+            ("  Free".into(), format_bytes(free, UnitMode::Human)),
+            (
+                "  Total".into(),
+                format_bytes(app.stats.mem_total, UnitMode::Human),
+            ),
+            ("  Usage".into(), format!("{:.1}%", pct)),
+            ("  Usage bar".into(), format!("{} {:.1}%", bar, pct)),
+            ("  Used (bytes)".into(), format!("{}", app.stats.mem_used)),
+            ("  Total (bytes)".into(), format!("{}", app.stats.mem_total)),
+            (
+                "  Per process".into(),
+                format!(
+                    "~{} across {} processes",
+                    format_bytes(
+                        if app.stats.process_count > 0 {
+                            app.stats.mem_used / app.stats.process_count as u64
+                        } else {
+                            0
+                        },
+                        UnitMode::Human
+                    ),
+                    app.stats.process_count
+                ),
+            ),
+            (
+                "  Swap used".into(),
+                format!(
+                    "{} / {} ({:.1}%)",
+                    format_bytes(app.stats.swap_used, UnitMode::Human),
+                    format_bytes(app.stats.swap_total, UnitMode::Human),
+                    swap_pct
+                ),
+            ),
+            ("  Source".into(), "sysinfo::System::used_memory()".into()),
+        ]
     } else if seg_lower.starts_with("cpu:") {
         let l = app.stats.load_avg;
         let cpus = app.stats.cpu_count;
-        vec![("\u{25B6} CPU".into(), String::new()),
-             ("  Cores".into(), format!("{} logical", cpus)),
-             ("  Arch".into(), app.stats.arch.clone()),
-             ("  Load (1m)".into(), format!("{:.2}", l.0)),
-             ("  Load (5m)".into(), format!("{:.2}", l.1)),
-             ("  Load (15m)".into(), format!("{:.2}", l.2)),
-             ("  Processes".into(), format!("{} running", app.stats.process_count)),
-             ("  Source".into(), "sysinfo::System::cpus().len()".into())]
+        vec![
+            ("\u{25B6} CPU".into(), String::new()),
+            ("  Cores".into(), format!("{} logical", cpus)),
+            ("  Arch".into(), app.stats.arch.clone()),
+            ("  Load (1m)".into(), format!("{:.2}", l.0)),
+            ("  Load (5m)".into(), format!("{:.2}", l.1)),
+            ("  Load (15m)".into(), format!("{:.2}", l.2)),
+            (
+                "  Processes".into(),
+                format!("{} running", app.stats.process_count),
+            ),
+            ("  Source".into(), "sysinfo::System::cpus().len()".into()),
+        ]
     } else if seg_lower.starts_with("procs:") {
-        let avg_mem = if app.stats.process_count > 0 { app.stats.mem_used / app.stats.process_count as u64 } else { 0 };
-        vec![("\u{25B6} Processes".into(), format!("{}", app.stats.process_count)),
-             ("  Desc".into(), "Total running system processes".into()),
-             ("  Avg memory".into(), format!("{} per process", format_bytes(avg_mem, UnitMode::Human))),
-             ("  CPU cores".into(), format!("{} logical", app.stats.cpu_count)),
-             ("  Load (1m)".into(), format!("{:.2}", app.stats.load_avg.0)),
-             ("  Source".into(), "sysinfo::System::processes().len()".into())]
+        let avg_mem = if app.stats.process_count > 0 {
+            app.stats.mem_used / app.stats.process_count as u64
+        } else {
+            0
+        };
+        vec![
+            (
+                "\u{25B6} Processes".into(),
+                format!("{}", app.stats.process_count),
+            ),
+            ("  Desc".into(), "Total running system processes".into()),
+            (
+                "  Avg memory".into(),
+                format!("{} per process", format_bytes(avg_mem, UnitMode::Human)),
+            ),
+            (
+                "  CPU cores".into(),
+                format!("{} logical", app.stats.cpu_count),
+            ),
+            ("  Load (1m)".into(), format!("{:.2}", app.stats.load_avg.0)),
+            (
+                "  Source".into(),
+                "sysinfo::System::processes().len()".into(),
+            ),
+        ]
     } else if seg_lower.starts_with("swap:") {
         let swap_free = app.stats.swap_total.saturating_sub(app.stats.swap_used);
-        let swap_pct = if app.stats.swap_total > 0 { (app.stats.swap_used as f64 / app.stats.swap_total as f64) * 100.0 } else { 0.0 };
+        let swap_pct = if app.stats.swap_total > 0 {
+            (app.stats.swap_used as f64 / app.stats.swap_total as f64) * 100.0
+        } else {
+            0.0
+        };
         let filled = (swap_pct / 5.0).round() as usize;
-        let bar: String = "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
-        let mem_pct = if app.stats.mem_total > 0 { (app.stats.mem_used as f64 / app.stats.mem_total as f64) * 100.0 } else { 0.0 };
-        vec![("\u{25B6} Swap".into(), String::new()),
-             ("  Used".into(), format_bytes(app.stats.swap_used, UnitMode::Human)),
-             ("  Free".into(), format_bytes(swap_free, UnitMode::Human)),
-             ("  Total".into(), format_bytes(app.stats.swap_total, UnitMode::Human)),
-             ("  Usage".into(), format!("{:.1}%", swap_pct)),
-             ("  Usage bar".into(), format!("{} {:.1}%", bar, swap_pct)),
-             ("  Used (bytes)".into(), format!("{}", app.stats.swap_used)),
-             ("  Total (bytes)".into(), format!("{}", app.stats.swap_total)),
-             ("  RAM usage".into(), format!("{:.1}% ({} / {})", mem_pct, format_bytes(app.stats.mem_used, UnitMode::Human), format_bytes(app.stats.mem_total, UnitMode::Human))),
-             ("  Desc".into(), "Virtual memory on disk when RAM is full".into()),
-             ("  Source".into(), "sysinfo::System::used_swap()".into())]
+        let bar: String =
+            "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
+        let mem_pct = if app.stats.mem_total > 0 {
+            (app.stats.mem_used as f64 / app.stats.mem_total as f64) * 100.0
+        } else {
+            0.0
+        };
+        vec![
+            ("\u{25B6} Swap".into(), String::new()),
+            (
+                "  Used".into(),
+                format_bytes(app.stats.swap_used, UnitMode::Human),
+            ),
+            ("  Free".into(), format_bytes(swap_free, UnitMode::Human)),
+            (
+                "  Total".into(),
+                format_bytes(app.stats.swap_total, UnitMode::Human),
+            ),
+            ("  Usage".into(), format!("{:.1}%", swap_pct)),
+            ("  Usage bar".into(), format!("{} {:.1}%", bar, swap_pct)),
+            ("  Used (bytes)".into(), format!("{}", app.stats.swap_used)),
+            (
+                "  Total (bytes)".into(),
+                format!("{}", app.stats.swap_total),
+            ),
+            (
+                "  RAM usage".into(),
+                format!(
+                    "{:.1}% ({} / {})",
+                    mem_pct,
+                    format_bytes(app.stats.mem_used, UnitMode::Human),
+                    format_bytes(app.stats.mem_total, UnitMode::Human)
+                ),
+            ),
+            (
+                "  Desc".into(),
+                "Virtual memory on disk when RAM is full".into(),
+            ),
+            ("  Source".into(), "sysinfo::System::used_swap()".into()),
+        ]
     } else if seg_lower.starts_with("kern:") {
-        vec![("\u{25B6} Kernel".into(), app.stats.kernel.clone()),
-             ("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
-             ("  Arch".into(), app.stats.arch.clone()),
-             ("  Uptime".into(), format_uptime(app.stats.uptime)),
-             ("  Hostname".into(), app.stats.hostname.clone()),
-             ("  Source".into(), "sysinfo::System::kernel_version()".into())]
+        vec![
+            ("\u{25B6} Kernel".into(), app.stats.kernel.clone()),
+            (
+                "  OS".into(),
+                format!("{} {}", app.stats.os_name, app.stats.os_version),
+            ),
+            ("  Arch".into(), app.stats.arch.clone()),
+            ("  Uptime".into(), format_uptime(app.stats.uptime)),
+            ("  Hostname".into(), app.stats.hostname.clone()),
+            (
+                "  Source".into(),
+                "sysinfo::System::kernel_version()".into(),
+            ),
+        ]
     } else if seg_lower.starts_with("arch:") {
-        vec![("\u{25B6} Architecture".into(), app.stats.arch.clone()),
-             ("  Kernel".into(), app.stats.kernel.clone()),
-             ("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
-             ("  CPU cores".into(), format!("{} logical", app.stats.cpu_count)),
-             ("  Source".into(), "sysinfo::System::cpu_arch()".into())]
+        vec![
+            ("\u{25B6} Architecture".into(), app.stats.arch.clone()),
+            ("  Kernel".into(), app.stats.kernel.clone()),
+            (
+                "  OS".into(),
+                format!("{} {}", app.stats.os_name, app.stats.os_version),
+            ),
+            (
+                "  CPU cores".into(),
+                format!("{} logical", app.stats.cpu_count),
+            ),
+            ("  Source".into(), "sysinfo::System::cpu_arch()".into()),
+        ]
     } else if seg_lower.contains("paused") {
-        vec![("\u{25B6} \u{23F8} PAUSED".into(), String::new()),
-             ("  Desc".into(), "Data refresh is paused".into()),
-             ("  Effect".into(), "Disk and system stats are frozen".into()),
-             ("  Refresh rate".into(), format!("{}s (when active)", app.prefs.refresh_rate)),
-             ("  Volumes".into(), format!("{} mounted", app.disks.len())),
-             ("  Resume".into(), "Press p to resume live data".into())]
+        vec![
+            ("\u{25B6} \u{23F8} PAUSED".into(), String::new()),
+            ("  Desc".into(), "Data refresh is paused".into()),
+            ("  Effect".into(), "Disk and system stats are frozen".into()),
+            (
+                "  Refresh rate".into(),
+                format!("{}s (when active)", app.prefs.refresh_rate),
+            ),
+            ("  Volumes".into(), format!("{} mounted", app.disks.len())),
+            ("  Resume".into(), "Press p to resume live data".into()),
+        ]
     } else if seg_lower.contains("h=help") {
-        vec![("\u{25B6} Help".into(), String::new()),
-             ("  Open".into(), "Press h / H / ? to show keybinds".into()),
-             ("  Close".into(), "Same keys or Esc to dismiss".into()),
-             ("  Layout".into(), "3-column keybind reference".into()),
-             ("  Categories".into(), "Navigation, Display, Sort, I/O, Theme".into()),
-             ("  Mouse".into(), "Click headers, scroll, R-click for tips".into())]
+        vec![
+            ("\u{25B6} Help".into(), String::new()),
+            ("  Open".into(), "Press h / H / ? to show keybinds".into()),
+            ("  Close".into(), "Same keys or Esc to dismiss".into()),
+            ("  Layout".into(), "3-column keybind reference".into()),
+            (
+                "  Categories".into(),
+                "Navigation, Display, Sort, I/O, Theme".into(),
+            ),
+            (
+                "  Mouse".into(),
+                "Click headers, scroll, R-click for tips".into(),
+            ),
+        ]
     } else {
         vec![("\u{25B6} Info".into(), segment.to_string())]
     }
@@ -1618,202 +2149,489 @@ fn footer_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
         let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
         let total_used: u64 = app.disks.iter().map(|d| d.used).sum();
         let total_free = total_storage.saturating_sub(total_used);
-        let overall_pct = if total_storage > 0 { (total_used as f64 / total_storage as f64) * 100.0 } else { 0.0 };
-        vec![("\u{25B6} App".into(), "STORAGESHOWER".into()),
-             ("  Version".into(), format!("v{}", env!("CARGO_PKG_VERSION"))),
-             ("  Desc".into(), "Cyberpunk disk usage TUI monitor".into()),
-             ("  Author".into(), "MenkeTechnologies".into()),
-             ("  Repo".into(), "github.com/MenkeTechnologies/storageshower".into()),
-             ("  Crate".into(), "crates.io/crates/storageshower".into()),
-             ("  Config".into(), "~/.storageshower.conf (auto-saved)".into()),
-             ("  License".into(), "MIT".into()),
-             ("  Storage".into(), format!("{} used / {} total ({:.1}%)", format_bytes(total_used, UnitMode::Human), format_bytes(total_storage, UnitMode::Human), overall_pct)),
-             ("  Free".into(), format_bytes(total_free, UnitMode::Human)),
-             ("  Volumes".into(), format!("{} mounted", app.disks.len())),
-             ("  Refresh".into(), format!("Every {}s", app.prefs.refresh_rate)),
-             ("  Uptime".into(), format_uptime(app.stats.uptime))]
+        let overall_pct = if total_storage > 0 {
+            (total_used as f64 / total_storage as f64) * 100.0
+        } else {
+            0.0
+        };
+        vec![
+            ("\u{25B6} App".into(), "STORAGESHOWER".into()),
+            (
+                "  Version".into(),
+                format!("v{}", env!("CARGO_PKG_VERSION")),
+            ),
+            ("  Desc".into(), "Cyberpunk disk usage TUI monitor".into()),
+            ("  Author".into(), "MenkeTechnologies".into()),
+            (
+                "  Repo".into(),
+                "github.com/MenkeTechnologies/storageshower".into(),
+            ),
+            ("  Crate".into(), "crates.io/crates/storageshower".into()),
+            (
+                "  Config".into(),
+                "~/.storageshower.conf (auto-saved)".into(),
+            ),
+            ("  License".into(), "MIT".into()),
+            (
+                "  Storage".into(),
+                format!(
+                    "{} used / {} total ({:.1}%)",
+                    format_bytes(total_used, UnitMode::Human),
+                    format_bytes(total_storage, UnitMode::Human),
+                    overall_pct
+                ),
+            ),
+            ("  Free".into(), format_bytes(total_free, UnitMode::Human)),
+            ("  Volumes".into(), format!("{} mounted", app.disks.len())),
+            (
+                "  Refresh".into(),
+                format!("Every {}s", app.prefs.refresh_rate),
+            ),
+            ("  Uptime".into(), format_uptime(app.stats.uptime)),
+        ]
     } else if seg_lower.starts_with("vol:") {
         let total = app.disks.len();
         let visible: usize = segment.trim_start_matches("vol:").parse().unwrap_or(0);
         let hidden = total.saturating_sub(visible);
         let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
         let total_used: u64 = app.disks.iter().map(|d| d.used).sum();
-        let overall_pct = if total_storage > 0 { (total_used as f64 / total_storage as f64) * 100.0 } else { 0.0 };
-        let ssd_count = app.disks.iter().filter(|d| matches!(d.kind, sysinfo::DiskKind::SSD)).count();
-        let hdd_count = app.disks.iter().filter(|d| matches!(d.kind, sysinfo::DiskKind::HDD)).count();
+        let overall_pct = if total_storage > 0 {
+            (total_used as f64 / total_storage as f64) * 100.0
+        } else {
+            0.0
+        };
+        let ssd_count = app
+            .disks
+            .iter()
+            .filter(|d| matches!(d.kind, sysinfo::DiskKind::SSD))
+            .count();
+        let hdd_count = app
+            .disks
+            .iter()
+            .filter(|d| matches!(d.kind, sysinfo::DiskKind::HDD))
+            .count();
         let other_count = total.saturating_sub(ssd_count + hdd_count);
         let fs_types: Vec<String> = {
             let mut fss: Vec<String> = app.disks.iter().map(|d| d.fs.clone()).collect();
-            fss.sort(); fss.dedup(); fss
+            fss.sort();
+            fss.dedup();
+            fss
         };
-        vec![("\u{25B6} Volumes".into(), format!("{} visible", visible)),
-             ("  Total mounted".into(), format!("{} filesystems", total)),
-             ("  Hidden".into(), format!("{} (filtered out)", hidden)),
-             ("  SSDs".into(), format!("{}", ssd_count)),
-             ("  HDDs".into(), format!("{}", hdd_count)),
-             ("  Other".into(), format!("{}", other_count)),
-             ("  FS types".into(), fs_types.join(", ")),
-             ("  Total storage".into(), format_bytes(total_storage, UnitMode::Human)),
-             ("  Total used".into(), format!("{} ({:.1}%)", format_bytes(total_used, UnitMode::Human), overall_pct)),
-             ("  Total free".into(), format_bytes(total_storage.saturating_sub(total_used), UnitMode::Human)),
-             ("  Filters".into(), "show_all / show_local / filter text".into()),
-             ("  Keys".into(), "a=show all  l=local only  /=filter".into())]
+        vec![
+            ("\u{25B6} Volumes".into(), format!("{} visible", visible)),
+            ("  Total mounted".into(), format!("{} filesystems", total)),
+            ("  Hidden".into(), format!("{} (filtered out)", hidden)),
+            ("  SSDs".into(), format!("{}", ssd_count)),
+            ("  HDDs".into(), format!("{}", hdd_count)),
+            ("  Other".into(), format!("{}", other_count)),
+            ("  FS types".into(), fs_types.join(", ")),
+            (
+                "  Total storage".into(),
+                format_bytes(total_storage, UnitMode::Human),
+            ),
+            (
+                "  Total used".into(),
+                format!(
+                    "{} ({:.1}%)",
+                    format_bytes(total_used, UnitMode::Human),
+                    overall_pct
+                ),
+            ),
+            (
+                "  Total free".into(),
+                format_bytes(total_storage.saturating_sub(total_used), UnitMode::Human),
+            ),
+            (
+                "  Filters".into(),
+                "show_all / show_local / filter text".into(),
+            ),
+            ("  Keys".into(), "a=show all  l=local only  /=filter".into()),
+        ]
     } else if seg_lower.starts_with("sort:") {
         let sorted = app.sorted_disks();
         let first = sorted.first().map(|d| d.mount.as_str()).unwrap_or("(none)");
         let last = sorted.last().map(|d| d.mount.as_str()).unwrap_or("(none)");
-        vec![("\u{25B6} Sort Mode".into(), format!("{:?}", app.prefs.sort_mode)),
-             ("  Direction".into(), if app.prefs.sort_rev { "Descending \u{25BC}" } else { "Ascending \u{25B2}" }.into()),
-             ("  First".into(), first.into()),
-             ("  Last".into(), last.into()),
-             ("  Volumes".into(), format!("{} sorted", sorted.len())),
-             ("  Keys".into(), "n=name  u=usage%  s=size".into()),
-             ("  Reverse".into(), "r or press same sort key again".into()),
-             ("  Mouse".into(), "Click column header to sort/reverse".into()),
-             ("  Config".into(), "sort_mode / sort_rev in prefs".into())]
-    } else if seg_lower.ends_with('s') && seg_lower.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+        vec![
+            (
+                "\u{25B6} Sort Mode".into(),
+                format!("{:?}", app.prefs.sort_mode),
+            ),
+            (
+                "  Direction".into(),
+                if app.prefs.sort_rev {
+                    "Descending \u{25BC}"
+                } else {
+                    "Ascending \u{25B2}"
+                }
+                .into(),
+            ),
+            ("  First".into(), first.into()),
+            ("  Last".into(), last.into()),
+            ("  Volumes".into(), format!("{} sorted", sorted.len())),
+            ("  Keys".into(), "n=name  u=usage%  s=size".into()),
+            ("  Reverse".into(), "r or press same sort key again".into()),
+            (
+                "  Mouse".into(),
+                "Click column header to sort/reverse".into(),
+            ),
+            ("  Config".into(), "sort_mode / sort_rev in prefs".into()),
+        ]
+    } else if seg_lower.ends_with('s')
+        && seg_lower.chars().next().is_some_and(|c| c.is_ascii_digit())
+    {
         let rates = [1u64, 2, 5, 10];
         let current = app.prefs.refresh_rate;
         let idx = rates.iter().position(|&r| r == current).unwrap_or(0);
         let next = rates[(idx + 1) % rates.len()];
         let prev = rates[(idx + rates.len() - 1) % rates.len()];
-        vec![("\u{25B6} Refresh Rate".into(), format!("{}s", current)),
-             ("  Desc".into(), "How often disk data is re-collected".into()),
-             ("  Next (f)".into(), format!("{}s", next)),
-             ("  Prev (F)".into(), format!("{}s", prev)),
-             ("  Cycle".into(), "1s \u{2192} 2s \u{2192} 5s \u{2192} 10s".into()),
-             ("  Paused".into(), if app.paused { "Yes (press p)" } else { "No — live updates" }.into()),
-             ("  Source".into(), "Background thread via Arc<Mutex<>>".into()),
-             ("  Config".into(), "refresh_rate in prefs".into())]
-    } else if seg_lower == "gradient" || seg_lower == "solid" || seg_lower == "thin" || seg_lower == "ascii" {
+        vec![
+            ("\u{25B6} Refresh Rate".into(), format!("{}s", current)),
+            (
+                "  Desc".into(),
+                "How often disk data is re-collected".into(),
+            ),
+            ("  Next (f)".into(), format!("{}s", next)),
+            ("  Prev (F)".into(), format!("{}s", prev)),
+            (
+                "  Cycle".into(),
+                "1s \u{2192} 2s \u{2192} 5s \u{2192} 10s".into(),
+            ),
+            (
+                "  Paused".into(),
+                if app.paused {
+                    "Yes (press p)"
+                } else {
+                    "No — live updates"
+                }
+                .into(),
+            ),
+            (
+                "  Source".into(),
+                "Background thread via Arc<Mutex<>>".into(),
+            ),
+            ("  Config".into(), "refresh_rate in prefs".into()),
+        ]
+    } else if seg_lower == "gradient"
+        || seg_lower == "solid"
+        || seg_lower == "thin"
+        || seg_lower == "ascii"
+    {
         let styles = ["Gradient", "Solid", "Thin", "Ascii"];
         let current_idx = match app.prefs.bar_style {
-            BarStyle::Gradient => 0, BarStyle::Solid => 1, BarStyle::Thin => 2, BarStyle::Ascii => 3,
+            BarStyle::Gradient => 0,
+            BarStyle::Solid => 1,
+            BarStyle::Thin => 2,
+            BarStyle::Ascii => 3,
         };
         let next_idx = (current_idx + 1) % styles.len();
-        vec![("\u{25B6} Bar Style".into(), format!("{:?}", app.prefs.bar_style)),
-             ("  Desc".into(), "Visual style of usage progress bars".into()),
-             ("  Gradient".into(), "\u{2588}\u{2593}\u{2592}\u{2591} color-graded fill".into()),
-             ("  Solid".into(), "\u{2588}\u{2588}\u{2588}\u{2588} single-color fill".into()),
-             ("  Thin".into(), "\u{2501}\u{2501}\u{2501}\u{2501} horizontal line".into()),
-             ("  Ascii".into(), "#### portable ASCII chars".into()),
-             ("  Next (b)".into(), styles[next_idx].into()),
-             ("  Config".into(), "bar_style in prefs".into()),
-             ("  CLI".into(), "--bar-style <gradient|solid|thin|ascii>".into())]
+        vec![
+            (
+                "\u{25B6} Bar Style".into(),
+                format!("{:?}", app.prefs.bar_style),
+            ),
+            (
+                "  Desc".into(),
+                "Visual style of usage progress bars".into(),
+            ),
+            (
+                "  Gradient".into(),
+                "\u{2588}\u{2593}\u{2592}\u{2591} color-graded fill".into(),
+            ),
+            (
+                "  Solid".into(),
+                "\u{2588}\u{2588}\u{2588}\u{2588} single-color fill".into(),
+            ),
+            (
+                "  Thin".into(),
+                "\u{2501}\u{2501}\u{2501}\u{2501} horizontal line".into(),
+            ),
+            ("  Ascii".into(), "#### portable ASCII chars".into()),
+            ("  Next (b)".into(), styles[next_idx].into()),
+            ("  Config".into(), "bar_style in prefs".into()),
+            (
+                "  CLI".into(),
+                "--bar-style <gradient|solid|thin|ascii>".into(),
+            ),
+        ]
     } else if seg_lower.starts_with("up:") {
         let secs = app.stats.uptime;
         let days = secs / 86400;
         let hours = (secs % 86400) / 3600;
         let mins = (secs % 3600) / 60;
-        vec![("\u{25B6} System Uptime".into(), format_uptime(secs)),
-             ("  Days".into(), format!("{}", days)),
-             ("  Hours".into(), format!("{}", hours)),
-             ("  Minutes".into(), format!("{}", mins)),
-             ("  Raw".into(), format!("{} seconds", secs)),
-             ("  Hostname".into(), app.stats.hostname.clone()),
-             ("  Kernel".into(), app.stats.kernel.clone()),
-             ("  Source".into(), "sysinfo::System::uptime()".into())]
+        vec![
+            ("\u{25B6} System Uptime".into(), format_uptime(secs)),
+            ("  Days".into(), format!("{}", days)),
+            ("  Hours".into(), format!("{}", hours)),
+            ("  Minutes".into(), format!("{}", mins)),
+            ("  Raw".into(), format!("{} seconds", secs)),
+            ("  Hostname".into(), app.stats.hostname.clone()),
+            ("  Kernel".into(), app.stats.kernel.clone()),
+            ("  Source".into(), "sysinfo::System::uptime()".into()),
+        ]
     } else if seg_lower.starts_with("user:") {
         let username = segment.trim_start_matches("user:");
-        vec![("\u{25B6} User".into(), username.into()),
-             ("  Hostname".into(), app.stats.hostname.clone()),
-             ("  OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
-             ("  Arch".into(), app.stats.arch.clone()),
-             ("  Shell".into(), std::env::var("SHELL").unwrap_or_else(|_| "unknown".into())),
-             ("  Source".into(), "$USER or $USERNAME env var".into())]
+        vec![
+            ("\u{25B6} User".into(), username.into()),
+            ("  Hostname".into(), app.stats.hostname.clone()),
+            (
+                "  OS".into(),
+                format!("{} {}", app.stats.os_name, app.stats.os_version),
+            ),
+            ("  Arch".into(), app.stats.arch.clone()),
+            (
+                "  Shell".into(),
+                std::env::var("SHELL").unwrap_or_else(|_| "unknown".into()),
+            ),
+            ("  Source".into(), "$USER or $USERNAME env var".into()),
+        ]
     } else if seg_lower.starts_with("ip:") {
         let ip = segment.trim_start_matches("ip:");
-        vec![("\u{25B6} Local IP".into(), ip.into()),
-             ("  Desc".into(), "Primary network interface address".into()),
-             ("  Method".into(), "UDP socket bind to 8.8.8.8:80".into()),
-             ("  Note".into(), "No data is sent — only local addr probed".into()),
-             ("  Hostname".into(), app.stats.hostname.clone()),
-             ("  Source".into(), "std::net::UdpSocket::connect()".into())]
+        vec![
+            ("\u{25B6} Local IP".into(), ip.into()),
+            ("  Desc".into(), "Primary network interface address".into()),
+            ("  Method".into(), "UDP socket bind to 8.8.8.8:80".into()),
+            (
+                "  Note".into(),
+                "No data is sent — only local addr probed".into(),
+            ),
+            ("  Hostname".into(), app.stats.hostname.clone()),
+            ("  Source".into(), "std::net::UdpSocket::connect()".into()),
+        ]
     } else if seg_lower.starts_with("os:") {
-        vec![("\u{25B6} OS".into(), format!("{} {}", app.stats.os_name, app.stats.os_version)),
-             ("  Kernel".into(), app.stats.kernel.clone()),
-             ("  Arch".into(), app.stats.arch.clone()),
-             ("  Hostname".into(), app.stats.hostname.clone()),
-             ("  CPU cores".into(), format!("{} logical", app.stats.cpu_count)),
-             ("  RAM".into(), format_bytes(app.stats.mem_total, UnitMode::Human)),
-             ("  Uptime".into(), format_uptime(app.stats.uptime)),
-             ("  Source".into(), "sysinfo::System::name() + os_version()".into())]
+        vec![
+            (
+                "\u{25B6} OS".into(),
+                format!("{} {}", app.stats.os_name, app.stats.os_version),
+            ),
+            ("  Kernel".into(), app.stats.kernel.clone()),
+            ("  Arch".into(), app.stats.arch.clone()),
+            ("  Hostname".into(), app.stats.hostname.clone()),
+            (
+                "  CPU cores".into(),
+                format!("{} logical", app.stats.cpu_count),
+            ),
+            (
+                "  RAM".into(),
+                format_bytes(app.stats.mem_total, UnitMode::Human),
+            ),
+            ("  Uptime".into(), format_uptime(app.stats.uptime)),
+            (
+                "  Source".into(),
+                "sysinfo::System::name() + os_version()".into(),
+            ),
+        ]
     } else if seg_lower.starts_with("sh:") {
         let shell = segment.trim_start_matches("sh:");
-        vec![("\u{25B6} Shell".into(), shell.into()),
-             ("  Desc".into(), "Login shell for current user".into()),
-             ("  Env var".into(), "$SHELL".into()),
-             ("  User".into(), std::env::var("USER").unwrap_or_else(|_| "unknown".into())),
-             ("  Source".into(), "$SHELL environment variable".into())]
+        vec![
+            ("\u{25B6} Shell".into(), shell.into()),
+            ("  Desc".into(), "Login shell for current user".into()),
+            ("  Env var".into(), "$SHELL".into()),
+            (
+                "  User".into(),
+                std::env::var("USER").unwrap_or_else(|_| "unknown".into()),
+            ),
+            ("  Source".into(), "$SHELL environment variable".into()),
+        ]
     } else if seg_lower.starts_with("tty:") {
         let tty = segment.trim_start_matches("tty:");
-        vec![("\u{25B6} TTY".into(), tty.into()),
-             ("  Desc".into(), "Terminal device for this session".into()),
-             ("  FD".into(), "stdin (fd 0)".into()),
-             ("  Source".into(), "libc::ttyname(0)".into())]
+        vec![
+            ("\u{25B6} TTY".into(), tty.into()),
+            ("  Desc".into(), "Terminal device for this session".into()),
+            ("  FD".into(), "stdin (fd 0)".into()),
+            ("  Source".into(), "libc::ttyname(0)".into()),
+        ]
     } else if seg_lower.starts_with("bat:") {
         let bat_str = segment.trim_start_matches("bat:");
         let bat_val: u8 = bat_str.trim_end_matches('%').parse().unwrap_or(0);
-        let status = if bat_val > 80 { "\u{2714} Good" } else if bat_val > 20 { "\u{25C8} OK" } else { "\u{26A0} Low" };
+        let status = if bat_val > 80 {
+            "\u{2714} Good"
+        } else if bat_val > 20 {
+            "\u{25C8} OK"
+        } else {
+            "\u{26A0} Low"
+        };
         let filled = (bat_val as usize) / 5;
-        let bar: String = "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
-        vec![("\u{25B6} Battery".into(), bat_str.into()),
-             ("  Status".into(), status.into()),
-             ("  Level bar".into(), format!("{} {}%", bar, bat_val)),
-             ("  Source".into(), "pmset (macOS) or /sys/class/power_supply (Linux)".into())]
+        let bar: String =
+            "\u{2588}".repeat(filled) + &"\u{2591}".repeat(20usize.saturating_sub(filled));
+        vec![
+            ("\u{25B6} Battery".into(), bat_str.into()),
+            ("  Status".into(), status.into()),
+            ("  Level bar".into(), format!("{} {}%", bar, bat_val)),
+            (
+                "  Source".into(),
+                "pmset (macOS) or /sys/class/power_supply (Linux)".into(),
+            ),
+        ]
     } else if seg_lower.starts_with("disks:") {
         let count_str = segment.trim_start_matches("disks:");
         let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
         let total_used: u64 = app.disks.iter().map(|d| d.used).sum();
-        let overall_pct = if total_storage > 0 { (total_used as f64 / total_storage as f64) * 100.0 } else { 0.0 };
-        vec![("\u{25B6} Disk Count".into(), count_str.into()),
-             ("  Desc".into(), "Total visible filesystems".into()),
-             ("  Total mounted".into(), format!("{}", app.disks.len())),
-             ("  Total storage".into(), format_bytes(total_storage, UnitMode::Human)),
-             ("  Overall usage".into(), format!("{:.1}%", overall_pct)),
-             ("  Source".into(), "getmntinfo (macOS) / /proc/mounts (Linux)".into())]
+        let overall_pct = if total_storage > 0 {
+            (total_used as f64 / total_storage as f64) * 100.0
+        } else {
+            0.0
+        };
+        vec![
+            ("\u{25B6} Disk Count".into(), count_str.into()),
+            ("  Desc".into(), "Total visible filesystems".into()),
+            ("  Total mounted".into(), format!("{}", app.disks.len())),
+            (
+                "  Total storage".into(),
+                format_bytes(total_storage, UnitMode::Human),
+            ),
+            ("  Overall usage".into(), format!("{:.1}%", overall_pct)),
+            (
+                "  Source".into(),
+                "getmntinfo (macOS) / /proc/mounts (Linux)".into(),
+            ),
+        ]
     } else if seg_lower.contains("filter>") {
         let filter_len = app.filter.buf.len();
         let matched = app.sorted_disks().len();
         let total = app.disks.len();
-        vec![("\u{25B6} Filter Active".into(), app.filter.buf.clone()),
-             ("  Length".into(), format!("{} chars", filter_len)),
-             ("  Matched".into(), format!("{} of {} volumes", matched, total)),
-             ("  Hidden".into(), format!("{} filtered out", total.saturating_sub(matched))),
-             ("  Type".into(), "Case-insensitive mount path substring".into()),
-             ("  Cursor".into(), format!("Position {} of {}", app.filter.cursor, filter_len)),
-             ("  Nav keys".into(), "Enter=confirm  Esc=cancel  /=open".into()),
-             ("  Edit keys".into(), "Ctrl+a/e=home/end  Ctrl+b/f=left/right".into()),
-             ("  Delete".into(), "Ctrl+w=word  Ctrl+u=line  Ctrl+k=to-end".into()),
-             ("  Clear".into(), "0 to clear filter (when not in filter mode)".into())]
+        vec![
+            ("\u{25B6} Filter Active".into(), app.filter.buf.clone()),
+            ("  Length".into(), format!("{} chars", filter_len)),
+            (
+                "  Matched".into(),
+                format!("{} of {} volumes", matched, total),
+            ),
+            (
+                "  Hidden".into(),
+                format!("{} filtered out", total.saturating_sub(matched)),
+            ),
+            (
+                "  Type".into(),
+                "Case-insensitive mount path substring".into(),
+            ),
+            (
+                "  Cursor".into(),
+                format!("Position {} of {}", app.filter.cursor, filter_len),
+            ),
+            (
+                "  Nav keys".into(),
+                "Enter=confirm  Esc=cancel  /=open".into(),
+            ),
+            (
+                "  Edit keys".into(),
+                "Ctrl+a/e=home/end  Ctrl+b/f=left/right".into(),
+            ),
+            (
+                "  Delete".into(),
+                "Ctrl+w=word  Ctrl+u=line  Ctrl+k=to-end".into(),
+            ),
+            (
+                "  Clear".into(),
+                "0 to clear filter (when not in filter mode)".into(),
+            ),
+        ]
     } else {
-        let color_name = if let Some(ref n) = app.prefs.active_theme { n.clone() } else { app.prefs.color_mode.name().into() };
+        let color_name = if let Some(ref n) = app.prefs.active_theme {
+            n.clone()
+        } else {
+            app.prefs.color_mode.name().into()
+        };
         if segment.trim() == color_name {
             let (pal_b, pal_g, pal_p, pal_lp, pal_r, pal_dp) = palette_for_prefs(&app.prefs);
-            fn idx(c: Color) -> String { match c { Color::Indexed(n) => format!("{}", n), _ => "?".into() } }
-            return vec![("\u{25B6} Color Theme".into(), color_name),
-                        ("  Builtins".into(), format!("{} palettes", ColorMode::ALL.len())),
-                        ("  Custom".into(), format!("{} user themes", app.prefs.custom_themes.len())),
-                        ("  Total".into(), format!("{} available themes", ColorMode::ALL.len() + app.prefs.custom_themes.len())),
-                        ("  Palette".into(), format!("blue={} green={} purple={}", idx(pal_b), idx(pal_g), idx(pal_p))),
-                        ("  Palette+".into(), format!("lpurple={} royal={} dark={}", idx(pal_lp), idx(pal_r), idx(pal_dp))),
-                        ("  Preview".into(), "c=chooser (live preview + mouse click)".into()),
-                        ("  Editor".into(), "C=create custom themes".into()),
-                        ("  CLI".into(), "--color, --theme, --export-theme".into()),
-                        ("  Config".into(), "color_mode / active_theme in prefs".into())];
+            fn idx(c: Color) -> String {
+                match c {
+                    Color::Indexed(n) => format!("{}", n),
+                    _ => "?".into(),
+                }
+            }
+            return vec![
+                ("\u{25B6} Color Theme".into(), color_name),
+                (
+                    "  Builtins".into(),
+                    format!("{} palettes", ColorMode::ALL.len()),
+                ),
+                (
+                    "  Custom".into(),
+                    format!("{} user themes", app.prefs.custom_themes.len()),
+                ),
+                (
+                    "  Total".into(),
+                    format!(
+                        "{} available themes",
+                        ColorMode::ALL.len() + app.prefs.custom_themes.len()
+                    ),
+                ),
+                (
+                    "  Palette".into(),
+                    format!(
+                        "blue={} green={} purple={}",
+                        idx(pal_b),
+                        idx(pal_g),
+                        idx(pal_p)
+                    ),
+                ),
+                (
+                    "  Palette+".into(),
+                    format!(
+                        "lpurple={} royal={} dark={}",
+                        idx(pal_lp),
+                        idx(pal_r),
+                        idx(pal_dp)
+                    ),
+                ),
+                (
+                    "  Preview".into(),
+                    "c=chooser (live preview + mouse click)".into(),
+                ),
+                ("  Editor".into(), "C=create custom themes".into()),
+                ("  CLI".into(), "--color, --theme, --export-theme".into()),
+                (
+                    "  Config".into(),
+                    "color_mode / active_theme in prefs".into(),
+                ),
+            ];
         }
-        let unit_name = match app.prefs.unit_mode { UnitMode::Human=>"human", UnitMode::GiB=>"GiB", UnitMode::MiB=>"MiB", UnitMode::Bytes=>"bytes" };
+        let unit_name = match app.prefs.unit_mode {
+            UnitMode::Human => "human",
+            UnitMode::GiB => "GiB",
+            UnitMode::MiB => "MiB",
+            UnitMode::Bytes => "bytes",
+        };
         if segment.trim() == unit_name {
             let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
-            return vec![("\u{25B6} Unit Mode".into(), unit_name.into()),
-                        ("  Desc".into(), "How byte sizes are formatted".into()),
-                        ("  Human".into(), format!("Auto-scale ({} example)", format_bytes(total_storage, UnitMode::Human))),
-                        ("  GiB".into(), format!("Gibibytes ({} example)", format_bytes(total_storage, UnitMode::GiB))),
-                        ("  MiB".into(), format!("Mebibytes ({} example)", format_bytes(total_storage, UnitMode::MiB))),
-                        ("  Bytes".into(), format!("Raw bytes ({} example)", format_bytes(total_storage, UnitMode::Bytes))),
-                        ("  Key".into(), "i to cycle forward, I to cycle backward".into()),
-                        ("  CLI".into(), "--unit <human|gib|mib|bytes>".into()),
-                        ("  Config".into(), "unit_mode in prefs".into())];
+            return vec![
+                ("\u{25B6} Unit Mode".into(), unit_name.into()),
+                ("  Desc".into(), "How byte sizes are formatted".into()),
+                (
+                    "  Human".into(),
+                    format!(
+                        "Auto-scale ({} example)",
+                        format_bytes(total_storage, UnitMode::Human)
+                    ),
+                ),
+                (
+                    "  GiB".into(),
+                    format!(
+                        "Gibibytes ({} example)",
+                        format_bytes(total_storage, UnitMode::GiB)
+                    ),
+                ),
+                (
+                    "  MiB".into(),
+                    format!(
+                        "Mebibytes ({} example)",
+                        format_bytes(total_storage, UnitMode::MiB)
+                    ),
+                ),
+                (
+                    "  Bytes".into(),
+                    format!(
+                        "Raw bytes ({} example)",
+                        format_bytes(total_storage, UnitMode::Bytes)
+                    ),
+                ),
+                (
+                    "  Key".into(),
+                    "i to cycle forward, I to cycle backward".into(),
+                ),
+                ("  CLI".into(), "--unit <human|gib|mib|bytes>".into()),
+                ("  Config".into(), "unit_mode in prefs".into()),
+            ];
         }
         vec![("Info".into(), segment.to_string())]
     }
@@ -1939,15 +2757,28 @@ fn draw_theme_chooser(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         // Color swatch — get palette for this theme
         let swatch_x = x0 + 25;
         let colors: [u8; 6] = if let Some(theme) = app.prefs.custom_themes.get(key) {
-            [theme.blue, theme.green, theme.purple, theme.light_purple, theme.royal, theme.dark_purple]
+            [
+                theme.blue,
+                theme.green,
+                theme.purple,
+                theme.light_purple,
+                theme.royal,
+                theme.dark_purple,
+            ]
         } else {
             // Builtin — find the mode
-            let mode = ColorMode::ALL.iter()
+            let mode = ColorMode::ALL
+                .iter()
                 .find(|&&m| format!("{:?}", m).to_lowercase() == *key)
                 .copied()
                 .unwrap_or(ColorMode::Default);
             let (a, b, c, d, e, f) = palette(mode);
-            fn idx(col: Color) -> u8 { match col { Color::Indexed(n) => n, _ => 0 } }
+            fn idx(col: Color) -> u8 {
+                match col {
+                    Color::Indexed(n) => n,
+                    _ => 0,
+                }
+            }
             [idx(a), idx(b), idx(c), idx(d), idx(e), idx(f)]
         };
         for (j, &ci) in colors.iter().enumerate() {
@@ -2007,7 +2838,14 @@ fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
     set_str(buf, tx, y0 + 1, title, title_s, box_w - 2);
 
     // Color channel names
-    let labels = ["blue", "green", "purple", "light_purple", "royal", "dark_purple"];
+    let labels = [
+        "blue",
+        "green",
+        "purple",
+        "light_purple",
+        "royal",
+        "dark_purple",
+    ];
     let colors = app.theme_edit.colors;
 
     for (i, label) in labels.iter().enumerate() {
@@ -2035,11 +2873,25 @@ fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
 
         // Color swatch — two blocks showing the color
         let swatch_style = Style::default().fg(Color::Indexed(colors[i])).bg(HELP_BG);
-        set_str(buf, x0 + 24, row_y, "\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}", swatch_style, 5);
+        set_str(
+            buf,
+            x0 + 24,
+            row_y,
+            "\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}",
+            swatch_style,
+            5,
+        );
 
         // Gradient preview bar using all 6 current colors as a mini bar
         let preview_color = Color::Indexed(colors[i]);
-        set_str(buf, x0 + 30, row_y, " \u{25C0}\u{2500}\u{2500}\u{25B6}", Style::default().fg(preview_color).bg(HELP_BG), 5);
+        set_str(
+            buf,
+            x0 + 30,
+            row_y,
+            " \u{25C0}\u{2500}\u{2500}\u{25B6}",
+            Style::default().fg(preview_color).bg(HELP_BG),
+            5,
+        );
     }
 
     // Preview bar using the full palette
@@ -2057,21 +2909,50 @@ fn draw_theme_editor(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         } else {
             Color::Indexed(colors[5]) // dark_purple
         };
-        set_cell(buf, x0 + 11 + j as u16, preview_y, "\u{2588}", Style::default().fg(c).bg(HELP_BG));
+        set_cell(
+            buf,
+            x0 + 11 + j as u16,
+            preview_y,
+            "\u{2588}",
+            Style::default().fg(c).bg(HELP_BG),
+        );
     }
 
     // Naming prompt or keybind hints
     if app.theme_edit.naming {
         let name_y = y0 + 12;
-        let input_s = Style::default().fg(Color::Indexed(48)).bg(Color::Indexed(235));
+        let input_s = Style::default()
+            .fg(Color::Indexed(48))
+            .bg(Color::Indexed(235));
         set_str(buf, x0 + 2, name_y, "Theme name:", bg_s, 11);
         let name_display = format!("{}_", app.theme_edit.name);
         set_str(buf, x0 + 14, name_y, &name_display, input_s, box_w - 16);
-        set_str(buf, x0 + 2, name_y + 1, "Enter:save  Esc:back", hint_s, box_w - 4);
+        set_str(
+            buf,
+            x0 + 2,
+            name_y + 1,
+            "Enter:save  Esc:back",
+            hint_s,
+            box_w - 4,
+        );
     } else {
         let hint_y = y0 + 12;
-        set_str(buf, x0 + 2, hint_y, "j/k:select  h/l:\u{00B1}1  H/L:\u{00B1}10", hint_s, box_w - 4);
-        set_str(buf, x0 + 2, hint_y + 1, "Enter/s:save  Esc/q:cancel", hint_s, box_w - 4);
+        set_str(
+            buf,
+            x0 + 2,
+            hint_y,
+            "j/k:select  h/l:\u{00B1}1  H/L:\u{00B1}10",
+            hint_s,
+            box_w - 4,
+        );
+        set_str(
+            buf,
+            x0 + 2,
+            hint_y + 1,
+            "Enter/s:save  Esc/q:cancel",
+            hint_s,
+            box_w - 4,
+        );
     }
 }
 
@@ -2114,7 +2995,10 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         set_cell(buf, x0 + box_w - 1, y, "\u{2551}", border_s);
     }
 
-    let title = format!("\u{2328} DISK MATRIX v{} \u{2014} KEYBOARD SHORTCUTS", env!("CARGO_PKG_VERSION"));
+    let title = format!(
+        "\u{2328} DISK MATRIX v{} \u{2014} KEYBOARD SHORTCUTS",
+        env!("CARGO_PKG_VERSION")
+    );
     let tlen = title.chars().count() as u16;
     let tx = x0 + (box_w.saturating_sub(tlen)) / 2;
     set_str(buf, tx, y0 + 1, &title, title_s, box_w - 2);
@@ -2131,69 +3015,390 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         is_section: bool,
     }
 
-    fn empty_val(_: &App) -> String { String::new() }
+    fn empty_val(_: &App) -> String {
+        String::new()
+    }
 
     // Organize entries into 3 columns for better visibility
     let col1 = vec![
-        HelpEntry { key: "GENERAL", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "q/Q", desc: "Quit", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "h/H/?", desc: "Toggle help", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "p/P", desc: "Pause/resume", val_fn: |a| format!("[{}]", if a.paused {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "f/F", desc: "Cycle refresh", val_fn: |a| format!("[{}s]", a.prefs.refresh_rate), is_section: false },
-        HelpEntry { key: "l/L", desc: "Local only", val_fn: |a| format!("[{}]", if a.prefs.show_local {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "a/A", desc: "All filesystems", val_fn: |a| format!("[{}]", if a.prefs.show_all {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "SORT", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "n/N", desc: "By name", val_fn: |a| if a.prefs.sort_mode == SortMode::Name {"[\u{2713}]".into()} else {String::new()}, is_section: false },
-        HelpEntry { key: "u/U", desc: "By usage %", val_fn: |a| if a.prefs.sort_mode == SortMode::Pct {"[\u{2713}]".into()} else {String::new()}, is_section: false },
-        HelpEntry { key: "s/S", desc: "By size", val_fn: |a| if a.prefs.sort_mode == SortMode::Size {"[\u{2713}]".into()} else {String::new()}, is_section: false },
-        HelpEntry { key: "r/R", desc: "Reverse", val_fn: |a| format!("[{}]", if a.prefs.sort_rev {"\u{25BC}"} else {"\u{25B2}"}), is_section: false },
-        HelpEntry { key: "FILTER", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "/", desc: "Filter mode", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "0", desc: "Clear filter", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "NAV", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "j/k", desc: "Select next/prev", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "G/End", desc: "Jump to last", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "^G/Home", desc: "Jump to first", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "^D/^U", desc: "Half-page dn/up", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Esc", desc: "Deselect", val_fn: empty_val, is_section: false },
+        HelpEntry {
+            key: "GENERAL",
+            desc: "",
+            val_fn: empty_val,
+            is_section: true,
+        },
+        HelpEntry {
+            key: "q/Q",
+            desc: "Quit",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "h/H/?",
+            desc: "Toggle help",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "p/P",
+            desc: "Pause/resume",
+            val_fn: |a| format!("[{}]", if a.paused { "on" } else { "off" }),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "f/F",
+            desc: "Cycle refresh",
+            val_fn: |a| format!("[{}s]", a.prefs.refresh_rate),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "l/L",
+            desc: "Local only",
+            val_fn: |a| format!("[{}]", if a.prefs.show_local { "on" } else { "off" }),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "a/A",
+            desc: "All filesystems",
+            val_fn: |a| format!("[{}]", if a.prefs.show_all { "on" } else { "off" }),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "SORT",
+            desc: "",
+            val_fn: empty_val,
+            is_section: true,
+        },
+        HelpEntry {
+            key: "n/N",
+            desc: "By name",
+            val_fn: |a| {
+                if a.prefs.sort_mode == SortMode::Name {
+                    "[\u{2713}]".into()
+                } else {
+                    String::new()
+                }
+            },
+            is_section: false,
+        },
+        HelpEntry {
+            key: "u/U",
+            desc: "By usage %",
+            val_fn: |a| {
+                if a.prefs.sort_mode == SortMode::Pct {
+                    "[\u{2713}]".into()
+                } else {
+                    String::new()
+                }
+            },
+            is_section: false,
+        },
+        HelpEntry {
+            key: "s/S",
+            desc: "By size",
+            val_fn: |a| {
+                if a.prefs.sort_mode == SortMode::Size {
+                    "[\u{2713}]".into()
+                } else {
+                    String::new()
+                }
+            },
+            is_section: false,
+        },
+        HelpEntry {
+            key: "r/R",
+            desc: "Reverse",
+            val_fn: |a| {
+                format!(
+                    "[{}]",
+                    if a.prefs.sort_rev {
+                        "\u{25BC}"
+                    } else {
+                        "\u{25B2}"
+                    }
+                )
+            },
+            is_section: false,
+        },
+        HelpEntry {
+            key: "FILTER",
+            desc: "",
+            val_fn: empty_val,
+            is_section: true,
+        },
+        HelpEntry {
+            key: "/",
+            desc: "Filter mode",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "0",
+            desc: "Clear filter",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "NAV",
+            desc: "",
+            val_fn: empty_val,
+            is_section: true,
+        },
+        HelpEntry {
+            key: "j/k",
+            desc: "Select next/prev",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "G/End",
+            desc: "Jump to last",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "^G/Home",
+            desc: "Jump to first",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "^D/^U",
+            desc: "Half-page dn/up",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "Esc",
+            desc: "Deselect",
+            val_fn: empty_val,
+            is_section: false,
+        },
     ];
 
     let col2 = vec![
-        HelpEntry { key: "DISPLAY", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "b", desc: "Bar style", val_fn: |a| format!("[{}]", match a.prefs.bar_style { BarStyle::Gradient=>"grad", BarStyle::Solid=>"solid", BarStyle::Thin=>"thin", BarStyle::Ascii=>"ascii" }), is_section: false },
-        HelpEntry { key: "c", desc: "Theme chooser", val_fn: |a| { let n = if let Some(ref t) = a.prefs.active_theme { t.clone() } else { a.prefs.color_mode.name().into() }; format!("[{}]", n) }, is_section: false },
-        HelpEntry { key: "C", desc: "Theme editor", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "v/V", desc: "Toggle bars", val_fn: |a| format!("[{}]", if a.prefs.show_bars {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "d/D", desc: "Used/size cols", val_fn: |a| format!("[{}]", if a.prefs.show_used {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "g", desc: "Col headers", val_fn: |a| format!("[{}]", if a.prefs.show_header {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "x/X", desc: "Border", val_fn: |a| format!("[{}]", if a.prefs.show_border {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "m/M", desc: "Compact mounts", val_fn: |a| format!("[{}]", if a.prefs.compact {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "w/W", desc: "Full paths", val_fn: |a| format!("[{}]", if a.prefs.full_mount {"on"} else {"off"}), is_section: false },
-        HelpEntry { key: "i/I", desc: "Cycle units", val_fn: |a| format!("[{}]", match a.prefs.unit_mode { UnitMode::Human=>"human", UnitMode::GiB=>"GiB", UnitMode::MiB=>"MiB", UnitMode::Bytes=>"B" }), is_section: false },
-        HelpEntry { key: "t", desc: "Warn threshold", val_fn: |a| format!("[{}%]", a.prefs.thresh_warn), is_section: false },
-        HelpEntry { key: "T", desc: "Crit threshold", val_fn: |a| format!("[{}%]", a.prefs.thresh_crit), is_section: false },
+        HelpEntry {
+            key: "DISPLAY",
+            desc: "",
+            val_fn: empty_val,
+            is_section: true,
+        },
+        HelpEntry {
+            key: "b",
+            desc: "Bar style",
+            val_fn: |a| {
+                format!(
+                    "[{}]",
+                    match a.prefs.bar_style {
+                        BarStyle::Gradient => "grad",
+                        BarStyle::Solid => "solid",
+                        BarStyle::Thin => "thin",
+                        BarStyle::Ascii => "ascii",
+                    }
+                )
+            },
+            is_section: false,
+        },
+        HelpEntry {
+            key: "c",
+            desc: "Theme chooser",
+            val_fn: |a| {
+                let n = if let Some(ref t) = a.prefs.active_theme {
+                    t.clone()
+                } else {
+                    a.prefs.color_mode.name().into()
+                };
+                format!("[{}]", n)
+            },
+            is_section: false,
+        },
+        HelpEntry {
+            key: "C",
+            desc: "Theme editor",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "v/V",
+            desc: "Toggle bars",
+            val_fn: |a| format!("[{}]", if a.prefs.show_bars { "on" } else { "off" }),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "d/D",
+            desc: "Used/size cols",
+            val_fn: |a| format!("[{}]", if a.prefs.show_used { "on" } else { "off" }),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "g",
+            desc: "Col headers",
+            val_fn: |a| format!("[{}]", if a.prefs.show_header { "on" } else { "off" }),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "x/X",
+            desc: "Border",
+            val_fn: |a| format!("[{}]", if a.prefs.show_border { "on" } else { "off" }),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "m/M",
+            desc: "Compact mounts",
+            val_fn: |a| format!("[{}]", if a.prefs.compact { "on" } else { "off" }),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "w/W",
+            desc: "Full paths",
+            val_fn: |a| format!("[{}]", if a.prefs.full_mount { "on" } else { "off" }),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "i/I",
+            desc: "Cycle units",
+            val_fn: |a| {
+                format!(
+                    "[{}]",
+                    match a.prefs.unit_mode {
+                        UnitMode::Human => "human",
+                        UnitMode::GiB => "GiB",
+                        UnitMode::MiB => "MiB",
+                        UnitMode::Bytes => "B",
+                    }
+                )
+            },
+            is_section: false,
+        },
+        HelpEntry {
+            key: "t",
+            desc: "Warn threshold",
+            val_fn: |a| format!("[{}%]", a.prefs.thresh_warn),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "T",
+            desc: "Crit threshold",
+            val_fn: |a| format!("[{}%]", a.prefs.thresh_crit),
+            is_section: false,
+        },
     ];
 
     let col3 = vec![
-        HelpEntry { key: "ACTIONS", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "Enter", desc: "Drill down", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "o/O", desc: "Open in finder", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "y/Y", desc: "Copy path", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "e/E", desc: "Export to file", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "B", desc: "Bookmark \u{2605}", val_fn: |a| format!("[{}]", a.prefs.bookmarks.len()), is_section: false },
-        HelpEntry { key: "DRILL DOWN", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "Enter", desc: "Into subdir", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Bksp", desc: "Up one level", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Esc", desc: "Back to disks", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "s/n", desc: "Sort size/name", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "r", desc: "Reverse sort", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "o/O", desc: "Open directory", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "MOUSE", desc: "", val_fn: empty_val, is_section: true },
-        HelpEntry { key: "Click", desc: "Select row", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Click\u{00D7}2", desc: "Drill into", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Drag", desc: "Resize cols", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "R-Click", desc: "Mount tooltip", val_fn: empty_val, is_section: false },
-        HelpEntry { key: "Hover", desc: "Bar tooltip", val_fn: empty_val, is_section: false },
+        HelpEntry {
+            key: "ACTIONS",
+            desc: "",
+            val_fn: empty_val,
+            is_section: true,
+        },
+        HelpEntry {
+            key: "Enter",
+            desc: "Drill down",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "o/O",
+            desc: "Open in finder",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "y/Y",
+            desc: "Copy path",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "e/E",
+            desc: "Export to file",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "B",
+            desc: "Bookmark \u{2605}",
+            val_fn: |a| format!("[{}]", a.prefs.bookmarks.len()),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "DRILL DOWN",
+            desc: "",
+            val_fn: empty_val,
+            is_section: true,
+        },
+        HelpEntry {
+            key: "Enter",
+            desc: "Into subdir",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "Bksp",
+            desc: "Up one level",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "Esc",
+            desc: "Back to disks",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "s/n",
+            desc: "Sort size/name",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "r",
+            desc: "Reverse sort",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "o/O",
+            desc: "Open directory",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "MOUSE",
+            desc: "",
+            val_fn: empty_val,
+            is_section: true,
+        },
+        HelpEntry {
+            key: "Click",
+            desc: "Select row",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "Click\u{00D7}2",
+            desc: "Drill into",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "Drag",
+            desc: "Resize cols",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "R-Click",
+            desc: "Mount tooltip",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "Hover",
+            desc: "Bar tooltip",
+            val_fn: empty_val,
+            is_section: false,
+        },
     ];
 
     let columns = [col1, col2, col3];
@@ -2294,8 +3499,8 @@ mod tests {
 
     #[test]
     fn border_color_paused_vs_normal() {
-        use std::sync::{Arc, Mutex};
         use crate::app::App;
+        use std::sync::{Arc, Mutex};
 
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
         let mut app = App::new_default(shared);
@@ -2309,8 +3514,8 @@ mod tests {
 
     #[test]
     fn thresh_color_levels() {
-        use std::sync::{Arc, Mutex};
         use crate::app::App;
+        use std::sync::{Arc, Mutex};
 
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
         let app = App::new_default(shared);
@@ -2430,8 +3635,8 @@ mod tests {
 
     #[test]
     fn thresh_color_at_exact_warn() {
-        use std::sync::{Arc, Mutex};
         use crate::app::App;
+        use std::sync::{Arc, Mutex};
 
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
         let mut app = App::new_default(shared);
@@ -2444,8 +3649,8 @@ mod tests {
 
     #[test]
     fn thresh_color_at_exact_crit() {
-        use std::sync::{Arc, Mutex};
         use crate::app::App;
+        use std::sync::{Arc, Mutex};
 
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
         let mut app = App::new_default(shared);
@@ -2458,8 +3663,8 @@ mod tests {
 
     #[test]
     fn thresh_color_just_below_warn() {
-        use std::sync::{Arc, Mutex};
         use crate::app::App;
+        use std::sync::{Arc, Mutex};
 
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
         let mut app = App::new_default(shared);
@@ -2472,8 +3677,8 @@ mod tests {
 
     #[test]
     fn thresh_color_at_zero() {
-        use std::sync::{Arc, Mutex};
         use crate::app::App;
+        use std::sync::{Arc, Mutex};
 
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
         let app = App::new_default(shared);
@@ -2485,8 +3690,8 @@ mod tests {
 
     #[test]
     fn thresh_color_at_hundred() {
-        use std::sync::{Arc, Mutex};
         use crate::app::App;
+        use std::sync::{Arc, Mutex};
 
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
         let app = App::new_default(shared);
@@ -2500,8 +3705,8 @@ mod tests {
 
     #[test]
     fn border_color_different_modes() {
-        use std::sync::{Arc, Mutex};
         use crate::app::App;
+        use std::sync::{Arc, Mutex};
 
         let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
         let mut app = App::new_default(shared);
@@ -2510,7 +3715,12 @@ mod tests {
             app.prefs.color_mode = mode;
             app.paused = false;
             let c = border_color(&app);
-            assert_ne!(c, Color::Reset, "border_color with {:?} returned Reset", mode);
+            assert_ne!(
+                c,
+                Color::Reset,
+                "border_color with {:?} returned Reset",
+                mode
+            );
         }
     }
 }

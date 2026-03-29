@@ -1,12 +1,19 @@
+#![allow(clippy::field_reassign_with_default)]
+
 use std::sync::{Arc, Mutex};
 
 use clap::Parser;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
-use storageshower::app::{mount_col_width, right_col_width, right_col_width_static, App};
+use crossterm::event::{
+    KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MouseButton, MouseEvent,
+    MouseEventKind,
+};
+use storageshower::app::{App, mount_col_width, right_col_width, right_col_width_static};
 use storageshower::cli::Cli;
-use storageshower::helpers::{format_bytes, format_latency, format_rate, format_uptime, truncate_mount};
+use storageshower::helpers::{
+    format_bytes, format_latency, format_rate, format_uptime, truncate_mount,
+};
+use storageshower::prefs::{Prefs, load_prefs_from};
 use storageshower::system::scan_directory;
-use storageshower::prefs::{load_prefs_from, Prefs};
 use storageshower::system::{chrono_now, collect_disk_entries, collect_sys_stats, epoch_to_local};
 use storageshower::types::*;
 
@@ -25,9 +32,42 @@ fn make_key(code: KeyCode) -> KeyEvent {
 
 fn sample_disks() -> Vec<DiskEntry> {
     vec![
-        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-        DiskEntry { mount: "/data".into(), used: 900_000_000_000, total: 1_000_000_000_000, pct: 90.0, kind: DiskKind::HDD, fs: "xfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-        DiskEntry { mount: "/home".into(), used: 80_000_000_000, total: 200_000_000_000, pct: 40.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        DiskEntry {
+            mount: "/".into(),
+            used: 50_000_000_000,
+            total: 100_000_000_000,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "apfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        },
+        DiskEntry {
+            mount: "/data".into(),
+            used: 900_000_000_000,
+            total: 1_000_000_000_000,
+            pct: 90.0,
+            kind: DiskKind::HDD,
+            fs: "xfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        },
+        DiskEntry {
+            mount: "/home".into(),
+            used: 80_000_000_000,
+            total: 200_000_000_000,
+            pct: 40.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        },
     ]
 }
 
@@ -141,8 +181,10 @@ fn system_collects_real_disks() {
     assert!(!disks.is_empty());
     // Root mount should exist on unix
     #[cfg(unix)]
-    assert!(disks.iter().any(|d| d.mount == "/"),
-        "Expected root mount '/' in disk entries");
+    assert!(
+        disks.iter().any(|d| d.mount == "/"),
+        "Expected root mount '/' in disk entries"
+    );
 }
 
 #[test]
@@ -188,8 +230,13 @@ fn truncate_mount_various_widths() {
     let long = "/very/long/mount/point/path";
     for w in 5..30 {
         let r = truncate_mount(long, w);
-        assert!(r.chars().count() <= w,
-            "truncate_mount({}, {}) produced {} chars", long, w, r.chars().count());
+        assert!(
+            r.chars().count() <= w,
+            "truncate_mount({}, {}) produced {} chars",
+            long,
+            w,
+            r.chars().count()
+        );
     }
 }
 
@@ -227,7 +274,9 @@ fn right_col_width_dynamic_with_data() {
 #[test]
 fn navigate_through_real_disks() {
     let disks = collect_disk_entries();
-    if disks.is_empty() { return; }
+    if disks.is_empty() {
+        return;
+    }
 
     let mut app = make_app_with_disks(disks);
     let count = app.sorted_disks().len();
@@ -408,9 +457,24 @@ fn refresh_data_blocked_when_paused() {
 #[test]
 fn cli_overrides_applied_to_app() {
     let cli = Cli::parse_from([
-        "storageshower", "-s", "size", "-R", "-b", "ascii",
-        "--color", "purple", "-u", "gib", "-w", "60", "-C", "85",
-        "-r", "5", "--no-bars", "--no-border",
+        "storageshower",
+        "-s",
+        "size",
+        "-R",
+        "-b",
+        "ascii",
+        "--color",
+        "purple",
+        "-u",
+        "gib",
+        "-w",
+        "60",
+        "-C",
+        "85",
+        "-r",
+        "5",
+        "--no-bars",
+        "--no-border",
     ]);
     let shared = Arc::new(Mutex::new((SysStats::default(), sample_disks())));
     let app = App::new(Arc::clone(&shared), &cli);
@@ -456,7 +520,7 @@ fn epoch_to_local_unix_epoch() {
     // We can't predict local timezone, but we can check the function doesn't panic
     // and returns reasonable values
     let (y, mo, d, h, mi, s) = epoch_to_local(1704067200);
-    assert!(y >= 2023 && y <= 2025); // timezone could shift year
+    assert!((2023..=2025).contains(&y)); // timezone could shift year
     assert!((1..=12).contains(&mo));
     assert!((1..=31).contains(&d));
     assert!(h < 24);
@@ -468,7 +532,7 @@ fn epoch_to_local_unix_epoch() {
 fn epoch_to_local_zero() {
     let (y, mo, d, h, mi, s) = epoch_to_local(0);
     // 1970-01-01 in some timezone
-    assert!(y >= 1969 && y <= 1970); // timezone could shift
+    assert!((1969..=1970).contains(&y)); // timezone could shift
     assert!((1..=12).contains(&mo));
     assert!((1..=31).contains(&d));
     assert!(h < 24);
@@ -560,16 +624,36 @@ fn mount_col_width_all_terminal_sizes() {
     for w in 20..200u16 {
         let col = mount_col_width(w, &p);
         assert!(col >= 12, "mount_col_width({}) = {} < 12", w, col);
-        assert!(col <= w as usize, "mount_col_width({}) = {} > {}", w, col, w);
+        assert!(
+            col <= w as usize,
+            "mount_col_width({}) = {} > {}",
+            w,
+            col,
+            w
+        );
     }
 }
 
 #[test]
 fn right_col_width_with_different_unit_modes() {
-    let disks = vec![
-        DiskEntry { mount: "/".into(), used: 50_000_000_000, total: 100_000_000_000, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-    ];
-    for mode in [UnitMode::Human, UnitMode::GiB, UnitMode::MiB, UnitMode::Bytes] {
+    let disks = vec![DiskEntry {
+        mount: "/".into(),
+        used: 50_000_000_000,
+        total: 100_000_000_000,
+        pct: 50.0,
+        kind: DiskKind::SSD,
+        fs: "apfs".into(),
+        latency_ms: None,
+        io_read_rate: None,
+        io_write_rate: None,
+        smart_status: None,
+    }];
+    for mode in [
+        UnitMode::Human,
+        UnitMode::GiB,
+        UnitMode::MiB,
+        UnitMode::Bytes,
+    ] {
         let shared = Arc::new(Mutex::new((SysStats::default(), disks.clone())));
         let mut app = App::new_default(shared);
         app.disks = disks.clone();
@@ -585,9 +669,42 @@ fn right_col_width_with_different_unit_modes() {
 #[test]
 fn sort_stability_equal_pct() {
     let disks = vec![
-        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-        DiskEntry { mount: "/c".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        DiskEntry {
+            mount: "/a".into(),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        },
+        DiskEntry {
+            mount: "/b".into(),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        },
+        DiskEntry {
+            mount: "/c".into(),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        },
     ];
     let mut app = make_app_with_disks(disks);
     app.prefs.sort_mode = SortMode::Pct;
@@ -600,8 +717,30 @@ fn sort_stability_equal_pct() {
 #[test]
 fn sort_stability_equal_size() {
     let disks = vec![
-        DiskEntry { mount: "/a".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-        DiskEntry { mount: "/b".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        DiskEntry {
+            mount: "/a".into(),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        },
+        DiskEntry {
+            mount: "/b".into(),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        },
     ];
     let mut app = make_app_with_disks(disks);
     app.prefs.sort_mode = SortMode::Size;
@@ -652,8 +791,13 @@ fn sort_and_filter_many_disks() {
 fn collect_disk_entries_used_le_total() {
     let disks = collect_disk_entries();
     for d in &disks {
-        assert!(d.used <= d.total,
-            "Disk {} has used={} > total={}", d.mount, d.used, d.total);
+        assert!(
+            d.used <= d.total,
+            "Disk {} has used={} > total={}",
+            d.mount,
+            d.used,
+            d.total
+        );
     }
 }
 
@@ -725,7 +869,7 @@ fn workflow_change_all_settings_then_sort() {
     // Change every display option
     app.handle_key(make_key(KeyCode::Char('b'))); // bar style
     app.handle_key(make_key(KeyCode::Char('c'))); // open theme chooser
-    app.handle_key(make_key(KeyCode::Esc));        // close it
+    app.handle_key(make_key(KeyCode::Esc)); // close it
     app.handle_key(make_key(KeyCode::Char('i'))); // unit mode
     app.handle_key(make_key(KeyCode::Char('v'))); // toggle bars
     app.handle_key(make_key(KeyCode::Char('x'))); // toggle border
@@ -754,7 +898,9 @@ fn workflow_change_all_settings_then_sort() {
 fn load_prefs_from_custom_toml() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.conf");
-    std::fs::write(&path, r#"
+    std::fs::write(
+        &path,
+        r#"
 sort_mode = "Pct"
 sort_rev = true
 show_local = false
@@ -769,7 +915,9 @@ show_header = true
 compact = true
 show_used = false
 full_mount = true
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     let prefs = load_prefs_from(Some(path.to_str().unwrap()));
     assert_eq!(prefs.sort_mode, SortMode::Pct);
     assert!(prefs.sort_rev);
@@ -821,8 +969,18 @@ fn drill_down_navigation() {
     app.drill.mode = ViewMode::DrillDown;
     app.drill.path = vec!["/tmp".into()];
     app.drill.entries = vec![
-        DirEntry { path: "/tmp/a".into(), name: "a".into(), size: 100, is_dir: true },
-        DirEntry { path: "/tmp/b".into(), name: "b".into(), size: 50, is_dir: false },
+        DirEntry {
+            path: "/tmp/a".into(),
+            name: "a".into(),
+            size: 100,
+            is_dir: true,
+        },
+        DirEntry {
+            path: "/tmp/b".into(),
+            name: "b".into(),
+            size: 50,
+            is_dir: false,
+        },
     ];
     app.drill.selected = 0;
 
@@ -942,8 +1100,14 @@ fn scan_directory_returns_sorted_by_size() {
     let entries = scan_directory("/tmp");
     // Should be sorted descending by size
     for w in entries.windows(2) {
-        assert!(w[0].size >= w[1].size,
-            "{} ({}) should be >= {} ({})", w[0].name, w[0].size, w[1].name, w[1].size);
+        assert!(
+            w[0].size >= w[1].size,
+            "{} ({}) should be >= {} ({})",
+            w[0].name,
+            w[0].size,
+            w[1].name,
+            w[1].size
+        );
     }
 }
 
@@ -967,10 +1131,17 @@ fn smart_health_equality() {
 #[test]
 fn custom_theme_roundtrip_toml() {
     let mut prefs = Prefs::default();
-    prefs.custom_themes.insert("mytest".into(), ThemeColors {
-        blue: 27, green: 48, purple: 135,
-        light_purple: 141, royal: 63, dark_purple: 99,
-    });
+    prefs.custom_themes.insert(
+        "mytest".into(),
+        ThemeColors {
+            blue: 27,
+            green: 48,
+            purple: 135,
+            light_purple: 141,
+            royal: 63,
+            dark_purple: 99,
+        },
+    );
     prefs.active_theme = Some("mytest".into());
     let serialized = toml::to_string_pretty(&prefs).unwrap();
     let deserialized: Prefs = toml::from_str(&serialized).unwrap();
@@ -986,9 +1157,17 @@ fn custom_theme_roundtrip_toml() {
 #[test]
 fn theme_chooser_shows_custom_themes() {
     let mut app = make_app_with_disks(sample_disks());
-    app.prefs.custom_themes.insert("alpha".into(), ThemeColors {
-        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
-    });
+    app.prefs.custom_themes.insert(
+        "alpha".into(),
+        ThemeColors {
+            blue: 1,
+            green: 2,
+            purple: 3,
+            light_purple: 4,
+            royal: 5,
+            dark_purple: 6,
+        },
+    );
 
     let themes = app.all_themes();
     assert_eq!(themes.len(), ColorMode::ALL.len() + 1);
@@ -998,9 +1177,17 @@ fn theme_chooser_shows_custom_themes() {
 #[test]
 fn theme_chooser_selects_custom_theme() {
     let mut app = make_app_with_disks(sample_disks());
-    app.prefs.custom_themes.insert("alpha".into(), ThemeColors {
-        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
-    });
+    app.prefs.custom_themes.insert(
+        "alpha".into(),
+        ThemeColors {
+            blue: 1,
+            green: 2,
+            purple: 3,
+            light_purple: 4,
+            royal: 5,
+            dark_purple: 6,
+        },
+    );
 
     app.handle_key(make_key(KeyCode::Char('c')));
     assert!(app.theme_chooser.active);
@@ -1023,16 +1210,28 @@ fn mouse_click_selects_and_drills_down() {
 
     // Click on first disk row (border=true, header=true → first disk at row 5)
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 15,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.selected, Some(0));
     assert_eq!(app.drill.mode, ViewMode::Disks);
 
     // Click same row again → drill down
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 15,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.drill.mode, ViewMode::DrillDown);
 }
@@ -1042,14 +1241,26 @@ fn mouse_click_different_row_changes_selection() {
     let mut app = make_app_with_disks(sample_disks());
 
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 15,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.selected, Some(0));
 
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 15, row: 6, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 15,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.selected, Some(1));
     assert_eq!(app.drill.mode, ViewMode::Disks); // did not drill down
@@ -1059,9 +1270,18 @@ fn mouse_click_different_row_changes_selection() {
 
 #[test]
 fn alert_triggers_on_threshold_crossing() {
-    let disks = vec![
-        DiskEntry { mount: "/".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-    ];
+    let disks = vec![DiskEntry {
+        mount: "/".into(),
+        used: 50,
+        total: 100,
+        pct: 50.0,
+        kind: DiskKind::SSD,
+        fs: "apfs".into(),
+        latency_ms: None,
+        io_read_rate: None,
+        io_write_rate: None,
+        smart_status: None,
+    }];
     let shared = Arc::new(Mutex::new((SysStats::default(), disks)));
     let mut app = App::new_default(shared.clone());
     app.prefs = Prefs::default();
@@ -1075,23 +1295,45 @@ fn alert_triggers_on_threshold_crossing() {
     // Push disk above warning threshold
     {
         let mut lock = shared.lock().unwrap();
-        lock.1 = vec![
-            DiskEntry { mount: "/".into(), used: 80, total: 100, pct: 80.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-        ];
+        lock.1 = vec![DiskEntry {
+            mount: "/".into(),
+            used: 80,
+            total: 100,
+            pct: 80.0,
+            kind: DiskKind::SSD,
+            fs: "apfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        }];
     }
     app.refresh_data();
     assert!(app.alert.flash.is_some());
     assert!(app.alert.mounts.contains("/"));
     assert!(app.status_msg.is_some());
     let msg = &app.status_msg.as_ref().unwrap().0;
-    assert!(msg.contains("ALERT"), "Expected alert message, got: {}", msg);
+    assert!(
+        msg.contains("ALERT"),
+        "Expected alert message, got: {}",
+        msg
+    );
 }
 
 #[test]
 fn alert_does_not_re_trigger_for_same_mount() {
-    let disks = vec![
-        DiskEntry { mount: "/".into(), used: 80, total: 100, pct: 80.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-    ];
+    let disks = vec![DiskEntry {
+        mount: "/".into(),
+        used: 80,
+        total: 100,
+        pct: 80.0,
+        kind: DiskKind::SSD,
+        fs: "apfs".into(),
+        latency_ms: None,
+        io_read_rate: None,
+        io_write_rate: None,
+        smart_status: None,
+    }];
     let shared = Arc::new(Mutex::new((SysStats::default(), disks)));
     let mut app = App::new_default(shared.clone());
     app.prefs = Prefs::default();
@@ -1105,14 +1347,26 @@ fn alert_does_not_re_trigger_for_same_mount() {
     app.alert.flash = None;
     app.status_msg = None;
     app.refresh_data();
-    assert!(app.alert.flash.is_none(), "Alert should not re-trigger for same mount");
+    assert!(
+        app.alert.flash.is_none(),
+        "Alert should not re-trigger for same mount"
+    );
 }
 
 #[test]
 fn alert_clears_when_disk_drops_below_threshold() {
-    let disks = vec![
-        DiskEntry { mount: "/".into(), used: 80, total: 100, pct: 80.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-    ];
+    let disks = vec![DiskEntry {
+        mount: "/".into(),
+        used: 80,
+        total: 100,
+        pct: 80.0,
+        kind: DiskKind::SSD,
+        fs: "apfs".into(),
+        latency_ms: None,
+        io_read_rate: None,
+        io_write_rate: None,
+        smart_status: None,
+    }];
     let shared = Arc::new(Mutex::new((SysStats::default(), disks)));
     let mut app = App::new_default(shared.clone());
     app.prefs = Prefs::default();
@@ -1125,12 +1379,24 @@ fn alert_clears_when_disk_drops_below_threshold() {
     // Drop below threshold
     {
         let mut lock = shared.lock().unwrap();
-        lock.1 = vec![
-            DiskEntry { mount: "/".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-        ];
+        lock.1 = vec![DiskEntry {
+            mount: "/".into(),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "apfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        }];
     }
     app.refresh_data();
-    assert!(!app.alert.mounts.contains("/"), "Mount should be cleared from alert set");
+    assert!(
+        !app.alert.mounts.contains("/"),
+        "Mount should be cleared from alert set"
+    );
 }
 
 // ─── Bookmarks ───────────────────────────────────────────────────────────
@@ -1245,9 +1511,24 @@ fn drill_sort_by_name() {
     app.drill.mode = ViewMode::DrillDown;
     app.drill.path = vec!["/".into()];
     app.drill.entries = vec![
-        DirEntry { path: "/c".into(), name: "charlie".into(), size: 10, is_dir: false },
-        DirEntry { path: "/a".into(), name: "alpha".into(), size: 30, is_dir: true },
-        DirEntry { path: "/b".into(), name: "bravo".into(), size: 20, is_dir: false },
+        DirEntry {
+            path: "/c".into(),
+            name: "charlie".into(),
+            size: 10,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/a".into(),
+            name: "alpha".into(),
+            size: 30,
+            is_dir: true,
+        },
+        DirEntry {
+            path: "/b".into(),
+            name: "bravo".into(),
+            size: 20,
+            is_dir: false,
+        },
     ];
     app.handle_key(make_key(KeyCode::Char('n')));
     assert_eq!(app.drill.sort, DrillSortMode::Name);
@@ -1262,9 +1543,24 @@ fn drill_sort_by_size() {
     app.drill.mode = ViewMode::DrillDown;
     app.drill.path = vec!["/".into()];
     app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
-        DirEntry { path: "/b".into(), name: "b".into(), size: 30, is_dir: false },
-        DirEntry { path: "/c".into(), name: "c".into(), size: 20, is_dir: false },
+        DirEntry {
+            path: "/a".into(),
+            name: "a".into(),
+            size: 10,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/b".into(),
+            name: "b".into(),
+            size: 30,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/c".into(),
+            name: "c".into(),
+            size: 20,
+            is_dir: false,
+        },
     ];
     // Default is size desc, switch to name then back to size
     app.handle_key(make_key(KeyCode::Char('n')));
@@ -1280,8 +1576,18 @@ fn drill_sort_reverse() {
     app.drill.mode = ViewMode::DrillDown;
     app.drill.path = vec!["/".into()];
     app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 30, is_dir: false },
-        DirEntry { path: "/b".into(), name: "b".into(), size: 10, is_dir: false },
+        DirEntry {
+            path: "/a".into(),
+            name: "a".into(),
+            size: 30,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/b".into(),
+            name: "b".into(),
+            size: 10,
+            is_dir: false,
+        },
     ];
     // Default size desc: 30, 10
     app.sort_drill_entries();
@@ -1298,9 +1604,12 @@ fn drill_sort_toggle_same_mode_reverses() {
     let mut app = make_app_with_disks(sample_disks());
     app.drill.mode = ViewMode::DrillDown;
     app.drill.path = vec!["/".into()];
-    app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
-    ];
+    app.drill.entries = vec![DirEntry {
+        path: "/a".into(),
+        name: "a".into(),
+        size: 10,
+        is_dir: false,
+    }];
     assert_eq!(app.drill.sort, DrillSortMode::Size);
     assert!(!app.drill.sort_rev);
 
@@ -1330,7 +1639,9 @@ fn drill_scan_progress_counters() {
     for _ in 0..20 {
         std::thread::sleep(std::time::Duration::from_millis(50));
         app.refresh_data();
-        if !app.drill.scanning { break; }
+        if !app.drill.scanning {
+            break;
+        }
     }
     assert!(!app.drill.scanning);
     let total = *app.drill.scan_total.lock().unwrap();
@@ -1345,8 +1656,18 @@ fn drill_sort_resets_selection() {
     app.drill.mode = ViewMode::DrillDown;
     app.drill.path = vec!["/".into()];
     app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
-        DirEntry { path: "/b".into(), name: "b".into(), size: 20, is_dir: false },
+        DirEntry {
+            path: "/a".into(),
+            name: "a".into(),
+            size: 10,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/b".into(),
+            name: "b".into(),
+            size: 20,
+            is_dir: false,
+        },
     ];
     app.drill.selected = 1;
     app.handle_key(make_key(KeyCode::Char('n')));
@@ -1360,8 +1681,14 @@ fn hover_sets_position() {
     let mut app = make_app_with_disks(sample_disks());
     assert!(app.hover.pos.is_none());
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 6, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 20,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.hover.pos, Some((20, 6)));
 }
@@ -1482,8 +1809,14 @@ fn hover_resets_on_move() {
 
     // Move to different position
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 6, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 20,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(!app.hover_ready(), "Hover delay should reset on move");
 }
@@ -1496,7 +1829,10 @@ fn scroll_offset_follows_selection_down() {
     app.scroll_offset = 0;
     app.selected = Some(2);
     app.ensure_visible(2); // only 2 visible rows
-    assert_eq!(app.scroll_offset, 1, "Should scroll to keep selection visible");
+    assert_eq!(
+        app.scroll_offset, 1,
+        "Should scroll to keep selection visible"
+    );
 }
 
 #[test]
@@ -1514,7 +1850,10 @@ fn scroll_offset_stays_when_visible() {
     app.scroll_offset = 0;
     app.selected = Some(1);
     app.ensure_visible(3);
-    assert_eq!(app.scroll_offset, 0, "Should not scroll when selection is visible");
+    assert_eq!(
+        app.scroll_offset, 0,
+        "Should not scroll when selection is visible"
+    );
 }
 
 #[test]
@@ -1533,13 +1872,25 @@ fn mouse_scroll_down_selects_next() {
     let mut app = make_app_with_disks(sample_disks());
     assert!(app.selected.is_none());
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::ScrollDown, column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::ScrollDown,
+            column: 10,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.selected, Some(0));
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::ScrollDown, column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::ScrollDown,
+            column: 10,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.selected, Some(1));
 }
@@ -1549,8 +1900,14 @@ fn mouse_scroll_up_selects_prev() {
     let mut app = make_app_with_disks(sample_disks());
     app.selected = Some(2);
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::ScrollUp, column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::ScrollUp,
+            column: 10,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.selected, Some(1));
 }
@@ -1561,8 +1918,14 @@ fn mouse_scroll_up_selects_prev() {
 fn right_click_sets_hover_instantly() {
     let mut app = make_app_with_disks(sample_disks());
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 30, row: 7, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Right),
+            column: 30,
+            row: 7,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.hover.pos, Some((30, 7)));
     assert!(app.hover_ready());
@@ -1576,8 +1939,18 @@ fn hovered_drill_index_resolves() {
     let mut app = make_app_with_disks(sample_disks());
     app.drill.mode = ViewMode::DrillDown;
     app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: true },
-        DirEntry { path: "/b".into(), name: "b".into(), size: 20, is_dir: false },
+        DirEntry {
+            path: "/a".into(),
+            name: "a".into(),
+            size: 10,
+            is_dir: true,
+        },
+        DirEntry {
+            path: "/b".into(),
+            name: "b".into(),
+            size: 20,
+            is_dir: false,
+        },
     ];
     // First entry at row 5 (border=1 + 4 chrome rows)
     app.hover.pos = Some((10, 5));
@@ -1630,9 +2003,12 @@ fn hover_zone_title_not_disk() {
 fn drill_hover_index_none_on_header() {
     let mut app = make_app_with_disks(sample_disks());
     app.drill.mode = ViewMode::DrillDown;
-    app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: true },
-    ];
+    app.drill.entries = vec![DirEntry {
+        path: "/a".into(),
+        name: "a".into(),
+        size: 10,
+        is_dir: true,
+    }];
     // Row 3 is header area in drill-down (border + breadcrumb + sep + header)
     app.hover.pos = Some((10, 3));
     assert!(app.hovered_drill_index().is_none());
@@ -1663,7 +2039,11 @@ fn theme_chooser_preselects_current() {
     app.prefs.color_mode = ColorMode::Blue;
     app.handle_key(make_key(KeyCode::Char('c')));
     // Blue is index 2 in ColorMode::ALL
-    let expected = app.all_themes().iter().position(|(k, _)| k == "blue").unwrap();
+    let expected = app
+        .all_themes()
+        .iter()
+        .position(|(k, _)| k == "blue")
+        .unwrap();
     assert_eq!(app.theme_chooser.selected, expected);
 }
 
@@ -1714,12 +2094,28 @@ fn theme_chooser_enter_applies_builtin() {
 fn all_themes_includes_builtins_and_custom() {
     let mut app = make_app_with_disks(sample_disks());
     assert_eq!(app.all_themes().len(), ColorMode::ALL.len());
-    app.prefs.custom_themes.insert("zeta".into(), ThemeColors {
-        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
-    });
-    app.prefs.custom_themes.insert("alpha".into(), ThemeColors {
-        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
-    });
+    app.prefs.custom_themes.insert(
+        "zeta".into(),
+        ThemeColors {
+            blue: 1,
+            green: 2,
+            purple: 3,
+            light_purple: 4,
+            royal: 5,
+            dark_purple: 6,
+        },
+    );
+    app.prefs.custom_themes.insert(
+        "alpha".into(),
+        ThemeColors {
+            blue: 1,
+            green: 2,
+            purple: 3,
+            light_purple: 4,
+            royal: 5,
+            dark_purple: 6,
+        },
+    );
     let themes = app.all_themes();
     assert_eq!(themes.len(), ColorMode::ALL.len() + 2);
     // Custom themes sorted alphabetically after builtins
@@ -1780,9 +2176,17 @@ fn theme_chooser_enter_confirms_preview() {
 #[test]
 fn theme_chooser_enter_applies_custom_theme() {
     let mut app = make_app_with_disks(sample_disks());
-    app.prefs.custom_themes.insert("mytest".into(), ThemeColors {
-        blue: 100, green: 101, purple: 102, light_purple: 103, royal: 104, dark_purple: 105,
-    });
+    app.prefs.custom_themes.insert(
+        "mytest".into(),
+        ThemeColors {
+            blue: 100,
+            green: 101,
+            purple: 102,
+            light_purple: 103,
+            royal: 104,
+            dark_purple: 105,
+        },
+    );
     app.handle_key(make_key(KeyCode::Char('c')));
     // Custom themes appear after builtins
     let custom_idx = ColorMode::ALL.len();
@@ -1802,8 +2206,14 @@ fn theme_chooser_mouse_click_applies_theme() {
     let y0 = (24u16.saturating_sub(box_h)) / 2;
     // Click third row in content area
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 30, row: y0 + 2 + 2, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 30,
+            row: y0 + 2 + 2,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.theme_chooser.selected, 2);
     assert_eq!(app.prefs.color_mode, ColorMode::ALL[2]);
@@ -1820,8 +2230,14 @@ fn theme_chooser_click_outside_reverts() {
     assert_ne!(app.prefs.color_mode, ColorMode::Purple);
     // Click outside
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 0, row: 0, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 0,
+            row: 0,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(!app.theme_chooser.active);
     assert_eq!(app.prefs.color_mode, ColorMode::Purple);
@@ -1832,20 +2248,38 @@ fn theme_chooser_scroll_auto_applies() {
     let mut app = make_app_with_disks(sample_disks());
     app.handle_key(make_key(KeyCode::Char('c')));
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::ScrollDown, column: 40, row: 12, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::ScrollDown,
+            column: 40,
+            row: 12,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.theme_chooser.selected, 1);
     assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::ScrollDown, column: 40, row: 12, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::ScrollDown,
+            column: 40,
+            row: 12,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.theme_chooser.selected, 2);
     assert_eq!(app.prefs.color_mode, ColorMode::ALL[2]);
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::ScrollUp, column: 40, row: 12, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::ScrollUp,
+            column: 40,
+            row: 12,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.theme_chooser.selected, 1);
     assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
@@ -1858,8 +2292,14 @@ fn right_click_sets_right_click_flag() {
     let mut app = make_app_with_disks(sample_disks());
     assert!(!app.hover.right_click);
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Right),
+            column: 10,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.right_click);
     assert!(app.hover_ready());
@@ -1869,13 +2309,25 @@ fn right_click_sets_right_click_flag() {
 fn hover_move_clears_right_click_flag() {
     let mut app = make_app_with_disks(sample_disks());
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Right),
+            column: 10,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.right_click);
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 8, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 20,
+            row: 8,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(!app.hover.right_click);
 }
@@ -1884,14 +2336,26 @@ fn hover_move_clears_right_click_flag() {
 fn hover_move_same_pos_preserves_right_click() {
     let mut app = make_app_with_disks(sample_disks());
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Right),
+            column: 10,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.right_click);
     // Same position — flag preserved
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 10,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.right_click);
 }
@@ -1903,26 +2367,48 @@ fn drag_pct_separator_resizes_column() {
     let mut app = make_app_with_disks(sample_disks());
     app.prefs.show_used = true;
     let right_w = right_col_width(&app);
-    let pct_w: u16 = if app.prefs.col_pct_w > 0 { app.prefs.col_pct_w } else { 5 };
+    let pct_w: u16 = if app.prefs.col_pct_w > 0 {
+        app.prefs.col_pct_w
+    } else {
+        5
+    };
     let rm: u16 = 1; // show_border default
     let right_start = 80u16.saturating_sub(rm + right_w);
     let pct_sep_x = right_start + pct_w;
 
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: pct_sep_x, row: 6, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: pct_sep_x,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(matches!(app.drag, Some(DragTarget::PctSep)));
 
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: pct_sep_x + 2, row: 6, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Drag(MouseButton::Left),
+            column: pct_sep_x + 2,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.prefs.col_pct_w > 0);
 
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: pct_sep_x + 2, row: 6, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Up(MouseButton::Left),
+            column: pct_sep_x + 2,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.drag.is_none());
 }
@@ -1935,20 +2421,38 @@ fn drag_bar_end_separator_resizes_column() {
     let bar_end_x = 80u16.saturating_sub(rm + right_w + 1);
 
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: bar_end_x, row: 6, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: bar_end_x,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(matches!(app.drag, Some(DragTarget::BarEndSep)));
 
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: bar_end_x - 4, row: 6, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Drag(MouseButton::Left),
+            column: bar_end_x - 4,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.prefs.col_bar_end_w > 0);
 
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: bar_end_x - 4, row: 6, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Up(MouseButton::Left),
+            column: bar_end_x - 4,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.drag.is_none());
 }
@@ -1958,7 +2462,11 @@ fn drag_on_header_row_takes_priority_over_sort() {
     let mut app = make_app_with_disks(sample_disks());
     app.prefs.show_used = true;
     let right_w = right_col_width(&app);
-    let pct_w: u16 = if app.prefs.col_pct_w > 0 { app.prefs.col_pct_w } else { 5 };
+    let pct_w: u16 = if app.prefs.col_pct_w > 0 {
+        app.prefs.col_pct_w
+    } else {
+        5
+    };
     let rm: u16 = 1;
     let right_start = 80u16.saturating_sub(rm + right_w);
     let pct_sep_x = right_start + pct_w;
@@ -1966,8 +2474,14 @@ fn drag_on_header_row_takes_priority_over_sort() {
 
     let sort_before = app.prefs.sort_mode;
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: pct_sep_x, row: header_row, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: pct_sep_x,
+            row: header_row,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     // Should start drag, NOT change sort
     assert!(matches!(app.drag, Some(DragTarget::PctSep)));
@@ -1982,15 +2496,27 @@ fn hover_cancelled_on_move_before_any_handler() {
 
     // Start hover timer on title bar
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 10,
+            row: 1,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.since.is_some());
 
     // Move to empty zone — timer should be cancelled
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 0, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 10,
+            row: 0,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.since.is_none());
 }
@@ -2001,8 +2527,14 @@ fn hover_cancelled_during_theme_chooser() {
 
     // Start hover on disk row
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 5, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 10,
+            row: 5,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.since.is_some());
 
@@ -2012,8 +2544,14 @@ fn hover_cancelled_during_theme_chooser() {
 
     // Mouse move inside theme chooser — hover timer must be cancelled
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 30, row: 12, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 30,
+            row: 12,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.since.is_none());
     assert!(!app.hover.right_click);
@@ -2025,15 +2563,27 @@ fn hover_restarted_on_valid_zone_after_cancel() {
 
     // Move to empty zone — no timer
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 0, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 10,
+            row: 0,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.since.is_none());
 
     // Move to title bar — timer should restart
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 10,
+            row: 1,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.since.is_some());
 }
@@ -2059,7 +2609,10 @@ fn hover_visible_during_display_window() {
     // Set hover start to 2s ago — past 1s delay, within 4s auto-hide
     app.hover.since = Some(std::time::Instant::now() - std::time::Duration::from_millis(2000));
     app.hover.right_click = false;
-    assert!(app.hover_ready(), "auto-hover should be visible between 1-4s");
+    assert!(
+        app.hover_ready(),
+        "auto-hover should be visible between 1-4s"
+    );
 }
 
 #[test]
@@ -2079,8 +2632,14 @@ fn hover_workflow_move_wait_autohide() {
 
     // Move to title bar
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: 10,
+            row: 1,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.hover.since.is_some());
     assert!(!app.hover_ready(), "should not be ready immediately");
@@ -2326,9 +2885,16 @@ fn ctrl_d_half_page_down() {
     let mut disks = Vec::new();
     for i in 0..20 {
         disks.push(DiskEntry {
-            mount: format!("/mnt/{}", i), used: 50, total: 100, pct: 50.0,
-            kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: format!("/mnt/{}", i),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
     }
     let mut app = make_app_with_disks(disks);
@@ -2347,9 +2913,16 @@ fn ctrl_u_half_page_up() {
     let mut disks = Vec::new();
     for i in 0..20 {
         disks.push(DiskEntry {
-            mount: format!("/mnt/{}", i), used: 50, total: 100, pct: 50.0,
-            kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: format!("/mnt/{}", i),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
     }
     let mut app = make_app_with_disks(disks);
@@ -2368,9 +2941,16 @@ fn ctrl_d_from_none_starts_at_half() {
     let mut disks = Vec::new();
     for i in 0..10 {
         disks.push(DiskEntry {
-            mount: format!("/mnt/{}", i), used: 50, total: 100, pct: 50.0,
-            kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: format!("/mnt/{}", i),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
     }
     let mut app = make_app_with_disks(disks);
@@ -2389,9 +2969,16 @@ fn ctrl_u_from_none_goes_to_zero() {
     let mut disks = Vec::new();
     for i in 0..10 {
         disks.push(DiskEntry {
-            mount: format!("/mnt/{}", i), used: 50, total: 100, pct: 50.0,
-            kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: format!("/mnt/{}", i),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
     }
     let mut app = make_app_with_disks(disks);
@@ -2489,7 +3076,10 @@ fn d_toggles_used_and_resets_bar_end() {
     let before = app.prefs.show_used;
     app.handle_key(make_key(KeyCode::Char('d')));
     assert_eq!(app.prefs.show_used, !before);
-    assert_eq!(app.prefs.col_bar_end_w, 0, "col_bar_end_w should reset on toggle");
+    assert_eq!(
+        app.prefs.col_bar_end_w, 0,
+        "col_bar_end_w should reset on toggle"
+    );
 }
 
 #[test]
@@ -2515,7 +3105,10 @@ fn m_toggles_compact_and_resets_mount_w() {
     let before = app.prefs.compact;
     app.handle_key(make_key(KeyCode::Char('m')));
     assert_eq!(app.prefs.compact, !before);
-    assert_eq!(app.prefs.col_mount_w, 0, "col_mount_w should reset on compact toggle");
+    assert_eq!(
+        app.prefs.col_mount_w, 0,
+        "col_mount_w should reset on compact toggle"
+    );
 }
 
 #[test]
@@ -2733,7 +3326,10 @@ fn theme_editor_naming_esc_cancels() {
     }
     app.handle_key(make_key(KeyCode::Esc));
     assert!(!app.theme_edit.naming);
-    assert!(app.theme_edit.active, "Should stay in editor after naming cancel");
+    assert!(
+        app.theme_edit.active,
+        "Should stay in editor after naming cancel"
+    );
     assert!(!app.prefs.custom_themes.contains_key("test"));
 }
 
@@ -2795,13 +3391,20 @@ fn drill_enter_on_file_does_not_navigate() {
     let mut app = make_app_with_disks(sample_disks());
     app.drill.mode = ViewMode::DrillDown;
     app.drill.path = vec!["/tmp".into()];
-    app.drill.entries = vec![
-        DirEntry { path: "/tmp/file.txt".into(), name: "file.txt".into(), size: 100, is_dir: false },
-    ];
+    app.drill.entries = vec![DirEntry {
+        path: "/tmp/file.txt".into(),
+        name: "file.txt".into(),
+        size: 100,
+        is_dir: false,
+    }];
     app.drill.selected = 0;
     let path_len = app.drill.path.len();
     app.handle_key(make_key(KeyCode::Enter));
-    assert_eq!(app.drill.path.len(), path_len, "Should not drill into a file");
+    assert_eq!(
+        app.drill.path.len(),
+        path_len,
+        "Should not drill into a file"
+    );
 }
 
 #[test]
@@ -2809,9 +3412,12 @@ fn drill_enter_on_dir_navigates() {
     let mut app = make_app_with_disks(sample_disks());
     app.drill.mode = ViewMode::DrillDown;
     app.drill.path = vec!["/tmp".into()];
-    app.drill.entries = vec![
-        DirEntry { path: "/tmp/subdir".into(), name: "subdir".into(), size: 100, is_dir: true },
-    ];
+    app.drill.entries = vec![DirEntry {
+        path: "/tmp/subdir".into(),
+        name: "subdir".into(),
+        size: 100,
+        is_dir: true,
+    }];
     app.drill.selected = 0;
     app.handle_key(make_key(KeyCode::Enter));
     assert_eq!(app.drill.path.len(), 2);
@@ -2837,8 +3443,18 @@ fn drill_j_clamps_at_end() {
     app.drill.mode = ViewMode::DrillDown;
     app.drill.path = vec!["/".into()];
     app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
-        DirEntry { path: "/b".into(), name: "b".into(), size: 20, is_dir: false },
+        DirEntry {
+            path: "/a".into(),
+            name: "a".into(),
+            size: 10,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/b".into(),
+            name: "b".into(),
+            size: 20,
+            is_dir: false,
+        },
     ];
     app.drill.selected = 0;
     for _ in 0..10 {
@@ -2852,9 +3468,12 @@ fn drill_k_clamps_at_zero() {
     let mut app = make_app_with_disks(sample_disks());
     app.drill.mode = ViewMode::DrillDown;
     app.drill.path = vec!["/".into()];
-    app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
-    ];
+    app.drill.entries = vec![DirEntry {
+        path: "/a".into(),
+        name: "a".into(),
+        size: 10,
+        is_dir: false,
+    }];
     app.drill.selected = 0;
     for _ in 0..5 {
         app.handle_key(make_key(KeyCode::Char('k')));
@@ -2950,8 +3569,8 @@ fn is_network_fs_rejects_local() {
 
 #[test]
 fn gradient_color_at_boundary_values() {
-    use storageshower::ui::gradient_color_at;
     use ratatui::style::Color;
+    use storageshower::ui::gradient_color_at;
     // Should not panic at boundaries
     let c0 = gradient_color_at(0.0, ColorMode::Default);
     let c33 = gradient_color_at(0.33, ColorMode::Default);
@@ -2980,11 +3599,15 @@ fn gradient_color_at_all_color_modes() {
 
 #[test]
 fn palette_all_modes_return_indexed_colors() {
-    use storageshower::ui::palette;
     use ratatui::style::Color;
+    use storageshower::ui::palette;
     for &mode in ColorMode::ALL {
         let (a, b, c, d, e, f) = palette(mode);
-        assert!(matches!(a, Color::Indexed(_)), "palette {:?} slot 0 not indexed", mode);
+        assert!(
+            matches!(a, Color::Indexed(_)),
+            "palette {:?} slot 0 not indexed",
+            mode
+        );
         assert!(matches!(b, Color::Indexed(_)));
         assert!(matches!(c, Color::Indexed(_)));
         assert!(matches!(d, Color::Indexed(_)));
@@ -2995,12 +3618,20 @@ fn palette_all_modes_return_indexed_colors() {
 
 #[test]
 fn palette_for_prefs_uses_custom_theme() {
-    use storageshower::ui::palette_for_prefs;
     use ratatui::style::Color;
+    use storageshower::ui::palette_for_prefs;
     let mut prefs = Prefs::default();
-    prefs.custom_themes.insert("mine".into(), ThemeColors {
-        blue: 100, green: 101, purple: 102, light_purple: 103, royal: 104, dark_purple: 105,
-    });
+    prefs.custom_themes.insert(
+        "mine".into(),
+        ThemeColors {
+            blue: 100,
+            green: 101,
+            purple: 102,
+            light_purple: 103,
+            royal: 104,
+            dark_purple: 105,
+        },
+    );
     prefs.active_theme = Some("mine".into());
     let (a, b, c, d, e, f) = palette_for_prefs(&prefs);
     assert_eq!(a, Color::Indexed(100));
@@ -3019,7 +3650,10 @@ fn palette_for_prefs_missing_custom_falls_back() {
     prefs.color_mode = ColorMode::Purple;
     let p = palette_for_prefs(&prefs);
     let expected = storageshower::ui::palette(ColorMode::Purple);
-    assert_eq!(p, expected, "Should fall back to builtin when custom theme missing");
+    assert_eq!(
+        p, expected,
+        "Should fall back to builtin when custom theme missing"
+    );
 }
 
 // ─── CLI parsing edge cases ─────────────────────────────────────────────
@@ -3051,22 +3685,58 @@ fn cli_all_unit_modes() {
 #[test]
 fn cli_all_color_modes() {
     let names = [
-        "default", "green", "blue", "purple", "amber", "cyan", "red",
-        "sakura", "matrix", "sunset", "neon-noir", "chrome-heart",
-        "blade-runner", "void-walker", "toxic-waste", "cyber-frost",
-        "plasma-core", "steel-nerve", "dark-signal", "glitch-pop",
-        "holo-shift", "night-city", "deep-net", "laser-grid",
-        "quantum-flux", "bio-hazard", "darkwave", "overlock", "megacorp", "zaibatsu",
+        "default",
+        "green",
+        "blue",
+        "purple",
+        "amber",
+        "cyan",
+        "red",
+        "sakura",
+        "matrix",
+        "sunset",
+        "neon-noir",
+        "chrome-heart",
+        "blade-runner",
+        "void-walker",
+        "toxic-waste",
+        "cyber-frost",
+        "plasma-core",
+        "steel-nerve",
+        "dark-signal",
+        "glitch-pop",
+        "holo-shift",
+        "night-city",
+        "deep-net",
+        "laser-grid",
+        "quantum-flux",
+        "bio-hazard",
+        "darkwave",
+        "overlock",
+        "megacorp",
+        "zaibatsu",
     ];
     for name in names {
         let cli = Cli::parse_from(["storageshower", "--color", name]);
-        assert!(cli.color_mode.is_some(), "Failed to parse color mode: {}", name);
+        assert!(
+            cli.color_mode.is_some(),
+            "Failed to parse color mode: {}",
+            name
+        );
     }
 }
 
 #[test]
 fn cli_column_width_flags() {
-    let cli = Cli::parse_from(["storageshower", "--col-mount", "25", "--col-bar-end", "30", "--col-pct", "8"]);
+    let cli = Cli::parse_from([
+        "storageshower",
+        "--col-mount",
+        "25",
+        "--col-bar-end",
+        "30",
+        "--col-pct",
+        "8",
+    ]);
     assert_eq!(cli.col_mount_w, Some(25));
     assert_eq!(cli.col_bar_end_w, Some(30));
     assert_eq!(cli.col_pct_w, Some(8));
@@ -3177,12 +3847,28 @@ fn cli_apply_to_preserves_all_defaults() {
 #[test]
 fn prefs_multiple_custom_themes_roundtrip() {
     let mut prefs = Prefs::default();
-    prefs.custom_themes.insert("theme1".into(), ThemeColors {
-        blue: 10, green: 20, purple: 30, light_purple: 40, royal: 50, dark_purple: 60,
-    });
-    prefs.custom_themes.insert("theme2".into(), ThemeColors {
-        blue: 100, green: 110, purple: 120, light_purple: 130, royal: 140, dark_purple: 150,
-    });
+    prefs.custom_themes.insert(
+        "theme1".into(),
+        ThemeColors {
+            blue: 10,
+            green: 20,
+            purple: 30,
+            light_purple: 40,
+            royal: 50,
+            dark_purple: 60,
+        },
+    );
+    prefs.custom_themes.insert(
+        "theme2".into(),
+        ThemeColors {
+            blue: 100,
+            green: 110,
+            purple: 120,
+            light_purple: 130,
+            royal: 140,
+            dark_purple: 150,
+        },
+    );
     let s = toml::to_string_pretty(&prefs).unwrap();
     let q: Prefs = toml::from_str(&s).unwrap();
     assert_eq!(q.custom_themes.len(), 2);
@@ -3205,7 +3891,9 @@ fn prefs_bookmarks_roundtrip() {
 fn load_prefs_with_custom_themes_and_bookmarks() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("themes.conf");
-    std::fs::write(&path, r#"
+    std::fs::write(
+        &path,
+        r#"
 sort_mode = "Name"
 sort_rev = false
 show_local = false
@@ -3230,7 +3918,9 @@ purple = 126
 light_purple = 168
 royal = 210
 dark_purple = 252
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     let prefs = load_prefs_from(Some(path.to_str().unwrap()));
     assert_eq!(prefs.active_theme, Some("cyber".into()));
     assert!(prefs.custom_themes.contains_key("cyber"));
@@ -3243,8 +3933,12 @@ dark_purple = 252
 #[test]
 fn disk_entry_with_network_metadata() {
     let d = DiskEntry {
-        mount: "/nfs".into(), used: 100, total: 200, pct: 50.0,
-        kind: DiskKind::Unknown(-1), fs: "nfs4".into(),
+        mount: "/nfs".into(),
+        used: 100,
+        total: 200,
+        pct: 50.0,
+        kind: DiskKind::Unknown(-1),
+        fs: "nfs4".into(),
         latency_ms: Some(15.3),
         io_read_rate: Some(1_048_576.0),
         io_write_rate: Some(524_288.0),
@@ -3261,9 +3955,16 @@ fn disk_entry_with_network_metadata() {
 #[test]
 fn disk_entry_with_optional_none_fields() {
     let d = DiskEntry {
-        mount: "/local".into(), used: 50, total: 100, pct: 50.0,
-        kind: DiskKind::SSD, fs: "apfs".into(),
-        latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None,
+        mount: "/local".into(),
+        used: 50,
+        total: 100,
+        pct: 50.0,
+        kind: DiskKind::SSD,
+        fs: "apfs".into(),
+        latency_ms: None,
+        io_read_rate: None,
+        io_write_rate: None,
+        smart_status: None,
     };
     assert!(d.latency_ms.is_none());
     assert!(d.io_read_rate.is_none());
@@ -3287,7 +3988,10 @@ fn ensure_visible_selected_equals_offset() {
     app.selected = Some(3);
     app.scroll_offset = 3;
     app.ensure_visible(5);
-    assert_eq!(app.scroll_offset, 3, "No scroll needed when selected == offset");
+    assert_eq!(
+        app.scroll_offset, 3,
+        "No scroll needed when selected == offset"
+    );
 }
 
 #[test]
@@ -3304,15 +4008,39 @@ fn ensure_drill_visible_at_boundary() {
 #[test]
 fn all_themes_custom_sorted_alphabetically() {
     let mut app = make_app_with_disks(sample_disks());
-    app.prefs.custom_themes.insert("zeta".into(), ThemeColors {
-        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
-    });
-    app.prefs.custom_themes.insert("alpha".into(), ThemeColors {
-        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
-    });
-    app.prefs.custom_themes.insert("middle".into(), ThemeColors {
-        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
-    });
+    app.prefs.custom_themes.insert(
+        "zeta".into(),
+        ThemeColors {
+            blue: 1,
+            green: 2,
+            purple: 3,
+            light_purple: 4,
+            royal: 5,
+            dark_purple: 6,
+        },
+    );
+    app.prefs.custom_themes.insert(
+        "alpha".into(),
+        ThemeColors {
+            blue: 1,
+            green: 2,
+            purple: 3,
+            light_purple: 4,
+            royal: 5,
+            dark_purple: 6,
+        },
+    );
+    app.prefs.custom_themes.insert(
+        "middle".into(),
+        ThemeColors {
+            blue: 1,
+            green: 2,
+            purple: 3,
+            light_purple: 4,
+            royal: 5,
+            dark_purple: 6,
+        },
+    );
     let themes = app.all_themes();
     let custom_start = ColorMode::ALL.len();
     assert_eq!(themes[custom_start].0, "alpha");
@@ -3338,9 +4066,17 @@ fn apply_selected_theme_builtin_via_chooser() {
 #[test]
 fn apply_selected_theme_custom_via_chooser() {
     let mut app = make_app_with_disks(sample_disks());
-    app.prefs.custom_themes.insert("mytest".into(), ThemeColors {
-        blue: 1, green: 2, purple: 3, light_purple: 4, royal: 5, dark_purple: 6,
-    });
+    app.prefs.custom_themes.insert(
+        "mytest".into(),
+        ThemeColors {
+            blue: 1,
+            green: 2,
+            purple: 3,
+            light_purple: 4,
+            royal: 5,
+            dark_purple: 6,
+        },
+    );
     app.handle_key(make_key(KeyCode::Char('c')));
     let idx = ColorMode::ALL.len(); // first custom theme
     app.theme_chooser.selected = idx;
@@ -3376,9 +4112,24 @@ fn drill_current_path_nested() {
 fn sort_drill_entries_by_name_case_insensitive() {
     let mut app = make_app_with_disks(sample_disks());
     app.drill.entries = vec![
-        DirEntry { path: "/C".into(), name: "Charlie".into(), size: 10, is_dir: false },
-        DirEntry { path: "/a".into(), name: "alpha".into(), size: 30, is_dir: false },
-        DirEntry { path: "/B".into(), name: "bravo".into(), size: 20, is_dir: false },
+        DirEntry {
+            path: "/C".into(),
+            name: "Charlie".into(),
+            size: 10,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/a".into(),
+            name: "alpha".into(),
+            size: 30,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/B".into(),
+            name: "bravo".into(),
+            size: 20,
+            is_dir: false,
+        },
     ];
     app.drill.sort = DrillSortMode::Name;
     app.drill.sort_rev = false;
@@ -3392,9 +4143,24 @@ fn sort_drill_entries_by_name_case_insensitive() {
 fn sort_drill_entries_by_size_desc() {
     let mut app = make_app_with_disks(sample_disks());
     app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
-        DirEntry { path: "/b".into(), name: "b".into(), size: 30, is_dir: false },
-        DirEntry { path: "/c".into(), name: "c".into(), size: 20, is_dir: false },
+        DirEntry {
+            path: "/a".into(),
+            name: "a".into(),
+            size: 10,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/b".into(),
+            name: "b".into(),
+            size: 30,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/c".into(),
+            name: "c".into(),
+            size: 20,
+            is_dir: false,
+        },
     ];
     app.drill.sort = DrillSortMode::Size;
     app.drill.sort_rev = false;
@@ -3408,8 +4174,18 @@ fn sort_drill_entries_by_size_desc() {
 fn sort_drill_entries_reversed() {
     let mut app = make_app_with_disks(sample_disks());
     app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 30, is_dir: false },
-        DirEntry { path: "/b".into(), name: "b".into(), size: 10, is_dir: false },
+        DirEntry {
+            path: "/a".into(),
+            name: "a".into(),
+            size: 30,
+            is_dir: false,
+        },
+        DirEntry {
+            path: "/b".into(),
+            name: "b".into(),
+            size: 10,
+            is_dir: false,
+        },
     ];
     app.drill.sort = DrillSortMode::Size;
     app.drill.sort_rev = true;
@@ -3420,9 +4196,12 @@ fn sort_drill_entries_reversed() {
 #[test]
 fn sort_drill_entries_resets_selection_and_scroll() {
     let mut app = make_app_with_disks(sample_disks());
-    app.drill.entries = vec![
-        DirEntry { path: "/a".into(), name: "a".into(), size: 10, is_dir: false },
-    ];
+    app.drill.entries = vec![DirEntry {
+        path: "/a".into(),
+        name: "a".into(),
+        size: 10,
+        is_dir: false,
+    }];
     app.drill.selected = 5;
     app.drill.scroll_offset = 3;
     app.sort_drill_entries();
@@ -3483,7 +4262,11 @@ fn scan_directory_with_progress_tracks_counters() {
     std::fs::write(dir.path().join("b.txt"), "world!").unwrap();
     let count = Arc::new(Mutex::new(0usize));
     let total = Arc::new(Mutex::new(0usize));
-    let entries = scan_directory_with_progress(dir.path().to_str().unwrap(), Some(count.clone()), Some(total.clone()));
+    let entries = scan_directory_with_progress(
+        dir.path().to_str().unwrap(),
+        Some(count.clone()),
+        Some(total.clone()),
+    );
     let t = *total.lock().unwrap();
     let c = *count.lock().unwrap();
     assert_eq!(c, t, "count should match total after scan");
@@ -3496,9 +4279,19 @@ fn scan_directory_with_progress_tracks_counters() {
 
 #[test]
 fn dir_entry_is_dir_flag() {
-    let d = DirEntry { path: "/tmp/d".into(), name: "d".into(), size: 0, is_dir: true };
+    let d = DirEntry {
+        path: "/tmp/d".into(),
+        name: "d".into(),
+        size: 0,
+        is_dir: true,
+    };
     assert!(d.is_dir);
-    let f = DirEntry { path: "/tmp/f".into(), name: "f".into(), size: 100, is_dir: false };
+    let f = DirEntry {
+        path: "/tmp/f".into(),
+        name: "f".into(),
+        size: 100,
+        is_dir: false,
+    };
     assert!(!f.is_dir);
 }
 
@@ -3569,7 +4362,7 @@ fn sys_stats_default_load_avg_zero() {
 fn epoch_to_local_recent_date() {
     // 2024-06-15 12:00:00 UTC = 1718452800
     let (y, mo, d, h, mi, s) = epoch_to_local(1718452800);
-    assert!(y >= 2024 && y <= 2025);
+    assert!((2024..=2025).contains(&y));
     assert!((1..=12).contains(&mo));
     assert!((1..=31).contains(&d));
     assert!(h < 24);
@@ -3593,8 +4386,30 @@ fn epoch_to_local_large_timestamp() {
 #[test]
 fn alert_multiple_disks_crossing_threshold() {
     let disks = vec![
-        DiskEntry { mount: "/".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-        DiskEntry { mount: "/data".into(), used: 50, total: 100, pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+        DiskEntry {
+            mount: "/".into(),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "apfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        },
+        DiskEntry {
+            mount: "/data".into(),
+            used: 50,
+            total: 100,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        },
     ];
     let shared = Arc::new(Mutex::new((SysStats::default(), disks)));
     let mut app = App::new_default(shared.clone());
@@ -3609,8 +4424,30 @@ fn alert_multiple_disks_crossing_threshold() {
     {
         let mut lock = shared.lock().unwrap();
         lock.1 = vec![
-            DiskEntry { mount: "/".into(), used: 80, total: 100, pct: 80.0, kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
-            DiskEntry { mount: "/data".into(), used: 75, total: 100, pct: 75.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None, io_read_rate: None, io_write_rate: None, smart_status: None },
+            DiskEntry {
+                mount: "/".into(),
+                used: 80,
+                total: 100,
+                pct: 80.0,
+                kind: DiskKind::SSD,
+                fs: "apfs".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+            DiskEntry {
+                mount: "/data".into(),
+                used: 75,
+                total: 100,
+                pct: 75.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
         ];
     }
     app.refresh_data();
@@ -3634,9 +4471,16 @@ fn update_sorted_empty_disks() {
 #[test]
 fn update_sorted_single_disk() {
     let disks = vec![DiskEntry {
-        mount: "/".into(), used: 50, total: 100, pct: 50.0,
-        kind: DiskKind::SSD, fs: "apfs".into(), latency_ms: None,
-        io_read_rate: None, io_write_rate: None, smart_status: None,
+        mount: "/".into(),
+        used: 50,
+        total: 100,
+        pct: 50.0,
+        kind: DiskKind::SSD,
+        fs: "apfs".into(),
+        latency_ms: None,
+        io_read_rate: None,
+        io_write_rate: None,
+        smart_status: None,
     }];
     let mut app = make_app_with_disks(disks);
     app.update_sorted();
@@ -3757,8 +4601,12 @@ fn scan_directory_entries_have_valid_paths() {
     let dir_str = dir.path().to_str().unwrap();
     let entries = scan_directory(dir_str);
     for e in &entries {
-        assert!(e.path.starts_with(dir_str),
-            "Path '{}' should start with '{}'", e.path, dir_str);
+        assert!(
+            e.path.starts_with(dir_str),
+            "Path '{}' should start with '{}'",
+            e.path,
+            dir_str
+        );
     }
 }
 
@@ -3768,8 +4616,12 @@ fn scan_directory_entries_have_valid_paths() {
 fn collect_disk_entries_pct_in_range() {
     let disks = collect_disk_entries();
     for d in &disks {
-        assert!(d.pct >= 0.0 && d.pct <= 100.0,
-            "Disk {} pct {} out of range", d.mount, d.pct);
+        assert!(
+            d.pct >= 0.0 && d.pct <= 100.0,
+            "Disk {} pct {} out of range",
+            d.mount,
+            d.pct
+        );
     }
 }
 
@@ -3786,7 +4638,12 @@ fn collect_disk_entries_mount_not_empty() {
 #[test]
 fn theme_colors_clone_and_debug() {
     let t = ThemeColors {
-        blue: 27, green: 48, purple: 135, light_purple: 141, royal: 63, dark_purple: 99,
+        blue: 27,
+        green: 48,
+        purple: 135,
+        light_purple: 141,
+        royal: 63,
+        dark_purple: 99,
     };
     let c = t.clone();
     assert_eq!(c.blue, 27);
@@ -3816,8 +4673,14 @@ fn theme_chooser_scroll_up_at_top_stays() {
     app.handle_key(make_key(KeyCode::Char('c')));
     assert_eq!(app.theme_chooser.selected, 0);
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::ScrollUp, column: 40, row: 12, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::ScrollUp,
+            column: 40,
+            row: 12,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.theme_chooser.selected, 0);
 }
@@ -3829,8 +4692,14 @@ fn theme_chooser_scroll_down_at_bottom_stays() {
     let count = app.all_themes().len();
     app.theme_chooser.selected = count - 1;
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::ScrollDown, column: 40, row: 12, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::ScrollDown,
+            column: 40,
+            row: 12,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert_eq!(app.theme_chooser.selected, count - 1);
 }
@@ -3842,8 +4711,14 @@ fn mouse_up_releases_drag() {
     let mut app = make_app_with_disks(sample_disks());
     app.drag = Some(DragTarget::MountSep);
     app.handle_mouse(
-        MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: 30, row: 6, modifiers: KeyModifiers::NONE },
-        80, 24,
+        MouseEvent {
+            kind: MouseEventKind::Up(MouseButton::Left),
+            column: 30,
+            row: 6,
+            modifiers: KeyModifiers::NONE,
+        },
+        80,
+        24,
     );
     assert!(app.drag.is_none());
 }
@@ -3889,8 +4764,12 @@ fn sys_stats_os_name_not_empty() {
 fn sys_stats_mem_used_le_total() {
     let sys = System::new_all();
     let stats = collect_sys_stats(&sys);
-    assert!(stats.mem_used <= stats.mem_total,
-        "mem_used {} > mem_total {}", stats.mem_used, stats.mem_total);
+    assert!(
+        stats.mem_used <= stats.mem_total,
+        "mem_used {} > mem_total {}",
+        stats.mem_used,
+        stats.mem_total
+    );
 }
 
 // ─── Hover: hovered_zone with various term heights ──────────────────────
@@ -3940,8 +4819,11 @@ fn e_key_sets_export_status() {
     app.handle_key(make_key(KeyCode::Char('e')));
     assert!(app.status_msg.is_some());
     let msg = &app.status_msg.as_ref().unwrap().0;
-    assert!(msg.contains("Export") || msg.contains("export"),
-        "Expected export message, got: {}", msg);
+    assert!(
+        msg.contains("Export") || msg.contains("export"),
+        "Expected export message, got: {}",
+        msg
+    );
 }
 
 // ─── Combined: rapid key presses ────────────────────────────────────────
@@ -3951,16 +4833,32 @@ fn rapid_key_sequence_does_not_crash() {
     let mut app = make_app_with_disks(sample_disks());
     // Slam through a bunch of keys rapidly
     let keys = [
-        KeyCode::Char('j'), KeyCode::Char('j'), KeyCode::Char('k'),
-        KeyCode::Char('s'), KeyCode::Char('n'), KeyCode::Char('u'),
-        KeyCode::Char('b'), KeyCode::Char('i'), KeyCode::Char('v'),
-        KeyCode::Char('d'), KeyCode::Char('g'), KeyCode::Char('x'),
-        KeyCode::Char('m'), KeyCode::Char('w'), KeyCode::Char('t'),
-        KeyCode::Char('T'), KeyCode::Char('f'), KeyCode::Char('r'),
-        KeyCode::Char('p'), KeyCode::Char('p'), // unpause
-        KeyCode::Char('l'), KeyCode::Char('a'),
-        KeyCode::Home, KeyCode::End,
-        KeyCode::Char('G'), KeyCode::Char('0'),
+        KeyCode::Char('j'),
+        KeyCode::Char('j'),
+        KeyCode::Char('k'),
+        KeyCode::Char('s'),
+        KeyCode::Char('n'),
+        KeyCode::Char('u'),
+        KeyCode::Char('b'),
+        KeyCode::Char('i'),
+        KeyCode::Char('v'),
+        KeyCode::Char('d'),
+        KeyCode::Char('g'),
+        KeyCode::Char('x'),
+        KeyCode::Char('m'),
+        KeyCode::Char('w'),
+        KeyCode::Char('t'),
+        KeyCode::Char('T'),
+        KeyCode::Char('f'),
+        KeyCode::Char('r'),
+        KeyCode::Char('p'),
+        KeyCode::Char('p'), // unpause
+        KeyCode::Char('l'),
+        KeyCode::Char('a'),
+        KeyCode::Home,
+        KeyCode::End,
+        KeyCode::Char('G'),
+        KeyCode::Char('0'),
     ];
     for &code in &keys {
         app.handle_key(make_key(code));
@@ -4025,10 +4923,29 @@ fn filter_unicode_characters() {
 #[test]
 fn app_new_with_full_cli_overrides() {
     let cli = Cli::parse_from([
-        "storageshower", "-s", "pct", "-R", "-b", "thin",
-        "--color", "amber", "-u", "mib", "-w", "50", "-C", "80",
-        "-r", "10", "--no-bars", "--no-border", "--no-header",
-        "--compact", "--full-mount", "--no-used", "--no-virtual",
+        "storageshower",
+        "-s",
+        "pct",
+        "-R",
+        "-b",
+        "thin",
+        "--color",
+        "amber",
+        "-u",
+        "mib",
+        "-w",
+        "50",
+        "-C",
+        "80",
+        "-r",
+        "10",
+        "--no-bars",
+        "--no-border",
+        "--no-header",
+        "--compact",
+        "--full-mount",
+        "--no-used",
+        "--no-virtual",
     ]);
     let shared = Arc::new(Mutex::new((SysStats::default(), sample_disks())));
     let app = App::new(Arc::clone(&shared), &cli);

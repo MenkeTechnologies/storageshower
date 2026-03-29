@@ -60,7 +60,8 @@ impl App {
                 MouseEventKind::ScrollDown => {
                     let count = themes.len();
                     if count > 0 {
-                        self.theme_chooser.selected = (self.theme_chooser.selected + 1).min(count - 1);
+                        self.theme_chooser.selected =
+                            (self.theme_chooser.selected + 1).min(count - 1);
                         self.apply_selected_theme();
                     }
                 }
@@ -83,7 +84,11 @@ impl App {
 
         let right_w = right_col_width(self);
         let bar_end_x = term_w.saturating_sub(rm + right_w + 1);
-        let pct_w: u16 = if self.prefs.col_pct_w > 0 { self.prefs.col_pct_w } else { 5 };
+        let pct_w: u16 = if self.prefs.col_pct_w > 0 {
+            self.prefs.col_pct_w
+        } else {
+            5
+        };
         let right_start = term_w.saturating_sub(rm + right_w);
         let pct_sep_x = right_start + pct_w;
 
@@ -199,7 +204,8 @@ impl App {
             MouseEventKind::ScrollDown => {
                 if self.drill.mode == ViewMode::DrillDown {
                     if !self.drill.entries.is_empty() {
-                        self.drill.selected = (self.drill.selected + 1).min(self.drill.entries.len() - 1);
+                        self.drill.selected =
+                            (self.drill.selected + 1).min(self.drill.entries.len() - 1);
                     }
                 } else {
                     let count = self.sorted_disks().len();
@@ -231,14 +237,12 @@ impl App {
 
 #[cfg(test)]
 mod tests {
-    use crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
-    use std::sync::{Arc, Mutex};
-    use crate::app::App;
+
     use crate::columns::{mount_col_width, right_col_width};
-    use crate::prefs::Prefs;
+
     use crate::testutil::*;
     use crate::types::*;
-
+    use crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
     // ── Mouse handling ────────────────────────────────────
 
@@ -247,8 +251,14 @@ mod tests {
         let mut app = test_app();
         assert!(app.hover.pos.is_none());
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Right),
+                column: 15,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert_eq!(app.hover.pos, Some((15, 5)));
         // Should be instantly ready (timestamp set in the past)
@@ -263,22 +273,40 @@ mod tests {
 
         // Click near mount separator
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: mount_sep_x, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: mount_sep_x,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(matches!(app.drag, Some(DragTarget::MountSep)));
 
         // Drag to new position
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: 30, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Drag(MouseButton::Left),
+                column: 30,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.prefs.col_mount_w > 0);
 
         // Release
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: 30, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Up(MouseButton::Left),
+                column: 30,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.drag.is_none());
     }
@@ -288,8 +316,14 @@ mod tests {
         let mut app = test_app();
         assert!(app.drag.is_none());
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: 10, row: 10, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Up(MouseButton::Left),
+                column: 10,
+                row: 10,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         // No crash, drag is still None
         assert!(app.drag.is_none());
@@ -300,8 +334,14 @@ mod tests {
         let mut app = test_app();
         let prev_help = app.show_help;
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::ScrollUp, column: 10, row: 10, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::ScrollUp,
+                column: 10,
+                row: 10,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert_eq!(app.show_help, prev_help);
     }
@@ -314,8 +354,14 @@ mod tests {
         assert!(app.selected.is_none());
         // With border + header, first disk row is at y=5
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 10,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert_eq!(app.selected, Some(0));
     }
@@ -324,8 +370,14 @@ mod tests {
     fn mouse_click_selects_second_disk() {
         let mut app = test_app();
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 6, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 10,
+                row: 6,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert_eq!(app.selected, Some(1));
     }
@@ -335,8 +387,14 @@ mod tests {
         let mut app = test_app();
         // Click far below disk rows (row 50 is way past the 4 disks)
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 50, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 10,
+                row: 50,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.selected.is_none());
     }
@@ -346,16 +404,28 @@ mod tests {
         let mut app = test_app();
         // First click selects
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 10,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert_eq!(app.selected, Some(0));
         assert_eq!(app.drill.mode, ViewMode::Disks);
 
         // Second click on same row enters drill-down
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 10, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 10,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert_eq!(app.drill.mode, ViewMode::DrillDown);
     }
@@ -375,8 +445,14 @@ mod tests {
         let content_y = y0 + 2;
         // Click second row in content
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 30, row: content_y + 1, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 30,
+                row: content_y + 1,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert_eq!(app.theme_chooser.selected, 1);
         assert!(app.theme_chooser.active); // Still open after single click
@@ -389,8 +465,14 @@ mod tests {
         assert!(app.theme_chooser.active);
         // Click far outside popup
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: 0, row: 0, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 0,
+                row: 0,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(!app.theme_chooser.active);
         // Should revert to original
@@ -404,16 +486,28 @@ mod tests {
         assert_eq!(app.theme_chooser.selected, 0);
         // Scroll down
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::ScrollDown, column: 40, row: 12, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::ScrollDown,
+                column: 40,
+                row: 12,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert_eq!(app.theme_chooser.selected, 1);
         // Auto-applied
         assert_eq!(app.prefs.color_mode, ColorMode::ALL[1]);
         // Scroll up
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::ScrollUp, column: 40, row: 12, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::ScrollUp,
+                column: 40,
+                row: 12,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert_eq!(app.theme_chooser.selected, 0);
         assert_eq!(app.prefs.color_mode, ColorMode::ALL[0]);
@@ -426,8 +520,14 @@ mod tests {
         let mut app = test_app();
         assert!(!app.hover.right_click);
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Right),
+                column: 15,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.hover.right_click);
         assert_eq!(app.hover.pos, Some((15, 5)));
@@ -439,14 +539,26 @@ mod tests {
         let mut app = test_app();
         // Right-click first
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Right),
+                column: 15,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.hover.right_click);
         // Move mouse
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 20,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(!app.hover.right_click);
         assert_eq!(app.hover.pos, Some((20, 5)));
@@ -456,14 +568,26 @@ mod tests {
     fn mouse_move_same_pos_keeps_right_click_flag() {
         let mut app = test_app();
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Right), column: 15, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Right),
+                column: 15,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.hover.right_click);
         // Move to same position — should not clear
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Moved, column: 15, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 15,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.hover.right_click);
     }
@@ -475,8 +599,14 @@ mod tests {
         let mut app = test_app();
         // Move to title bar to start hover timer
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 10,
+                row: 1,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.hover.since.is_some());
 
@@ -486,8 +616,14 @@ mod tests {
 
         // Move mouse while theme chooser is open — hover timer must be cancelled
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Moved, column: 20, row: 10, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 20,
+                row: 10,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.hover.since.is_none());
         assert_eq!(app.hover.pos, Some((20, 10)));
@@ -498,16 +634,28 @@ mod tests {
         let mut app = test_app();
         // Set up hover at a position, then open theme chooser
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 10,
+                row: 1,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         let since_before = app.hover.since;
         app.handle_key(make_key(KeyCode::Char('c')));
 
         // Move to SAME position — should not reset
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 10,
+                row: 1,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert_eq!(app.hover.since, since_before);
     }
@@ -556,14 +704,26 @@ mod tests {
         let mut app = test_app();
         // Move to title bar (hover zone)
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 1, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 10,
+                row: 1,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.hover.since.is_some());
         // Move to border row 0 (HoverZone::None)
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 0, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 10,
+                row: 0,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.hover.since.is_none());
     }
@@ -573,14 +733,26 @@ mod tests {
         let mut app = test_app();
         // Move to a disk row (valid zone)
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 10,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.hover.since.is_some());
         // Move to another disk row (still valid zone)
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Moved, column: 10, row: 6, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 10,
+                row: 6,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.hover.since.is_some());
     }
@@ -592,15 +764,25 @@ mod tests {
         let mut app = test_app();
         app.prefs.show_used = true;
         let right_w = right_col_width(&app);
-        let pct_w: u16 = if app.prefs.col_pct_w > 0 { app.prefs.col_pct_w } else { 5 };
+        let pct_w: u16 = if app.prefs.col_pct_w > 0 {
+            app.prefs.col_pct_w
+        } else {
+            5
+        };
         let right_start = 80u16.saturating_sub(1 + right_w);
         let pct_sep_x = right_start + pct_w;
         let header_row: u16 = 3; // show_border default = true, so header_row = 3
 
         // Click at pct separator on header row
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: pct_sep_x, row: header_row, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: pct_sep_x,
+                row: header_row,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         // Should start drag, not sort
         assert!(matches!(app.drag, Some(DragTarget::PctSep)));
@@ -614,8 +796,14 @@ mod tests {
         let header_row: u16 = 3;
 
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: bar_end_x, row: header_row, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: bar_end_x,
+                row: header_row,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(matches!(app.drag, Some(DragTarget::BarEndSep)));
     }
@@ -625,28 +813,50 @@ mod tests {
         let mut app = test_app();
         app.prefs.show_used = true;
         let right_w = right_col_width(&app);
-        let pct_w: u16 = if app.prefs.col_pct_w > 0 { app.prefs.col_pct_w } else { 5 };
+        let pct_w: u16 = if app.prefs.col_pct_w > 0 {
+            app.prefs.col_pct_w
+        } else {
+            5
+        };
         let right_start = 80u16.saturating_sub(1 + right_w);
         let pct_sep_x = right_start + pct_w;
 
         // Start drag
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: pct_sep_x, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: pct_sep_x,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(matches!(app.drag, Some(DragTarget::PctSep)));
 
         // Drag to new position
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: pct_sep_x + 3, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Drag(MouseButton::Left),
+                column: pct_sep_x + 3,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.prefs.col_pct_w > 0);
 
         // Release
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: pct_sep_x + 3, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Up(MouseButton::Left),
+                column: pct_sep_x + 3,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.drag.is_none());
     }
@@ -659,22 +869,40 @@ mod tests {
 
         // Start drag
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Down(MouseButton::Left), column: bar_end_x, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: bar_end_x,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(matches!(app.drag, Some(DragTarget::BarEndSep)));
 
         // Drag
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Drag(MouseButton::Left), column: bar_end_x - 5, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Drag(MouseButton::Left),
+                column: bar_end_x - 5,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.prefs.col_bar_end_w > 0);
 
         // Release
         app.handle_mouse(
-            MouseEvent { kind: MouseEventKind::Up(MouseButton::Left), column: bar_end_x - 5, row: 5, modifiers: KeyModifiers::NONE },
-            80, 24,
+            MouseEvent {
+                kind: MouseEventKind::Up(MouseButton::Left),
+                column: bar_end_x - 5,
+                row: 5,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
         );
         assert!(app.drag.is_none());
     }

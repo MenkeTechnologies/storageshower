@@ -1,5 +1,7 @@
 use clap::Parser;
-use crossterm::event::{self, EnableMouseCapture, DisableMouseCapture, EnableFocusChange, DisableFocusChange, Event};
+use crossterm::event::{
+    self, DisableFocusChange, DisableMouseCapture, EnableFocusChange, EnableMouseCapture, Event,
+};
 use ratatui::DefaultTerminal;
 use std::io;
 use std::sync::{Arc, Mutex};

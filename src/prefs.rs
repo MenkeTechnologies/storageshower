@@ -38,7 +38,9 @@ pub struct Prefs {
     pub bookmarks: Vec<String>,
 }
 
-fn default_true() -> bool { true }
+fn default_true() -> bool {
+    true
+}
 
 impl Default for Prefs {
     fn default() -> Self {

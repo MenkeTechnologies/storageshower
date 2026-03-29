@@ -345,7 +345,12 @@ mod tests {
 
     #[test]
     fn unit_mode_all_variants_debug() {
-        for mode in [UnitMode::Human, UnitMode::GiB, UnitMode::MiB, UnitMode::Bytes] {
+        for mode in [
+            UnitMode::Human,
+            UnitMode::GiB,
+            UnitMode::MiB,
+            UnitMode::Bytes,
+        ] {
             let s = format!("{:?}", mode);
             assert!(!s.is_empty());
         }
@@ -361,7 +366,12 @@ mod tests {
 
     #[test]
     fn bar_style_all_variants_debug() {
-        for style in [BarStyle::Gradient, BarStyle::Solid, BarStyle::Thin, BarStyle::Ascii] {
+        for style in [
+            BarStyle::Gradient,
+            BarStyle::Solid,
+            BarStyle::Thin,
+            BarStyle::Ascii,
+        ] {
             let s = format!("{:?}", style);
             assert!(!s.is_empty());
         }
@@ -383,7 +393,12 @@ mod tests {
 
     #[test]
     fn unit_mode_serialize_deserialize() {
-        for mode in [UnitMode::Human, UnitMode::GiB, UnitMode::MiB, UnitMode::Bytes] {
+        for mode in [
+            UnitMode::Human,
+            UnitMode::GiB,
+            UnitMode::MiB,
+            UnitMode::Bytes,
+        ] {
             let s = serde_json::to_string(&mode).unwrap();
             let d: UnitMode = serde_json::from_str(&s).unwrap();
             assert_eq!(d, mode);
@@ -401,7 +416,12 @@ mod tests {
 
     #[test]
     fn bar_style_serialize_deserialize() {
-        for style in [BarStyle::Gradient, BarStyle::Solid, BarStyle::Thin, BarStyle::Ascii] {
+        for style in [
+            BarStyle::Gradient,
+            BarStyle::Solid,
+            BarStyle::Thin,
+            BarStyle::Ascii,
+        ] {
             let s = serde_json::to_string(&style).unwrap();
             let d: BarStyle = serde_json::from_str(&s).unwrap();
             assert_eq!(d, style);

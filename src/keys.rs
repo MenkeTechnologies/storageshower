@@ -2,7 +2,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::path::PathBuf;
 use std::time::Instant;
 
-use crate::app::{copy_to_clipboard, App};
+use crate::app::{App, copy_to_clipboard};
 use crate::helpers::format_bytes;
 use crate::system::chrono_now;
 use crate::types::*;
@@ -95,8 +95,11 @@ impl App {
                 KeyCode::Char('q') | KeyCode::Char('Q') => {
                     self.quit = true;
                 }
-                KeyCode::Char('h') | KeyCode::Char('H') | KeyCode::Esc
-                | KeyCode::Char('j') | KeyCode::Char('k') => {
+                KeyCode::Char('h')
+                | KeyCode::Char('H')
+                | KeyCode::Esc
+                | KeyCode::Char('j')
+                | KeyCode::Char('k') => {
                     self.show_help = false;
                 }
                 _ => {}
@@ -115,7 +118,8 @@ impl App {
                 KeyCode::Char('j') | KeyCode::Down => {
                     let count = self.all_themes().len();
                     if count > 0 {
-                        self.theme_chooser.selected = (self.theme_chooser.selected + 1).min(count - 1);
+                        self.theme_chooser.selected =
+                            (self.theme_chooser.selected + 1).min(count - 1);
                     }
                     self.apply_selected_theme();
                 }
@@ -155,17 +159,21 @@ impl App {
                         let name = self.theme_edit.name.trim().to_string();
                         if !name.is_empty() {
                             let colors = self.theme_edit.colors;
-                            self.prefs.custom_themes.insert(name.clone(), ThemeColors {
-                                blue: colors[0],
-                                green: colors[1],
-                                purple: colors[2],
-                                light_purple: colors[3],
-                                royal: colors[4],
-                                dark_purple: colors[5],
-                            });
+                            self.prefs.custom_themes.insert(
+                                name.clone(),
+                                ThemeColors {
+                                    blue: colors[0],
+                                    green: colors[1],
+                                    purple: colors[2],
+                                    light_purple: colors[3],
+                                    royal: colors[4],
+                                    dark_purple: colors[5],
+                                },
+                            );
                             self.prefs.active_theme = Some(name.clone());
                             self.save();
-                            self.status_msg = Some((format!("Saved theme: {}", name), Instant::now()));
+                            self.status_msg =
+                                Some((format!("Saved theme: {}", name), Instant::now()));
                         }
                         self.theme_edit.active = false;
                         self.theme_edit.naming = false;
@@ -187,7 +195,8 @@ impl App {
                         self.theme_edit.cursor = self.theme_edit.cursor.saturating_sub(1);
                     }
                     KeyCode::Right => {
-                        self.theme_edit.cursor = (self.theme_edit.cursor + 1).min(self.theme_edit.name.len());
+                        self.theme_edit.cursor =
+                            (self.theme_edit.cursor + 1).min(self.theme_edit.name.len());
                     }
                     KeyCode::Char(c) if !ctrl => {
                         if self.theme_edit.name.len() < 20 {
@@ -250,19 +259,19 @@ impl App {
                     }
                 }
                 KeyCode::Enter => {
-                    if !self.drill.scanning {
-                        if let Some(entry) = self.drill.entries.get(self.drill.selected) {
-                            if entry.is_dir {
-                                let path = entry.path.clone();
-                                self.drill.path.push(path.clone());
-                                self.start_drill_scan(&path);
-                            }
-                        }
+                    if !self.drill.scanning
+                        && let Some(entry) = self.drill.entries.get(self.drill.selected)
+                        && entry.is_dir
+                    {
+                        let path = entry.path.clone();
+                        self.drill.path.push(path.clone());
+                        self.start_drill_scan(&path);
                     }
                 }
                 KeyCode::Char('j') | KeyCode::Down => {
                     if !self.drill.entries.is_empty() {
-                        self.drill.selected = (self.drill.selected + 1).min(self.drill.entries.len() - 1);
+                        self.drill.selected =
+                            (self.drill.selected + 1).min(self.drill.entries.len() - 1);
                     }
                 }
                 KeyCode::Char('k') | KeyCode::Up => {
@@ -302,9 +311,13 @@ impl App {
                     let path = self.drill_current_path();
                     if !self.test_mode {
                         #[cfg(target_os = "macos")]
-                        { let _ = std::process::Command::new("open").arg(&path).spawn(); }
+                        {
+                            let _ = std::process::Command::new("open").arg(&path).spawn();
+                        }
                         #[cfg(target_os = "linux")]
-                        { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); }
+                        {
+                            let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+                        }
                     }
                     self.status_msg = Some((format!("Opened {}", path), Instant::now()));
                 }
@@ -440,7 +453,8 @@ impl App {
                 } else {
                     format!("{:?}", self.prefs.color_mode).to_lowercase()
                 };
-                self.theme_chooser.selected = themes.iter()
+                self.theme_chooser.selected = themes
+                    .iter()
                     .position(|(k, _)| *k == current_key)
                     .unwrap_or(0);
                 self.theme_chooser.orig_color_mode = self.prefs.color_mode;
@@ -457,8 +471,12 @@ impl App {
                     }
                 }
                 self.theme_edit.colors = [
-                    idx(current.0), idx(current.1), idx(current.2),
-                    idx(current.3), idx(current.4), idx(current.5),
+                    idx(current.0),
+                    idx(current.1),
+                    idx(current.2),
+                    idx(current.3),
+                    idx(current.4),
+                    idx(current.5),
                 ];
                 self.theme_edit.slot = 0;
                 self.theme_edit.active = true;
@@ -573,9 +591,13 @@ impl App {
                         let mount = disk.mount.clone();
                         if !self.test_mode {
                             #[cfg(target_os = "macos")]
-                            { let _ = std::process::Command::new("open").arg(&mount).spawn(); }
+                            {
+                                let _ = std::process::Command::new("open").arg(&mount).spawn();
+                            }
                             #[cfg(target_os = "linux")]
-                            { let _ = std::process::Command::new("xdg-open").arg(&mount).spawn(); }
+                            {
+                                let _ = std::process::Command::new("xdg-open").arg(&mount).spawn();
+                            }
                         }
                         self.status_msg = Some((format!("Opened {}", mount), Instant::now()));
                     }
@@ -584,12 +606,22 @@ impl App {
             KeyCode::Char('e') | KeyCode::Char('E') => {
                 let disks = self.sorted_disks();
                 let mut out = String::from("DISK MATRIX EXPORT\n");
-                out.push_str(&format!("Host: {}  Date: {} {}\n\n", self.stats.hostname, chrono_now().0, chrono_now().1));
-                out.push_str(&format!("{:<30} {:>5} {:>10} {:>10}\n", "MOUNT", "PCT", "USED", "TOTAL"));
+                out.push_str(&format!(
+                    "Host: {}  Date: {} {}\n\n",
+                    self.stats.hostname,
+                    chrono_now().0,
+                    chrono_now().1
+                ));
+                out.push_str(&format!(
+                    "{:<30} {:>5} {:>10} {:>10}\n",
+                    "MOUNT", "PCT", "USED", "TOTAL"
+                ));
                 out.push_str(&format!("{}\n", "-".repeat(60)));
                 for d in disks {
-                    out.push_str(&format!("{:<30} {:>4.0}% {:>10} {:>10}\n",
-                        d.mount, d.pct,
+                    out.push_str(&format!(
+                        "{:<30} {:>4.0}% {:>10} {:>10}\n",
+                        d.mount,
+                        d.pct,
                         format_bytes(d.used, self.prefs.unit_mode),
                         format_bytes(d.total, self.prefs.unit_mode),
                     ));
@@ -598,8 +630,13 @@ impl App {
                     .unwrap_or_else(|| PathBuf::from("."))
                     .join(".storageshower.export.txt");
                 match std::fs::write(&path, &out) {
-                    Ok(_) => self.status_msg = Some((format!("Exported to {}", path.display()), Instant::now())),
-                    Err(e) => self.status_msg = Some((format!("Export failed: {}", e), Instant::now())),
+                    Ok(_) => {
+                        self.status_msg =
+                            Some((format!("Exported to {}", path.display()), Instant::now()))
+                    }
+                    Err(e) => {
+                        self.status_msg = Some((format!("Export failed: {}", e), Instant::now()))
+                    }
                 }
             }
             KeyCode::Char('y') | KeyCode::Char('Y') => {
@@ -608,8 +645,14 @@ impl App {
                     if let Some(disk) = disks.get(idx) {
                         let mount = disk.mount.clone();
                         match copy_to_clipboard(&mount) {
-                            Ok(_) => self.status_msg = Some((format!("Copied: {}", mount), Instant::now())),
-                            Err(e) => self.status_msg = Some((format!("Copy failed: {}", e), Instant::now())),
+                            Ok(_) => {
+                                self.status_msg =
+                                    Some((format!("Copied: {}", mount), Instant::now()))
+                            }
+                            Err(e) => {
+                                self.status_msg =
+                                    Some((format!("Copy failed: {}", e), Instant::now()))
+                            }
                         }
                     }
                 } else {
@@ -626,7 +669,8 @@ impl App {
                             self.status_msg = Some((format!("Unpinned {}", mount), Instant::now()));
                         } else {
                             self.prefs.bookmarks.push(mount.clone());
-                            self.status_msg = Some((format!("Pinned \u{2605} {}", mount), Instant::now()));
+                            self.status_msg =
+                                Some((format!("Pinned \u{2605} {}", mount), Instant::now()));
                         }
                         self.save();
                     }
@@ -644,12 +688,12 @@ impl App {
 
 #[cfg(test)]
 mod tests {
-    use crossterm::event::KeyCode;
-    use std::sync::{Arc, Mutex};
     use crate::app::App;
     use crate::prefs::Prefs;
     use crate::testutil::*;
     use crate::types::*;
+    use crossterm::event::KeyCode;
+    use std::sync::{Arc, Mutex};
 
     // ── Key handling — quit ────────────────────────────────
 
@@ -1511,7 +1555,10 @@ mod tests {
         app.show_help = true;
         let prev = app.prefs.clone();
         // These should all be swallowed
-        for c in ['s', 'n', 'u', 'r', 'c', 'i', 'v', 'd', 'g', 'x', 'w', 'm', 'f', 't', 'T', 'a', 'l', 'p', '/', '0', '?'] {
+        for c in [
+            's', 'n', 'u', 'r', 'c', 'i', 'v', 'd', 'g', 'x', 'w', 'm', 'f', 't', 'T', 'a', 'l',
+            'p', '/', '0', '?',
+        ] {
             app.handle_key(make_key(KeyCode::Char(c)));
         }
         // Help should still be shown (only q/h/esc/j/k dismiss)
@@ -1616,20 +1663,28 @@ mod tests {
     fn warn_threshold_full_cycle() {
         let mut app = test_app();
         app.prefs.thresh_warn = 50;
-        app.handle_key(make_key(KeyCode::Char('t'))); assert_eq!(app.prefs.thresh_warn, 60);
-        app.handle_key(make_key(KeyCode::Char('t'))); assert_eq!(app.prefs.thresh_warn, 70);
-        app.handle_key(make_key(KeyCode::Char('t'))); assert_eq!(app.prefs.thresh_warn, 80);
-        app.handle_key(make_key(KeyCode::Char('t'))); assert_eq!(app.prefs.thresh_warn, 50);
+        app.handle_key(make_key(KeyCode::Char('t')));
+        assert_eq!(app.prefs.thresh_warn, 60);
+        app.handle_key(make_key(KeyCode::Char('t')));
+        assert_eq!(app.prefs.thresh_warn, 70);
+        app.handle_key(make_key(KeyCode::Char('t')));
+        assert_eq!(app.prefs.thresh_warn, 80);
+        app.handle_key(make_key(KeyCode::Char('t')));
+        assert_eq!(app.prefs.thresh_warn, 50);
     }
 
     #[test]
     fn crit_threshold_full_cycle() {
         let mut app = test_app();
         app.prefs.thresh_crit = 80;
-        app.handle_key(make_key(KeyCode::Char('T'))); assert_eq!(app.prefs.thresh_crit, 85);
-        app.handle_key(make_key(KeyCode::Char('T'))); assert_eq!(app.prefs.thresh_crit, 90);
-        app.handle_key(make_key(KeyCode::Char('T'))); assert_eq!(app.prefs.thresh_crit, 95);
-        app.handle_key(make_key(KeyCode::Char('T'))); assert_eq!(app.prefs.thresh_crit, 80);
+        app.handle_key(make_key(KeyCode::Char('T')));
+        assert_eq!(app.prefs.thresh_crit, 85);
+        app.handle_key(make_key(KeyCode::Char('T')));
+        assert_eq!(app.prefs.thresh_crit, 90);
+        app.handle_key(make_key(KeyCode::Char('T')));
+        assert_eq!(app.prefs.thresh_crit, 95);
+        app.handle_key(make_key(KeyCode::Char('T')));
+        assert_eq!(app.prefs.thresh_crit, 80);
     }
 
     // ── Non-standard thresh value defaults to cycle start ─

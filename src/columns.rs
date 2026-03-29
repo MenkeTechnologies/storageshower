@@ -23,7 +23,11 @@ pub fn right_col_width(app: &App) -> u16 {
         mu = mu.max(format_bytes(d.used, app.prefs.unit_mode).len());
         mt = mt.max(format_bytes(d.total, app.prefs.unit_mode).len());
     }
-    let pct_w = if app.prefs.col_pct_w > 0 { app.prefs.col_pct_w as usize } else { 5 };
+    let pct_w = if app.prefs.col_pct_w > 0 {
+        app.prefs.col_pct_w as usize
+    } else {
+        5
+    };
     let needed = pct_w + 1 + 1 + mu + 1 + mt + 1;
     (needed as u16).max(22)
 }
@@ -42,9 +46,9 @@ pub fn mount_col_width(inner_w: u16, prefs: &Prefs) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::{Arc, Mutex};
     use crate::app::App;
     use crate::types::SysStats;
+    use std::sync::{Arc, Mutex};
 
     #[test]
     fn mount_col_width_default() {

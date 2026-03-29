@@ -9,7 +9,7 @@ use crate::types::*;
     name = "storageshower",
     version,
     disable_help_flag = true,
-    disable_version_flag = true,
+    disable_version_flag = true
 )]
 pub struct Cli {
     /// Sort mode for disk entries
@@ -287,23 +287,49 @@ pub fn print_export_theme(prefs: &Prefs) {
     use ratatui::style::Color;
 
     fn idx(c: Color) -> u8 {
-        match c { Color::Indexed(n) => n, _ => 0 }
+        match c {
+            Color::Indexed(n) => n,
+            _ => 0,
+        }
     }
 
     let (name, colors) = if let Some(ref theme_name) = prefs.active_theme {
         if let Some(theme) = prefs.custom_themes.get(theme_name) {
-            (theme_name.clone(), [theme.blue, theme.green, theme.purple, theme.light_purple, theme.royal, theme.dark_purple])
+            (
+                theme_name.clone(),
+                [
+                    theme.blue,
+                    theme.green,
+                    theme.purple,
+                    theme.light_purple,
+                    theme.royal,
+                    theme.dark_purple,
+                ],
+            )
         } else {
             let (a, b, c, d, e, f) = palette(prefs.color_mode);
-            (prefs.color_mode.name().to_string(), [idx(a), idx(b), idx(c), idx(d), idx(e), idx(f)])
+            (
+                prefs.color_mode.name().to_string(),
+                [idx(a), idx(b), idx(c), idx(d), idx(e), idx(f)],
+            )
         }
     } else {
         let (a, b, c, d, e, f) = palette_for_prefs(prefs);
-        (prefs.color_mode.name().to_string(), [idx(a), idx(b), idx(c), idx(d), idx(e), idx(f)])
+        (
+            prefs.color_mode.name().to_string(),
+            [idx(a), idx(b), idx(c), idx(d), idx(e), idx(f)],
+        )
     };
 
-    let safe_name: String = name.chars()
-        .map(|c| if c.is_alphanumeric() || c == '_' { c.to_ascii_lowercase() } else { '_' })
+    let safe_name: String = name
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' {
+                c.to_ascii_lowercase()
+            } else {
+                '_'
+            }
+        })
         .collect();
 
     println!("# {} — exported from storageshower", name);
@@ -322,35 +348,91 @@ pub fn print_export_theme(prefs: &Prefs) {
 impl Cli {
     /// Apply CLI overrides on top of loaded prefs. CLI flags take priority.
     pub fn apply_to(&self, prefs: &mut Prefs) {
-        if let Some(v) = self.sort_mode { prefs.sort_mode = v; }
-        if let Some(v) = self.refresh_rate { prefs.refresh_rate = v; }
-        if let Some(v) = self.bar_style { prefs.bar_style = v; }
-        if let Some(v) = self.color_mode { prefs.color_mode = v; }
-        if let Some(v) = self.thresh_warn { prefs.thresh_warn = v; }
-        if let Some(v) = self.thresh_crit { prefs.thresh_crit = v; }
-        if let Some(v) = self.unit_mode { prefs.unit_mode = v; }
-        if let Some(v) = self.col_mount_w { prefs.col_mount_w = v; }
-        if let Some(v) = self.col_bar_end_w { prefs.col_bar_end_w = v; }
-        if let Some(v) = self.col_pct_w { prefs.col_pct_w = v; }
+        if let Some(v) = self.sort_mode {
+            prefs.sort_mode = v;
+        }
+        if let Some(v) = self.refresh_rate {
+            prefs.refresh_rate = v;
+        }
+        if let Some(v) = self.bar_style {
+            prefs.bar_style = v;
+        }
+        if let Some(v) = self.color_mode {
+            prefs.color_mode = v;
+        }
+        if let Some(v) = self.thresh_warn {
+            prefs.thresh_warn = v;
+        }
+        if let Some(v) = self.thresh_crit {
+            prefs.thresh_crit = v;
+        }
+        if let Some(v) = self.unit_mode {
+            prefs.unit_mode = v;
+        }
+        if let Some(v) = self.col_mount_w {
+            prefs.col_mount_w = v;
+        }
+        if let Some(v) = self.col_bar_end_w {
+            prefs.col_bar_end_w = v;
+        }
+        if let Some(v) = self.col_pct_w {
+            prefs.col_pct_w = v;
+        }
         // Boolean pairs: --flag / --no-flag (last one wins via clap overrides_with)
-        if self.sort_rev { prefs.sort_rev = true; }
-        if self.no_reverse { prefs.sort_rev = false; }
-        if self.show_local { prefs.show_local = true; }
-        if self.no_local { prefs.show_local = false; }
-        if self.compact { prefs.compact = true; }
-        if self.no_compact { prefs.compact = false; }
-        if self.full_mount { prefs.full_mount = true; }
-        if self.no_full_mount { prefs.full_mount = false; }
-        if self.bars { prefs.show_bars = true; }
-        if self.no_bars { prefs.show_bars = false; }
-        if self.border { prefs.show_border = true; }
-        if self.no_border { prefs.show_border = false; }
-        if self.header { prefs.show_header = true; }
-        if self.no_header { prefs.show_header = false; }
-        if self.used { prefs.show_used = true; }
-        if self.no_used { prefs.show_used = false; }
-        if self.show_virtual { prefs.show_all = true; }
-        if self.no_virtual { prefs.show_all = false; }
+        if self.sort_rev {
+            prefs.sort_rev = true;
+        }
+        if self.no_reverse {
+            prefs.sort_rev = false;
+        }
+        if self.show_local {
+            prefs.show_local = true;
+        }
+        if self.no_local {
+            prefs.show_local = false;
+        }
+        if self.compact {
+            prefs.compact = true;
+        }
+        if self.no_compact {
+            prefs.compact = false;
+        }
+        if self.full_mount {
+            prefs.full_mount = true;
+        }
+        if self.no_full_mount {
+            prefs.full_mount = false;
+        }
+        if self.bars {
+            prefs.show_bars = true;
+        }
+        if self.no_bars {
+            prefs.show_bars = false;
+        }
+        if self.border {
+            prefs.show_border = true;
+        }
+        if self.no_border {
+            prefs.show_border = false;
+        }
+        if self.header {
+            prefs.show_header = true;
+        }
+        if self.no_header {
+            prefs.show_header = false;
+        }
+        if self.used {
+            prefs.show_used = true;
+        }
+        if self.no_used {
+            prefs.show_used = false;
+        }
+        if self.show_virtual {
+            prefs.show_all = true;
+        }
+        if self.no_virtual {
+            prefs.show_all = false;
+        }
         if let Some(ref name) = self.theme {
             prefs.active_theme = Some(name.clone());
         }
@@ -469,8 +551,12 @@ mod tests {
     #[test]
     fn apply_no_flags() {
         let cli = Cli::parse_from([
-            "storageshower", "--no-bars", "--no-border", "--no-header",
-            "--no-used", "--no-virtual",
+            "storageshower",
+            "--no-bars",
+            "--no-border",
+            "--no-header",
+            "--no-used",
+            "--no-virtual",
         ]);
         let mut prefs = Prefs::default();
         assert!(prefs.show_bars);
@@ -522,7 +608,13 @@ mod tests {
     #[test]
     fn apply_column_widths() {
         let cli = Cli::parse_from([
-            "storageshower", "--col-mount", "25", "--col-bar-end", "30", "--col-pct", "8",
+            "storageshower",
+            "--col-mount",
+            "25",
+            "--col-bar-end",
+            "30",
+            "--col-pct",
+            "8",
         ]);
         let mut prefs = Prefs::default();
         cli.apply_to(&mut prefs);
@@ -575,7 +667,10 @@ mod tests {
 
     #[test]
     fn all_color_modes_parse() {
-        for color in ["default", "green", "blue", "purple", "amber", "cyan", "red", "sakura", "matrix", "sunset"] {
+        for color in [
+            "default", "green", "blue", "purple", "amber", "cyan", "red", "sakura", "matrix",
+            "sunset",
+        ] {
             let cli = Cli::parse_from(["storageshower", "--color", color]);
             assert!(cli.color_mode.is_some());
         }
@@ -600,9 +695,27 @@ mod tests {
     #[test]
     fn combined_flags() {
         let cli = Cli::parse_from([
-            "storageshower", "-s", "pct", "-R", "-l", "-b", "thin",
-            "--color", "green", "-u", "gib", "-k", "-f", "-w", "50", "-C", "80",
-            "-r", "2", "--no-bars", "--no-border",
+            "storageshower",
+            "-s",
+            "pct",
+            "-R",
+            "-l",
+            "-b",
+            "thin",
+            "--color",
+            "green",
+            "-u",
+            "gib",
+            "-k",
+            "-f",
+            "-w",
+            "50",
+            "-C",
+            "80",
+            "-r",
+            "2",
+            "--no-bars",
+            "--no-border",
         ]);
         let mut prefs = Prefs::default();
         cli.apply_to(&mut prefs);

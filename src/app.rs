@@ -4,7 +4,7 @@ use std::time::Instant;
 use sysinfo::DiskKind;
 
 use crate::cli::Cli;
-use crate::prefs::{load_prefs_from, save_prefs, Prefs};
+use crate::prefs::{Prefs, load_prefs_from, save_prefs};
 use crate::system::scan_directory_with_progress;
 use crate::types::*;
 
@@ -36,10 +36,10 @@ pub fn copy_to_clipboard(text: &str) -> Result<(), String> {
             if let Some(ref mut stdin) = child.stdin {
                 let _ = stdin.write_all(text.as_bytes());
             }
-            if let Ok(status) = child.wait() {
-                if status.success() {
-                    return Ok(());
-                }
+            if let Ok(status) = child.wait()
+                && status.success()
+            {
+                return Ok(());
             }
         }
     }
@@ -250,7 +250,10 @@ impl App {
     pub fn all_themes(&self) -> Vec<(String, String)> {
         let mut themes: Vec<(String, String)> = Vec::new();
         for &mode in ColorMode::ALL {
-            themes.push((format!("{:?}", mode).to_lowercase(), mode.name().to_string()));
+            themes.push((
+                format!("{:?}", mode).to_lowercase(),
+                mode.name().to_string(),
+            ));
         }
         let mut custom_names: Vec<String> = self.prefs.custom_themes.keys().cloned().collect();
         custom_names.sort();
@@ -280,7 +283,8 @@ impl App {
     }
 
     pub fn hover_ready(&self) -> bool {
-        self.hover.since
+        self.hover
+            .since
             .map(|t| {
                 let elapsed = t.elapsed().as_millis();
                 let visible = elapsed >= 1000;
@@ -297,15 +301,15 @@ impl App {
             None => return HoverZone::None,
         };
         let title_row: u16 = if self.prefs.show_border { 1 } else { 0 };
-        let first_disk_row = title_row + 2
-            + if self.prefs.show_header { 2 } else { 0 };
+        let first_disk_row = title_row + 2 + if self.prefs.show_header { 2 } else { 0 };
         let footer_rows: u16 = 2 + if self.prefs.show_border { 1 } else { 0 };
         let footer_row = term_h.saturating_sub(footer_rows) + 1;
 
         if y == title_row {
             return HoverZone::TitleBar;
         }
-        if y >= footer_row && y < term_h.saturating_sub(if self.prefs.show_border { 1 } else { 0 }) {
+        if y >= footer_row && y < term_h.saturating_sub(if self.prefs.show_border { 1 } else { 0 })
+        {
             return HoverZone::FooterBar;
         }
         if y >= first_disk_row {
@@ -339,7 +343,11 @@ impl App {
             return None;
         }
         let idx = (y - first_entry_row) as usize;
-        if idx < self.drill.entries.len() { Some(idx) } else { None }
+        if idx < self.drill.entries.len() {
+            Some(idx)
+        } else {
+            None
+        }
     }
 
     pub fn drill_current_path(&self) -> String {
@@ -349,7 +357,10 @@ impl App {
     pub fn sort_drill_entries(&mut self) {
         match self.drill.sort {
             DrillSortMode::Size => self.drill.entries.sort_by(|a, b| b.size.cmp(&a.size)),
-            DrillSortMode::Name => self.drill.entries.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
+            DrillSortMode::Name => self
+                .drill
+                .entries
+                .sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
         }
         if self.drill.sort_rev {
             self.drill.entries.reverse();
@@ -400,10 +411,7 @@ impl App {
             });
         }
         if self.prefs.show_local {
-            ds.retain(|d| {
-                matches!(d.kind, DiskKind::HDD | DiskKind::SSD)
-                    || d.total > 0
-            });
+            ds.retain(|d| matches!(d.kind, DiskKind::HDD | DiskKind::SSD) || d.total > 0);
         }
         if !self.filter.text.is_empty() {
             let f = self.filter.text.to_lowercase();
@@ -411,14 +419,24 @@ impl App {
         }
         match self.prefs.sort_mode {
             SortMode::Name => ds.sort_by(|a, b| a.mount.cmp(&b.mount)),
-            SortMode::Pct => ds.sort_by(|a, b| a.pct.partial_cmp(&b.pct).unwrap_or(std::cmp::Ordering::Equal)),
+            SortMode::Pct => ds.sort_by(|a, b| {
+                a.pct
+                    .partial_cmp(&b.pct)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            }),
             SortMode::Size => ds.sort_by(|a, b| a.total.cmp(&b.total)),
         }
         if self.prefs.sort_rev {
             ds.reverse();
         }
         if !self.prefs.bookmarks.is_empty() {
-            ds.sort_by_key(|d| if self.prefs.bookmarks.contains(&d.mount) { 0 } else { 1 });
+            ds.sort_by_key(|d| {
+                if self.prefs.bookmarks.contains(&d.mount) {
+                    0
+                } else {
+                    1
+                }
+            });
         }
         self.sorted_cache = ds;
     }
@@ -429,7 +447,9 @@ impl App {
     }
 
     pub fn save(&self) {
-        if self.test_mode { return; }
+        if self.test_mode {
+            return;
+        }
         save_prefs(&self.prefs);
     }
     // handle_key and handle_mouse are in the input module.
@@ -441,9 +461,8 @@ pub use crate::columns::{mount_col_width, right_col_width, right_col_width_stati
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crossterm::event::KeyCode;
     use crate::testutil::*;
-
+    use crossterm::event::KeyCode;
 
     // ── Sorting ────────────────────────────────────────────
 
@@ -548,9 +567,16 @@ mod tests {
     fn show_all_off_filters_sys() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/sys/kernel".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "sysfs".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/sys/kernel".into(),
+            used: 0,
+            total: 100,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "sysfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -562,9 +588,16 @@ mod tests {
     fn show_all_off_filters_proc() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/proc".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "proc".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/proc".into(),
+            used: 0,
+            total: 100,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "proc".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -576,9 +609,16 @@ mod tests {
     fn show_all_off_filters_dev_shm() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/dev/shm".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "tmpfs".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/dev/shm".into(),
+            used: 0,
+            total: 100,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "tmpfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -590,9 +630,16 @@ mod tests {
     fn show_all_off_filters_run() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/run/lock".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "tmpfs".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/run/lock".into(),
+            used: 0,
+            total: 100,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "tmpfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -604,9 +651,16 @@ mod tests {
     fn show_all_off_filters_snap() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/snap/core".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "squashfs".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/snap/core".into(),
+            used: 0,
+            total: 100,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "squashfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -618,9 +672,16 @@ mod tests {
     fn show_all_off_filters_overlay() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/var/lib/docker".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "overlay".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/var/lib/docker".into(),
+            used: 0,
+            total: 100,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "overlay".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -632,9 +693,16 @@ mod tests {
     fn show_all_off_filters_devtmpfs() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/dev".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "devtmpfs".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/dev".into(),
+            used: 0,
+            total: 100,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "devtmpfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -646,9 +714,16 @@ mod tests {
     fn show_all_off_filters_devfs() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/dev".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "devfs".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/dev".into(),
+            used: 0,
+            total: 100,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "devfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -660,9 +735,16 @@ mod tests {
     fn show_all_off_filters_autofs() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/net".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "autofs".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/net".into(),
+            used: 0,
+            total: 100,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "autofs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -674,9 +756,16 @@ mod tests {
     fn show_all_off_filters_map() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/net".into(), used: 0, total: 100, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "map".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/net".into(),
+            used: 0,
+            total: 100,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "map".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -688,9 +777,16 @@ mod tests {
     fn show_all_off_filters_zero_total() {
         let mut app = test_app();
         app.disks.push(DiskEntry {
-            mount: "/empty".into(), used: 0, total: 0, pct: 0.0,
-            kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/empty".into(),
+            used: 0,
+            total: 0,
+            pct: 0.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.prefs.show_all = false;
         app.update_sorted();
@@ -729,9 +825,16 @@ mod tests {
         let mut app = test_app();
         // Add more disks with 'a' in name
         app.disks.push(DiskEntry {
-            mount: "/data2".into(), used: 200_000_000_000, total: 400_000_000_000,
-            pct: 50.0, kind: DiskKind::SSD, fs: "ext4".into(), latency_ms: None,
-            io_read_rate: None, io_write_rate: None, smart_status: None,
+            mount: "/data2".into(),
+            used: 200_000_000_000,
+            total: 400_000_000_000,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
         });
         app.filter.text = "data".into();
         app.prefs.sort_mode = SortMode::Size;

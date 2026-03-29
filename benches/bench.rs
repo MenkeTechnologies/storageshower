@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use storageshower::app::{mount_col_width, right_col_width_static};
 use storageshower::helpers::{format_bytes, format_uptime, truncate_mount};
 use storageshower::prefs::Prefs;
@@ -13,7 +13,7 @@ fn sample_disks(n: usize) -> Vec<DiskEntry> {
     (0..n)
         .map(|i| DiskEntry {
             mount: format!("/mnt/disk{i}"),
-            used: (i as u64 + 1) * 107_374_182_400,   // ~100G increments
+            used: (i as u64 + 1) * 107_374_182_400, // ~100G increments
             total: (i as u64 + 2) * 107_374_182_400,
             pct: (i as f64 + 1.0) / (i as f64 + 2.0) * 100.0,
             kind: DiskKind::SSD,
@@ -41,7 +41,12 @@ fn bench_format_bytes(c: &mut Criterion) {
         (1_099_511_627_776, "1T"),
         (5_497_558_138_880, "5T"),
     ];
-    let modes = [UnitMode::Human, UnitMode::GiB, UnitMode::MiB, UnitMode::Bytes];
+    let modes = [
+        UnitMode::Human,
+        UnitMode::GiB,
+        UnitMode::MiB,
+        UnitMode::Bytes,
+    ];
 
     let mut group = c.benchmark_group("format_bytes");
     for (val, label) in sizes {
@@ -66,11 +71,9 @@ fn bench_format_uptime(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("format_uptime");
     for (secs, label) in durations {
-        group.bench_with_input(
-            BenchmarkId::new(*label, secs),
-            secs,
-            |b, &s| b.iter(|| format_uptime(black_box(s))),
-        );
+        group.bench_with_input(BenchmarkId::new(*label, secs), secs, |b, &s| {
+            b.iter(|| format_uptime(black_box(s)))
+        });
     }
     group.finish();
 }
@@ -102,11 +105,9 @@ fn bench_mount_col_width(c: &mut Criterion) {
     let mut group = c.benchmark_group("mount_col_width");
     let prefs = default_prefs();
     for inner_w in [60, 120, 200] {
-        group.bench_with_input(
-            BenchmarkId::from_parameter(inner_w),
-            &inner_w,
-            |b, &w| b.iter(|| mount_col_width(black_box(w), black_box(&prefs))),
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(inner_w), &inner_w, |b, &w| {
+            b.iter(|| mount_col_width(black_box(w), black_box(&prefs)))
+        });
     }
 
     let mut compact_prefs = default_prefs();
@@ -141,7 +142,12 @@ fn bench_right_col_width_static(c: &mut Criterion) {
 // ─── Color / theme ──────────────────────────────────────────────────────────
 
 fn bench_palette(c: &mut Criterion) {
-    let modes = [ColorMode::Default, ColorMode::Green, ColorMode::Blue, ColorMode::Purple];
+    let modes = [
+        ColorMode::Default,
+        ColorMode::Green,
+        ColorMode::Blue,
+        ColorMode::Purple,
+    ];
     let mut group = c.benchmark_group("palette");
     for mode in modes {
         group.bench_with_input(
@@ -176,11 +182,9 @@ fn bench_epoch_to_local(c: &mut Criterion) {
     ];
     let mut group = c.benchmark_group("epoch_to_local");
     for (epoch, label) in epochs {
-        group.bench_with_input(
-            BenchmarkId::new(*label, epoch),
-            epoch,
-            |b, &e| b.iter(|| epoch_to_local(black_box(e))),
-        );
+        group.bench_with_input(BenchmarkId::new(*label, epoch), epoch, |b, &e| {
+            b.iter(|| epoch_to_local(black_box(e)))
+        });
     }
     group.finish();
 }
@@ -231,43 +235,33 @@ fn bench_sort_disks(c: &mut Criterion) {
     for count in [10, 50, 200] {
         let disks = sample_disks(count);
 
-        group.bench_with_input(
-            BenchmarkId::new("by_name", count),
-            &disks,
-            |b, ds| {
-                b.iter(|| {
-                    let mut v = ds.clone();
-                    v.sort_by(|a, b| a.mount.cmp(&b.mount));
-                    black_box(v);
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("by_name", count), &disks, |b, ds| {
+            b.iter(|| {
+                let mut v = ds.clone();
+                v.sort_by(|a, b| a.mount.cmp(&b.mount));
+                black_box(v);
+            })
+        });
 
-        group.bench_with_input(
-            BenchmarkId::new("by_pct", count),
-            &disks,
-            |b, ds| {
-                b.iter(|| {
-                    let mut v = ds.clone();
-                    v.sort_by(|a, b| {
-                        a.pct.partial_cmp(&b.pct).unwrap_or(std::cmp::Ordering::Equal)
-                    });
-                    black_box(v);
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("by_pct", count), &disks, |b, ds| {
+            b.iter(|| {
+                let mut v = ds.clone();
+                v.sort_by(|a, b| {
+                    a.pct
+                        .partial_cmp(&b.pct)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                });
+                black_box(v);
+            })
+        });
 
-        group.bench_with_input(
-            BenchmarkId::new("by_size", count),
-            &disks,
-            |b, ds| {
-                b.iter(|| {
-                    let mut v = ds.clone();
-                    v.sort_by(|a, b| a.total.cmp(&b.total));
-                    black_box(v);
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("by_size", count), &disks, |b, ds| {
+            b.iter(|| {
+                let mut v = ds.clone();
+                v.sort_by(|a, b| a.total.cmp(&b.total));
+                black_box(v);
+            })
+        });
     }
     group.finish();
 }
@@ -295,21 +289,17 @@ fn bench_filter_disks(c: &mut Criterion) {
             },
         );
 
-        group.bench_with_input(
-            BenchmarkId::new("no_match", count),
-            &disks,
-            |b, ds| {
-                let filter = "zzzznotfound";
-                b.iter(|| {
-                    let f = filter.to_lowercase();
-                    let v: Vec<_> = ds
-                        .iter()
-                        .filter(|d| d.mount.to_lowercase().contains(&f))
-                        .collect();
-                    black_box(v);
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("no_match", count), &disks, |b, ds| {
+            let filter = "zzzznotfound";
+            b.iter(|| {
+                let f = filter.to_lowercase();
+                let v: Vec<_> = ds
+                    .iter()
+                    .filter(|d| d.mount.to_lowercase().contains(&f))
+                    .collect();
+                black_box(v);
+            })
+        });
     }
     group.finish();
 }
@@ -320,18 +310,14 @@ fn bench_format_all_disks(c: &mut Criterion) {
     let mut group = c.benchmark_group("format_all_disks");
     for count in [10, 50, 200] {
         let disks = sample_disks(count);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(count),
-            &disks,
-            |b, ds| {
-                b.iter(|| {
-                    for d in ds {
-                        black_box(format_bytes(d.used, UnitMode::Human));
-                        black_box(format_bytes(d.total, UnitMode::Human));
-                    }
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(count), &disks, |b, ds| {
+            b.iter(|| {
+                for d in ds {
+                    black_box(format_bytes(d.used, UnitMode::Human));
+                    black_box(format_bytes(d.total, UnitMode::Human));
+                }
+            })
+        });
     }
     group.finish();
 }

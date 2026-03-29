@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use sysinfo::{DiskKind, System};
 
 use crate::types::*;
@@ -46,16 +46,38 @@ pub fn epoch_to_local(epoch: i64) -> (i32, u32, u32, u32, u32, u32) {
     let ss = day_secs % 60;
     let mut y = 1970i32;
     loop {
-        let dy: i64 = if (y % 4 == 0 && y % 100 != 0) || y % 400 == 0 { 366 } else { 365 };
-        if days < dy { break; }
+        let dy: i64 = if (y % 4 == 0 && y % 100 != 0) || y % 400 == 0 {
+            366
+        } else {
+            365
+        };
+        if days < dy {
+            break;
+        }
         days -= dy;
         y += 1;
     }
     let leap = (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;
-    let mdays: [i64; 12] = [31, if leap {29} else {28}, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let mdays: [i64; 12] = [
+        31,
+        if leap { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
     let mut mo = 1u32;
     for i in 0..12 {
-        if days < mdays[i] { mo = i as u32 + 1; break; }
+        if days < mdays[i] {
+            mo = i as u32 + 1;
+            break;
+        }
         days -= mdays[i];
     }
     (y, mo, days as u32 + 1, hh, mm, ss)
@@ -86,7 +108,11 @@ pub fn get_tty() -> Option<String> {
         if name.is_null() {
             None
         } else {
-            Some(std::ffi::CStr::from_ptr(name).to_string_lossy().into_owned())
+            Some(
+                std::ffi::CStr::from_ptr(name)
+                    .to_string_lossy()
+                    .into_owned(),
+            )
         }
     }
 }
@@ -133,9 +159,17 @@ pub fn get_battery() -> Option<u8> {
 pub fn is_network_fs(fs: &str) -> bool {
     matches!(
         fs,
-        "nfs" | "nfs4" | "cifs" | "smbfs" | "afp" | "ncp"
-            | "fuse.sshfs" | "fuse.rclone" | "fuse.s3fs"
-            | "9p" | "afs"
+        "nfs"
+            | "nfs4"
+            | "cifs"
+            | "smbfs"
+            | "afp"
+            | "ncp"
+            | "fuse.sshfs"
+            | "fuse.rclone"
+            | "fuse.s3fs"
+            | "9p"
+            | "afs"
     )
 }
 
@@ -267,7 +301,18 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 } else {
                     None
                 };
-                DiskEntry { mount, used, total, pct, kind, fs: fstype, latency_ms, io_read_rate: None, io_write_rate: None, smart_status: None }
+                DiskEntry {
+                    mount,
+                    used,
+                    total,
+                    pct,
+                    kind,
+                    fs: fstype,
+                    latency_ms,
+                    io_read_rate: None,
+                    io_write_rate: None,
+                    smart_status: None,
+                }
             })
             .collect()
     }
@@ -407,12 +452,15 @@ fn mount_to_device_map() -> HashMap<String, String> {
             let entries = std::slice::from_raw_parts(mntbuf, count as usize);
             for fs in entries {
                 let mount = CStr::from_ptr(fs.f_mntonname.as_ptr())
-                    .to_string_lossy().to_string();
+                    .to_string_lossy()
+                    .to_string();
                 let device = CStr::from_ptr(fs.f_mntfromname.as_ptr())
-                    .to_string_lossy().to_string();
+                    .to_string_lossy()
+                    .to_string();
                 // Extract base device: /dev/disk3s1 -> disk3
                 if let Some(dev) = device.strip_prefix("/dev/") {
-                    let base: String = dev.chars()
+                    let base: String = dev
+                        .chars()
                         .take_while(|c| c.is_ascii_alphanumeric())
                         .collect();
                     if !base.is_empty() {
@@ -436,7 +484,8 @@ fn mount_to_device_map() -> HashMap<String, String> {
                 let mount = parts[1].to_string();
                 // Extract base device: /dev/sda1 -> sda, /dev/nvme0n1p1 -> nvme0n1
                 if let Some(dev) = device.strip_prefix("/dev/") {
-                    let base = dev.trim_end_matches(|c: char| c.is_ascii_digit())
+                    let base = dev
+                        .trim_end_matches(|c: char| c.is_ascii_digit())
                         .trim_end_matches('p');
                     if !base.is_empty() {
                         map.insert(mount, base.to_string());
@@ -470,26 +519,31 @@ fn read_io_counters() -> IoSnapshot {
     let mut current_device = String::new();
     for line in output.lines() {
         let trimmed = line.trim();
-        if trimmed.contains("\"BSD Name\"") {
-            if let Some(name) = trimmed.split('"').nth(3) {
-                // Normalize to base device (disk0s1 -> disk0)
-                current_device = name.chars()
-                    .take_while(|c| c.is_ascii_alphanumeric() && !c.is_ascii_digit())
-                    .chain(name.chars().skip_while(|c| !c.is_ascii_digit()).take_while(|c| c.is_ascii_digit()))
-                    .collect();
-            }
+        if trimmed.contains("\"BSD Name\"")
+            && let Some(name) = trimmed.split('"').nth(3)
+        {
+            // Normalize to base device (disk0s1 -> disk0)
+            current_device = name
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() && !c.is_ascii_digit())
+                .chain(
+                    name.chars()
+                        .skip_while(|c| !c.is_ascii_digit())
+                        .take_while(|c| c.is_ascii_digit()),
+                )
+                .collect();
         }
-        if trimmed.contains("\"Bytes (Read)\"") {
-            if let Some(val) = extract_ioreg_number(trimmed, "Bytes (Read)") {
-                let entry = snap.entry(current_device.clone()).or_insert((0, 0));
-                entry.0 = val;
-            }
+        if trimmed.contains("\"Bytes (Read)\"")
+            && let Some(val) = extract_ioreg_number(trimmed, "Bytes (Read)")
+        {
+            let entry = snap.entry(current_device.clone()).or_insert((0, 0));
+            entry.0 = val;
         }
-        if trimmed.contains("\"Bytes (Write)\"") {
-            if let Some(val) = extract_ioreg_number(trimmed, "Bytes (Write)") {
-                let entry = snap.entry(current_device.clone()).or_insert((0, 0));
-                entry.1 = val;
-            }
+        if trimmed.contains("\"Bytes (Write)\"")
+            && let Some(val) = extract_ioreg_number(trimmed, "Bytes (Write)")
+        {
+            let entry = snap.entry(current_device.clone()).or_insert((0, 0));
+            entry.1 = val;
         }
     }
     snap
@@ -614,12 +668,10 @@ fn collect_smart_status(mount_dev: &HashMap<String, String>) -> SmartMap {
         let state_path = format!("/sys/block/{}/device/state", base_dev);
         let status = std::fs::read_to_string(&state_path)
             .ok()
-            .map(|s| {
-                match s.trim() {
-                    "running" => SmartHealth::Verified,
-                    "offline" | "dead" | "blocked" => SmartHealth::Failing,
-                    _ => SmartHealth::Unknown,
-                }
+            .map(|s| match s.trim() {
+                "running" => SmartHealth::Verified,
+                "offline" | "dead" | "blocked" => SmartHealth::Failing,
+                _ => SmartHealth::Unknown,
             })
             .unwrap_or(SmartHealth::Unknown);
         checked.insert(base_dev.clone(), status);
@@ -692,7 +744,7 @@ mod tests {
     fn chrono_now_year_reasonable() {
         let (date, _) = chrono_now();
         let year: i32 = date[..4].parse().unwrap();
-        assert!(year >= 2024 && year <= 2100);
+        assert!((2024..=2100).contains(&year));
     }
 
     #[test]
@@ -732,8 +784,12 @@ mod tests {
     fn collect_disk_entries_pct_in_range() {
         let disks = collect_disk_entries();
         for d in &disks {
-            assert!(d.pct >= 0.0 && d.pct <= 100.0,
-                "Disk {} pct {} out of range", d.mount, d.pct);
+            assert!(
+                d.pct >= 0.0 && d.pct <= 100.0,
+                "Disk {} pct {} out of range",
+                d.mount,
+                d.pct
+            );
         }
     }
 
@@ -802,9 +858,15 @@ mod tests {
     #[test]
     fn apply_io_rates_sets_fields() {
         let mut entries = vec![DiskEntry {
-            mount: "/".into(), used: 0, total: 0, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "apfs".into(),
-            latency_ms: None, io_read_rate: None, io_write_rate: None,
+            mount: "/".into(),
+            used: 0,
+            total: 0,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "apfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
             smart_status: None,
         }];
         let mut rates = IoRates::new();
@@ -817,9 +879,15 @@ mod tests {
     #[test]
     fn apply_smart_status_sets_fields() {
         let mut entries = vec![DiskEntry {
-            mount: "/".into(), used: 0, total: 0, pct: 0.0,
-            kind: DiskKind::Unknown(-1), fs: "apfs".into(),
-            latency_ms: None, io_read_rate: None, io_write_rate: None,
+            mount: "/".into(),
+            used: 0,
+            total: 0,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "apfs".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
             smart_status: None,
         }];
         let mut smart = SmartMap::new();
