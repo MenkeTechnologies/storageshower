@@ -20,6 +20,7 @@ pub fn chrono_now() -> (String, String) {
 }
 
 #[cfg(unix)]
+#[allow(clippy::unnecessary_cast)]
 pub fn epoch_to_local(epoch: i64) -> (i32, u32, u32, u32, u32, u32) {
     unsafe {
         let mut tm: libc::tm = std::mem::zeroed();
