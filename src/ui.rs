@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use crate::app::{App, mount_col_width, right_col_width};
 use crate::helpers::{format_bytes, format_latency, format_rate, format_uptime, truncate_mount};
-use crate::system::{chrono_now, get_battery, get_local_ip, get_tty, get_username};
+use crate::system::{chrono_now, dedup_disk_totals, get_battery, get_local_ip, get_tty, get_username};
 use crate::types::*;
 
 // ─── Color/style helpers ───────────────────────────────────────────────────
@@ -1699,7 +1699,7 @@ fn draw_hover_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, disk: &DiskEn
         ));
     }
     // Show what percentage this volume is of total system storage
-    let global_total: u64 = app.disks.iter().map(|d| d.total).sum();
+    let (global_total, _) = dedup_disk_totals(&app.disks);
     if global_total > 0 {
         let vol_share = (disk.total as f64 / global_total as f64) * 100.0;
         lines.push((
@@ -2146,8 +2146,7 @@ fn title_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
 fn footer_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
     let seg_lower = segment.to_lowercase();
     if seg_lower.contains("cyberdeck") || seg_lower.contains("zpwr") {
-        let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
-        let total_used: u64 = app.disks.iter().map(|d| d.used).sum();
+        let (total_storage, total_used) = dedup_disk_totals(&app.disks);
         let total_free = total_storage.saturating_sub(total_used);
         let overall_pct = if total_storage > 0 {
             (total_used as f64 / total_storage as f64) * 100.0
@@ -2193,8 +2192,7 @@ fn footer_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
         let total = app.disks.len();
         let visible: usize = segment.trim_start_matches("vol:").parse().unwrap_or(0);
         let hidden = total.saturating_sub(visible);
-        let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
-        let total_used: u64 = app.disks.iter().map(|d| d.used).sum();
+        let (total_storage, total_used) = dedup_disk_totals(&app.disks);
         let overall_pct = if total_storage > 0 {
             (total_used as f64 / total_storage as f64) * 100.0
         } else {
@@ -2464,8 +2462,7 @@ fn footer_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
         ]
     } else if seg_lower.starts_with("disks:") {
         let count_str = segment.trim_start_matches("disks:");
-        let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
-        let total_used: u64 = app.disks.iter().map(|d| d.used).sum();
+        let (total_storage, total_used) = dedup_disk_totals(&app.disks);
         let overall_pct = if total_storage > 0 {
             (total_used as f64 / total_storage as f64) * 100.0
         } else {
@@ -2593,7 +2590,7 @@ fn footer_segment_tooltip(segment: &str, app: &App) -> Vec<(String, String)> {
             UnitMode::Bytes => "bytes",
         };
         if segment.trim() == unit_name {
-            let total_storage: u64 = app.disks.iter().map(|d| d.total).sum();
+            let (total_storage, _) = dedup_disk_totals(&app.disks);
             return vec![
                 ("\u{25B6} Unit Mode".into(), unit_name.into()),
                 ("  Desc".into(), "How byte sizes are formatted".into()),

@@ -267,7 +267,6 @@ pub fn collect_disk_entries() -> Vec<DiskEntry> {
 
 #[cfg(target_os = "macos")]
 fn collect_all_mounts() -> Vec<DiskEntry> {
-    use std::collections::HashMap;
     use std::ffi::CStr;
     unsafe {
         let mut mntbuf: *mut libc::statfs = std::ptr::null_mut();
@@ -276,188 +275,161 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
             return Vec::new();
         }
         let entries = std::slice::from_raw_parts(mntbuf, count as usize);
-        let mut by_device: HashMap<String, DiskEntry> = HashMap::new();
-        for fs in entries {
-            let mount = CStr::from_ptr(fs.f_mntonname.as_ptr())
-                .to_string_lossy()
-                .to_string();
-            let fstype = CStr::from_ptr(fs.f_fstypename.as_ptr())
-                .to_string_lossy()
-                .to_string();
-            let device = CStr::from_ptr(fs.f_mntfromname.as_ptr())
-                .to_string_lossy()
-                .to_string();
-            let total = fs.f_blocks * fs.f_bsize as u64;
-            let avail = fs.f_bavail * fs.f_bsize as u64;
-            let used = total.saturating_sub(avail);
-            let pct = if total > 0 {
-                (used as f64 / total as f64) * 100.0
-            } else {
-                0.0
-            };
-            let kind = if fstype == "apfs" || fstype == "hfs" {
-                DiskKind::SSD
-            } else {
-                DiskKind::Unknown(-1)
-            };
-            let latency_ms = if is_network_fs(&fstype) {
-                measure_mount_latency(&mount)
-            } else {
-                None
-            };
-            let entry = DiskEntry {
-                mount,
-                used,
-                total,
-                pct,
-                kind,
-                fs: fstype,
-                latency_ms,
-                io_read_rate: None,
-                io_write_rate: None,
-                smart_status: None,
-            };
-            let base = base_device(&device);
-            by_device
-                .entry(base)
-                .and_modify(|existing| {
-                    // Prefer "/" as the representative mount for the container
-                    if entry.mount == "/" {
-                        *existing = entry.clone();
-                    }
-                })
-                .or_insert(entry);
-        }
-        by_device.into_values().collect()
-    }
-}
-
-/// Extract base device from a path like `/dev/disk3s1s1` → `disk3`.
-/// Non-disk devices (e.g. `devfs`, `map auto_home`) return the full string.
-fn base_device(dev: &str) -> String {
-    let s = dev.strip_prefix("/dev/").unwrap_or(dev);
-    if let Some(pos) = s.find("disk") {
-        let rest = &s[pos + 4..];
-        let end = rest
-            .find(|c: char| !c.is_ascii_digit())
-            .unwrap_or(rest.len());
-        s[..pos + 4 + end].to_string()
-    } else {
-        s.to_string()
-    }
-}
-
-#[cfg(target_os = "linux")]
-fn collect_all_mounts() -> Vec<DiskEntry> {
-    use std::collections::HashMap;
-    let content = match std::fs::read_to_string("/proc/mounts") {
-        Ok(c) => c,
-        Err(_) => return Vec::new(),
-    };
-    let mut by_device: HashMap<String, DiskEntry> = HashMap::new();
-    for line in content.lines() {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() < 3 {
-            continue;
-        }
-        let device = parts[0].to_string();
-        let mount = parts[1].to_string();
-        let fstype = parts[2].to_string();
-        let mut stat: std::mem::MaybeUninit<libc::statvfs> = std::mem::MaybeUninit::uninit();
-        let c_mount = match std::ffi::CString::new(mount.as_str()) {
-            Ok(c) => c,
-            Err(_) => continue,
-        };
-        let (total, used, pct) = unsafe {
-            if libc::statvfs(c_mount.as_ptr(), stat.as_mut_ptr()) == 0 {
-                let s = stat.assume_init();
-                let total = s.f_blocks * s.f_frsize;
-                let avail = s.f_bavail * s.f_frsize;
+        entries
+            .iter()
+            .map(|fs| {
+                let mount = CStr::from_ptr(fs.f_mntonname.as_ptr())
+                    .to_string_lossy()
+                    .to_string();
+                let fstype = CStr::from_ptr(fs.f_fstypename.as_ptr())
+                    .to_string_lossy()
+                    .to_string();
+                let total = fs.f_blocks * fs.f_bsize as u64;
+                let avail = fs.f_bavail * fs.f_bsize as u64;
                 let used = total.saturating_sub(avail);
                 let pct = if total > 0 {
                     (used as f64 / total as f64) * 100.0
                 } else {
                     0.0
                 };
-                (total, used, pct)
-            } else {
-                (0, 0, 0.0)
-            }
-        };
-        let latency_ms = if is_network_fs(&fstype) {
-            measure_mount_latency(&mount)
-        } else {
-            None
-        };
-        let entry = DiskEntry {
-            mount,
-            used,
-            total,
-            pct,
-            kind: DiskKind::Unknown(-1),
-            fs: fstype,
-            latency_ms,
-            io_read_rate: None,
-            io_write_rate: None,
-            smart_status: None,
-        };
-        by_device
-            .entry(device)
-            .and_modify(|existing| {
-                if entry.used > existing.used {
-                    *existing = entry.clone();
+                let kind = if fstype == "apfs" || fstype == "hfs" {
+                    DiskKind::SSD
+                } else {
+                    DiskKind::Unknown(-1)
+                };
+                let latency_ms = if is_network_fs(&fstype) {
+                    measure_mount_latency(&mount)
+                } else {
+                    None
+                };
+                DiskEntry {
+                    mount,
+                    used,
+                    total,
+                    pct,
+                    kind,
+                    fs: fstype,
+                    latency_ms,
+                    io_read_rate: None,
+                    io_write_rate: None,
+                    smart_status: None,
                 }
             })
-            .or_insert(entry);
+            .collect()
     }
-    by_device.into_values().collect()
+}
+
+#[cfg(target_os = "linux")]
+fn collect_all_mounts() -> Vec<DiskEntry> {
+    let content = match std::fs::read_to_string("/proc/mounts") {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+    content
+        .lines()
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() < 3 {
+                return None;
+            }
+            let mount = parts[1].to_string();
+            let fstype = parts[2].to_string();
+            let mut stat: std::mem::MaybeUninit<libc::statvfs> = std::mem::MaybeUninit::uninit();
+            let c_mount = std::ffi::CString::new(mount.as_str()).ok()?;
+            let (total, used, pct) = unsafe {
+                if libc::statvfs(c_mount.as_ptr(), stat.as_mut_ptr()) == 0 {
+                    let s = stat.assume_init();
+                    let total = s.f_blocks * s.f_frsize;
+                    let avail = s.f_bavail * s.f_frsize;
+                    let used = total.saturating_sub(avail);
+                    let pct = if total > 0 {
+                        (used as f64 / total as f64) * 100.0
+                    } else {
+                        0.0
+                    };
+                    (total, used, pct)
+                } else {
+                    (0, 0, 0.0)
+                }
+            };
+            let latency_ms = if is_network_fs(&fstype) {
+                measure_mount_latency(&mount)
+            } else {
+                None
+            };
+            Some(DiskEntry {
+                mount,
+                used,
+                total,
+                pct,
+                kind: DiskKind::Unknown(-1),
+                fs: fstype,
+                latency_ms,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            })
+        })
+        .collect()
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 fn collect_all_mounts() -> Vec<DiskEntry> {
-    use std::collections::HashMap;
     use sysinfo::Disks;
     let disks = Disks::new_with_refreshed_list();
-    let mut by_device: HashMap<String, DiskEntry> = HashMap::new();
-    for d in disks.list() {
-        let total = d.total_space();
-        let avail = d.available_space();
-        let used = total.saturating_sub(avail);
-        let pct = if total > 0 {
-            (used as f64 / total as f64) * 100.0
-        } else {
-            0.0
-        };
-        let mount = d.mount_point().to_string_lossy().to_string();
-        let fs = d.file_system().to_string_lossy().to_string();
-        let device = d.name().to_string_lossy().to_string();
-        let latency_ms = if is_network_fs(&fs) {
-            measure_mount_latency(&mount)
-        } else {
-            None
-        };
-        let entry = DiskEntry {
-            mount,
-            used,
-            total,
-            pct,
-            kind: d.kind(),
-            fs,
-            latency_ms,
-            io_read_rate: None,
-            io_write_rate: None,
-            smart_status: None,
-        };
-        by_device
-            .entry(device)
-            .and_modify(|existing| {
-                if entry.used > existing.used {
-                    *existing = entry.clone();
-                }
-            })
-            .or_insert(entry);
+    disks
+        .list()
+        .iter()
+        .map(|d| {
+            let total = d.total_space();
+            let avail = d.available_space();
+            let used = total.saturating_sub(avail);
+            let pct = if total > 0 {
+                (used as f64 / total as f64) * 100.0
+            } else {
+                0.0
+            };
+            let mount = d.mount_point().to_string_lossy().to_string();
+            let fs = d.file_system().to_string_lossy().to_string();
+            let latency_ms = if is_network_fs(&fs) {
+                measure_mount_latency(&mount)
+            } else {
+                None
+            };
+            DiskEntry {
+                mount,
+                used,
+                total,
+                pct,
+                kind: d.kind(),
+                fs,
+                latency_ms,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            }
+        })
+        .collect()
+}
+
+/// Compute deduplicated total storage and used bytes.
+///
+/// APFS container volumes on macOS (and bind mounts on Linux) share the same
+/// underlying device, so naively summing `total` across all mounts inflates
+/// the reported size. This function deduplicates by `total` value — entries
+/// with identical totals are counted only once.
+pub fn dedup_disk_totals(disks: &[DiskEntry]) -> (u64, u64) {
+    use std::collections::HashSet;
+    let mut seen_totals = HashSet::new();
+    let mut total_storage: u64 = 0;
+    let mut total_used: u64 = 0;
+    for d in disks {
+        if d.total > 0 && seen_totals.insert(d.total) {
+            total_storage += d.total;
+            total_used += d.used;
+        }
     }
-    by_device.into_values().collect()
+    (total_storage, total_used)
 }
 
 // ─── Stats collection ──────────────────────────────────────────────────────
@@ -870,13 +842,48 @@ mod tests {
     }
 
     #[test]
-    fn base_device_strips_partition_suffix() {
-        assert_eq!(base_device("/dev/disk3s1s1"), "disk3");
-        assert_eq!(base_device("/dev/disk3s5"), "disk3");
-        assert_eq!(base_device("/dev/disk1s2"), "disk1");
-        assert_eq!(base_device("/dev/disk0"), "disk0");
-        assert_eq!(base_device("devfs"), "devfs");
-        assert_eq!(base_device("map auto_home"), "map auto_home");
+    fn dedup_disk_totals_deduplicates_same_total() {
+        let disks = vec![
+            DiskEntry {
+                mount: "/".into(),
+                used: 500,
+                total: 1000,
+                pct: 50.0,
+                kind: DiskKind::SSD,
+                fs: "apfs".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+            DiskEntry {
+                mount: "/System/Volumes/Data".into(),
+                used: 500,
+                total: 1000,
+                pct: 50.0,
+                kind: DiskKind::SSD,
+                fs: "apfs".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+            DiskEntry {
+                mount: "/other".into(),
+                used: 200,
+                total: 500,
+                pct: 40.0,
+                kind: DiskKind::HDD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+        ];
+        let (total, used) = dedup_disk_totals(&disks);
+        assert_eq!(total, 1500); // 1000 + 500, not 1000 + 1000 + 500
+        assert_eq!(used, 700); // 500 + 200
     }
 
     #[test]
