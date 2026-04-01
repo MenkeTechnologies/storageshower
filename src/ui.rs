@@ -1017,7 +1017,8 @@ fn draw_status(buf: &mut Buffer, w: u16, h: u16, app: &App, text: &str) {
     let (_, _, _, light_purple, _, _) = palette_for_prefs(&app.prefs);
     let msg_len = text.chars().count() as u16 + 4;
     let x0 = (w.saturating_sub(msg_len)) / 2;
-    let y0 = h / 2;
+    let bottom_offset: u16 = 6 + if app.prefs.show_header { 1 } else { 0 };
+    let y0 = h.saturating_sub(bottom_offset);
     let s = Style::default().fg(Color::Black).bg(light_purple);
     set_str(buf, x0, y0, &format!("  {}  ", text), s, msg_len);
 }
