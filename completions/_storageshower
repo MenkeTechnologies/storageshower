@@ -31,6 +31,8 @@ _storageshower() {
         '(--header --no-header)--no-header[Hide column headers]'
         '(--used --no-used)--used[Show used/total size display]'
         '(--used --no-used)--no-used[Hide used/total size display]'
+        '(--tooltips --no-tooltips)--tooltips[Show hover tooltips]'
+        '(--tooltips --no-tooltips)--no-tooltips[Hide hover tooltips (right-click still works)]'
 
         # Thresholds
         '(-w --warn)'{-w,--warn}'[Warning threshold percentage]:pct:'
