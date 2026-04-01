@@ -950,12 +950,6 @@ pub fn draw(frame: &mut Frame, app: &App) {
             if app.filter.active {
                 footer.push_str(&format!(" \u{2502} FILTER> {}_", app.filter.buf));
             }
-            if let Some((ref msg, t)) = app.status_msg
-                && t.elapsed() < Duration::from_secs(3)
-            {
-                footer.push_str(&format!(" \u{2502} {}", msg));
-            }
-
             let footer_display: String = footer.chars().take(inner_w as usize).collect();
             set_str(buf, lm, frow, &footer_display, footer_s, inner_w);
         }
@@ -1010,6 +1004,23 @@ pub fn draw(frame: &mut Frame, app: &App) {
             HoverZone::None => {}
         }
     }
+
+    // ─── Status message (centered overlay above footer) ───
+    if let Some((ref msg, t)) = app.status_msg
+        && t.elapsed() < Duration::from_secs(3)
+    {
+        draw_status(buf, w, h, app, msg);
+    }
+}
+
+fn draw_status(buf: &mut Buffer, w: u16, h: u16, app: &App, text: &str) {
+    let (_, _, _, light_purple, _, _) = palette_for_prefs(&app.prefs);
+    let msg_len = text.chars().count() as u16 + 4;
+    let x0 = (w.saturating_sub(msg_len)) / 2;
+    let bottom_offset: u16 = if app.prefs.show_border { 2 } else { 1 };
+    let y0 = h.saturating_sub(bottom_offset + 1);
+    let s = Style::default().fg(Color::Black).bg(light_purple);
+    set_str(buf, x0, y0, &format!("  {}  ", text), s, msg_len);
 }
 
 // ─── Sub-draw functions ────────────────────────────────────────────────────
