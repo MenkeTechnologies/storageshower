@@ -528,6 +528,17 @@ impl App {
             }
             KeyCode::Char('T') => {
                 self.prefs.show_tooltips = !self.prefs.show_tooltips;
+                self.status_msg = Some((
+                    format!(
+                        "Hover tooltips: {}",
+                        if self.prefs.show_tooltips {
+                            "on"
+                        } else {
+                            "off"
+                        }
+                    ),
+                    Instant::now(),
+                ));
                 self.save();
             }
             KeyCode::Char('z') | KeyCode::Char('Z') => {
@@ -941,8 +952,10 @@ mod tests {
         assert!(app.prefs.show_tooltips);
         app.handle_key(make_key(KeyCode::Char('T')));
         assert!(!app.prefs.show_tooltips);
+        assert!(app.status_msg.as_ref().unwrap().0.contains("off"));
         app.handle_key(make_key(KeyCode::Char('T')));
         assert!(app.prefs.show_tooltips);
+        assert!(app.status_msg.as_ref().unwrap().0.contains("on"));
     }
 
     #[test]
