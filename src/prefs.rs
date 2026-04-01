@@ -34,6 +34,8 @@ pub struct Prefs {
     pub custom_themes: HashMap<String, ThemeColors>,
     #[serde(default)]
     pub active_theme: Option<String>,
+    #[serde(default = "default_true")]
+    pub show_tooltips: bool,
     #[serde(default)]
     pub bookmarks: Vec<String>,
 }
@@ -66,6 +68,7 @@ impl Default for Prefs {
             col_pct_w: 0,
             custom_themes: HashMap::new(),
             active_theme: None,
+            show_tooltips: true,
             bookmarks: Vec::new(),
         }
     }

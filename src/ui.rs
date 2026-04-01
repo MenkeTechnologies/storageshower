@@ -998,10 +998,14 @@ pub fn draw(frame: &mut Frame, app: &App) {
                 }
             }
             HoverZone::TitleBar => {
-                draw_hover_bar_tooltip(buf, w, h, app, true);
+                if app.prefs.show_tooltips || app.hover.right_click {
+                    draw_hover_bar_tooltip(buf, w, h, app, true);
+                }
             }
             HoverZone::FooterBar => {
-                draw_hover_bar_tooltip(buf, w, h, app, false);
+                if app.prefs.show_tooltips || app.hover.right_click {
+                    draw_hover_bar_tooltip(buf, w, h, app, false);
+                }
             }
             HoverZone::None => {}
         }
@@ -3277,6 +3281,12 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         },
         HelpEntry {
             key: "T",
+            desc: "Hover tips",
+            val_fn: |a| format!("[{}]", if a.prefs.show_tooltips { "on" } else { "off" }),
+            is_section: false,
+        },
+        HelpEntry {
+            key: "z/Z",
             desc: "Crit threshold",
             val_fn: |a| format!("[{}%]", a.prefs.thresh_crit),
             is_section: false,

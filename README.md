@@ -218,6 +218,7 @@ to force-override in either direction.
 | `--border` / `--no-border` | Show/hide border chrome |
 | `--header` / `--no-header` | Show/hide column headers |
 | `--used` / `--no-used` | Show/hide used/total size display |
+| `--tooltips` / `--no-tooltips` | Show/hide hover tooltips (right-click still works) |
 
 #### `// THRESHOLDS`
 
@@ -311,7 +312,8 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `i` `I` | Cycle units — human / GiB / MiB / bytes |
 | `f` `F` | Cycle refresh rate — 1s / 2s / 5s / 10s |
 | `t` | Cycle warn threshold — 50 / 60 / 70 / 80% |
-| `T` | Cycle crit threshold — 80 / 85 / 90 / 95% |
+| `T` | Toggle hover tooltips (right-click still works) |
+| `z` `Z` | Cycle crit threshold — 80 / 85 / 90 / 95% |
 
 #### `// FILTER_OPS`
 

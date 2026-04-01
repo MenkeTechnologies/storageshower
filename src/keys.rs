@@ -527,6 +527,10 @@ impl App {
                 self.save();
             }
             KeyCode::Char('T') => {
+                self.prefs.show_tooltips = !self.prefs.show_tooltips;
+                self.save();
+            }
+            KeyCode::Char('z') | KeyCode::Char('Z') => {
                 self.prefs.thresh_crit = match self.prefs.thresh_crit {
                     80 => 85,
                     85 => 90,
@@ -932,13 +936,13 @@ mod tests {
     }
 
     #[test]
-    fn key_upper_t_cycles_crit_threshold() {
+    fn key_upper_t_toggles_tooltips() {
         let mut app = test_app();
-        assert_eq!(app.prefs.thresh_crit, 90);
+        assert!(app.prefs.show_tooltips);
         app.handle_key(make_key(KeyCode::Char('T')));
-        assert_eq!(app.prefs.thresh_crit, 95);
+        assert!(!app.prefs.show_tooltips);
         app.handle_key(make_key(KeyCode::Char('T')));
-        assert_eq!(app.prefs.thresh_crit, 80);
+        assert!(app.prefs.show_tooltips);
     }
 
     #[test]
@@ -1677,13 +1681,13 @@ mod tests {
     fn crit_threshold_full_cycle() {
         let mut app = test_app();
         app.prefs.thresh_crit = 80;
-        app.handle_key(make_key(KeyCode::Char('T')));
+        app.handle_key(make_key(KeyCode::Char('z')));
         assert_eq!(app.prefs.thresh_crit, 85);
-        app.handle_key(make_key(KeyCode::Char('T')));
+        app.handle_key(make_key(KeyCode::Char('z')));
         assert_eq!(app.prefs.thresh_crit, 90);
-        app.handle_key(make_key(KeyCode::Char('T')));
+        app.handle_key(make_key(KeyCode::Char('z')));
         assert_eq!(app.prefs.thresh_crit, 95);
-        app.handle_key(make_key(KeyCode::Char('T')));
+        app.handle_key(make_key(KeyCode::Char('z')));
         assert_eq!(app.prefs.thresh_crit, 80);
     }
 
@@ -1701,7 +1705,7 @@ mod tests {
     fn crit_threshold_nonstandard_resets() {
         let mut app = test_app();
         app.prefs.thresh_crit = 42;
-        app.handle_key(make_key(KeyCode::Char('T')));
+        app.handle_key(make_key(KeyCode::Char('z')));
         assert_eq!(app.prefs.thresh_crit, 80);
     }
 

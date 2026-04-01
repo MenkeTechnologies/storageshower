@@ -3171,13 +3171,13 @@ fn warn_threshold_cycles() {
 fn crit_threshold_cycles() {
     let mut app = make_app_with_disks(sample_disks());
     assert_eq!(app.prefs.thresh_crit, 90);
-    app.handle_key(make_key(KeyCode::Char('T')));
+    app.handle_key(make_key(KeyCode::Char('z')));
     assert_eq!(app.prefs.thresh_crit, 95);
-    app.handle_key(make_key(KeyCode::Char('T')));
+    app.handle_key(make_key(KeyCode::Char('z')));
     assert_eq!(app.prefs.thresh_crit, 80);
-    app.handle_key(make_key(KeyCode::Char('T')));
+    app.handle_key(make_key(KeyCode::Char('z')));
     assert_eq!(app.prefs.thresh_crit, 85);
-    app.handle_key(make_key(KeyCode::Char('T')));
+    app.handle_key(make_key(KeyCode::Char('z')));
     assert_eq!(app.prefs.thresh_crit, 90);
 }
 

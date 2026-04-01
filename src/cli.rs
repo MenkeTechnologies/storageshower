@@ -100,6 +100,14 @@ pub struct Cli {
     #[arg(long = "no-full-mount", overrides_with = "full_mount", hide = true)]
     pub no_full_mount: bool,
 
+    /// Show hover tooltips on title/footer bars
+    #[arg(long = "tooltips", overrides_with = "no_tooltips", hide = true)]
+    pub tooltips: bool,
+
+    /// Hide hover tooltips (right-click still works)
+    #[arg(long = "no-tooltips", overrides_with = "tooltips")]
+    pub no_tooltips: bool,
+
     /// Show virtual filesystems
     #[arg(long = "virtual", overrides_with = "no_virtual", hide = true)]
     pub show_virtual: bool,
@@ -426,6 +434,12 @@ impl Cli {
         }
         if self.no_used {
             prefs.show_used = false;
+        }
+        if self.tooltips {
+            prefs.show_tooltips = true;
+        }
+        if self.no_tooltips {
+            prefs.show_tooltips = false;
         }
         if self.show_virtual {
             prefs.show_all = true;
