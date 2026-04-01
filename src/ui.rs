@@ -7,7 +7,9 @@ use std::time::Duration;
 
 use crate::app::{App, mount_col_width, right_col_width};
 use crate::helpers::{format_bytes, format_latency, format_rate, format_uptime, truncate_mount};
-use crate::system::{chrono_now, dedup_disk_totals, get_battery, get_local_ip, get_tty, get_username};
+use crate::system::{
+    chrono_now, dedup_disk_totals, get_battery, get_local_ip, get_tty, get_username,
+};
 use crate::types::*;
 
 // ─── Color/style helpers ───────────────────────────────────────────────────
