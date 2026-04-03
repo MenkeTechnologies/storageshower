@@ -884,4 +884,17 @@ mod tests {
         assert!(app.prefs.bookmarks.is_empty());
         assert!(app.status_msg.is_some());
     }
+
+    // ── Clipboard ───────────────────────────────────────────
+
+    #[test]
+    fn copy_to_clipboard_ok_or_expected_err() {
+        match copy_to_clipboard("storageshower-test-clipboard") {
+            Ok(()) => {}
+            Err(err) => assert!(
+                err.contains("clipboard"),
+                "unexpected error message: {err}"
+            ),
+        }
+    }
 }

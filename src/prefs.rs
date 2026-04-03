@@ -202,4 +202,20 @@ mod tests {
         let p: Result<Prefs, _> = toml::from_str(DEFAULT_CONF);
         assert!(p.is_ok(), "Default config should parse: {:?}", p.err());
     }
+
+    #[test]
+    fn load_prefs_from_file_reads_values() {
+        use crate::types::SortMode;
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("storageshower-test.conf");
+        let mut expected = Prefs::default();
+        expected.sort_mode = SortMode::Pct;
+        expected.refresh_rate = 9;
+        let contents = toml::to_string_pretty(&expected).expect("serialize prefs");
+        std::fs::write(&path, contents).expect("write temp prefs");
+        let loaded = load_prefs_from(Some(path.to_str().expect("utf8 path")));
+        assert_eq!(loaded.sort_mode, SortMode::Pct);
+        assert_eq!(loaded.refresh_rate, 9);
+    }
 }

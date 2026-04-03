@@ -436,4 +436,17 @@ mod tests {
             assert_eq!(d, mode);
         }
     }
+
+    #[test]
+    fn color_mode_next_advances_along_all() {
+        let first = ColorMode::ALL[0];
+        assert_eq!(first, ColorMode::Default);
+        assert_eq!(first.next(), ColorMode::ALL[1]);
+    }
+
+    #[test]
+    fn color_mode_next_wraps_last_to_first() {
+        let last = *ColorMode::ALL.last().expect("ColorMode::ALL non-empty");
+        assert_eq!(last.next(), ColorMode::ALL[0]);
+    }
 }
