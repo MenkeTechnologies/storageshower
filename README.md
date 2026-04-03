@@ -495,8 +495,10 @@ cargo test
 #   DiskEntry fields (types_disk_entry_*), scan progress partial callbacks (scan_directory_progress_partial_*),
 #   deep CLI stacks (cli_apply_deep_stack_*), bookmarks+sort_rev (app_bookmarks_sort_rev_*),
 #   prefs TOML many bookmarks (prefs_toml_bookmarks_many_*), binary export/list (cli_binary_export_list_*),
-#   helpers latency/rate edges (helpers_latency_rate_*), network FS detection (is_network_fs_*),
-#   theme JSON (theme_colors_json_*), etc.
+#   helpers latency/rate edges (helpers_latency_rate_*), uptime edges (helpers_uptime_*),
+#   prefs TOML sort modes (prefs_toml_sort_modes_*), dedup order behavior (dedup_disk_totals_order_*),
+#   scan dotfiles (scan_directory_dotfile_*), CLI misc apply (cli_misc_parse_apply_*),
+#   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
 #   for an approximate listed-test count (includes lib + integration + names; doc tests run separately).
