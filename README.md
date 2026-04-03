@@ -494,7 +494,7 @@ cargo bench
 | **Format** | `cargo fmt --all --check` on Ubuntu |
 | **Clippy** | `cargo clippy --locked --all-targets -- -D warnings` on Ubuntu |
 
-The `--locked` flag fails the job if `Cargo.lock` is out of sync with `Cargo.toml`, so CI always resolves the same dependency graph as a fresh clone with a committed lockfile.
+The `--locked` flag fails the job if `Cargo.lock` is out of sync with `Cargo.toml`, so CI always resolves the same dependency graph as a fresh clone with a committed lockfile. The lockfile is checked into this repository; if your machine’s global gitignore ignores `Cargo.lock`, run `git add -f Cargo.lock` after changing dependencies so updates are not missed.
 
 Concurrent runs for the same branch are cancelled when a newer commit is pushed (`concurrency.cancel-in-progress`). The workflow uses least-privilege `contents: read` permissions.
 

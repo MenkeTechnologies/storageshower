@@ -89,3 +89,47 @@ pub fn test_app() -> App {
     app.update_sorted();
     app
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_disks_count_and_ordering() {
+        let d = test_disks();
+        assert_eq!(d.len(), 4);
+        assert_eq!(d[0].mount, "/");
+        assert_eq!(d[1].mount, "/home");
+        assert_eq!(d[2].mount, "/data");
+        assert_eq!(d[3].mount, "/tmp");
+    }
+
+    #[test]
+    fn test_disks_percentages_and_fs() {
+        let d = test_disks();
+        assert!((d[0].pct - 50.0).abs() < f64::EPSILON);
+        assert_eq!(d[0].fs, "apfs");
+        assert!((d[2].pct - 90.0).abs() < f64::EPSILON);
+        assert_eq!(d[2].fs, "xfs");
+    }
+
+    #[test]
+    fn test_app_test_mode_and_sorted() {
+        let app = test_app();
+        assert!(app.test_mode);
+        assert!(!app.disks.is_empty());
+    }
+
+    #[test]
+    fn make_key_codes() {
+        assert_eq!(make_key(KeyCode::Char('q')).code, KeyCode::Char('q'));
+        assert_eq!(make_key(KeyCode::Esc).code, KeyCode::Esc);
+    }
+
+    #[test]
+    fn make_ctrl_key_has_control_modifier() {
+        let e = make_ctrl_key(KeyCode::Char('c'));
+        assert_eq!(e.code, KeyCode::Char('c'));
+        assert!(e.modifiers.contains(KeyModifiers::CONTROL));
+    }
+}

@@ -1,1 +1,4 @@
 /target
+
+# Cargo.lock is committed for CI (`cargo * --locked`). If your global gitignore
+# ignores Cargo.lock, use `git add -f Cargo.lock` when adding or updating it.
