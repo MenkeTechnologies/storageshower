@@ -1092,6 +1092,42 @@ mod tests {
     }
 
     #[test]
+    fn apply_smart_status_distinct_per_mount() {
+        let mut entries = vec![
+            DiskEntry {
+                mount: "/a".into(),
+                used: 0,
+                total: 1,
+                pct: 0.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+            DiskEntry {
+                mount: "/b".into(),
+                used: 0,
+                total: 1,
+                pct: 0.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+        ];
+        let mut smart = SmartMap::new();
+        smart.insert("/a".into(), SmartHealth::Verified);
+        smart.insert("/b".into(), SmartHealth::Failing);
+        apply_smart_status(&mut entries, &smart);
+        assert_eq!(entries[0].smart_status, Some(SmartHealth::Verified));
+        assert_eq!(entries[1].smart_status, Some(SmartHealth::Failing));
+    }
+
+    #[test]
     fn apply_smart_status_sets_fields() {
         let mut entries = vec![DiskEntry {
             mount: "/".into(),

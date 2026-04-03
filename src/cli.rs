@@ -1140,4 +1140,52 @@ mod tests {
         assert_eq!(prefs.thresh_warn, 61);
         assert_eq!(prefs.thresh_crit, 91);
     }
+
+    #[test]
+    fn long_bar_style_and_color_flags() {
+        let cli = Cli::parse_from(["storageshower", "--bar-style", "thin", "--color", "amber"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.bar_style, BarStyle::Thin);
+        assert_eq!(prefs.color_mode, ColorMode::Amber);
+    }
+
+    #[test]
+    fn long_sort_size_flag() {
+        let cli = Cli::parse_from(["storageshower", "--sort", "size"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.sort_mode, SortMode::Size);
+    }
+
+    #[test]
+    fn compact_and_full_mount_long_flags() {
+        let cli = Cli::parse_from(["storageshower", "--compact", "--full-mount"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert!(prefs.compact);
+        assert!(prefs.full_mount);
+    }
+
+    #[test]
+    fn bars_border_header_used_long_positives() {
+        let cli = Cli::parse_from(["storageshower", "--bars", "--border", "--header", "--used"]);
+        let mut prefs = Prefs::default();
+        prefs.show_bars = false;
+        prefs.show_border = false;
+        prefs.show_header = false;
+        prefs.show_used = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_bars);
+        assert!(prefs.show_border);
+        assert!(prefs.show_header);
+        assert!(prefs.show_used);
+    }
+
+    #[test]
+    fn try_parse_fails_unknown_binary_name_still_storageshower() {
+        let cli = Cli::try_parse_from(["prog", "-h"]);
+        assert!(cli.is_ok());
+        assert!(cli.unwrap().help);
+    }
 }

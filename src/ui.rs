@@ -3820,4 +3820,10 @@ mod tests {
         set_str(&mut buf, 0, 0, "Hello", Style::default(), 1);
         assert_eq!(buf[(0, 0)].symbol(), "H");
     }
+
+    #[test]
+    fn gradient_color_at_third_band_boundary() {
+        let c = gradient_color_at(0.33, ColorMode::Default);
+        assert_ne!(c, Color::Reset);
+    }
 }

@@ -1240,4 +1240,13 @@ mod tests {
         app.ensure_visible(5);
         assert_eq!(app.scroll_offset, 0);
     }
+
+    #[test]
+    fn ensure_visible_pulls_down_when_selection_above_window() {
+        let mut app = test_app();
+        app.selected = Some(0);
+        app.scroll_offset = 5;
+        app.ensure_visible(3);
+        assert_eq!(app.scroll_offset, 0);
+    }
 }

@@ -317,4 +317,52 @@ unit_mode = "GiB"
         let p: Prefs = toml::from_str(t).unwrap();
         assert_eq!(p.unit_mode, crate::types::UnitMode::GiB);
     }
+
+    #[test]
+    fn prefs_deserialize_sort_rev_true_bar_style_ascii() {
+        let t = r#"
+sort_mode = "Pct"
+sort_rev = true
+show_local = false
+refresh_rate = 2
+bar_style = "Ascii"
+color_mode = "Green"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert!(p.sort_rev);
+        assert_eq!(p.sort_mode, crate::types::SortMode::Pct);
+        assert_eq!(p.bar_style, crate::types::BarStyle::Ascii);
+        assert_eq!(p.refresh_rate, 2);
+    }
+
+    #[test]
+    fn prefs_deserialize_bookmarks_array() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+bookmarks = ["/mnt/a", "/mnt/b"]
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert_eq!(p.bookmarks, vec!["/mnt/a", "/mnt/b"]);
+    }
 }

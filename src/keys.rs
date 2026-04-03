@@ -1845,4 +1845,18 @@ mod tests {
         app.handle_key(make_key(KeyCode::PageDown));
         assert!(!app.quit);
     }
+
+    #[test]
+    fn insert_key_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Insert));
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn end_key_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::End));
+        assert!(!app.quit);
+    }
 }

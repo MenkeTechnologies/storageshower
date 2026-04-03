@@ -448,4 +448,19 @@ mod tests {
     fn format_latency_ten_seconds() {
         assert_eq!(format_latency(10_000.0), "10.0s");
     }
+
+    #[test]
+    fn format_rate_exactly_one_kilo_per_sec() {
+        assert_eq!(format_rate(1024.0), "1.0K/s");
+    }
+
+    #[test]
+    fn format_rate_just_under_one_kilo() {
+        assert_eq!(format_rate(1023.0), "1023B/s");
+    }
+
+    #[test]
+    fn format_bytes_mib_half() {
+        assert_eq!(format_bytes(524_288, UnitMode::MiB), "0.5M");
+    }
 }
