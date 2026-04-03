@@ -476,7 +476,9 @@ Measured with [Criterion.rs](https://github.com/bheisler/criterion.rs) on Apple 
 # ── RUN TESTS ──────────────────────────────────
 cargo test
 # Library unit tests: #[cfg(test)] modules under src/
-# Integration tests: cargo test --tests (tests/*.rs — integration, cli_binary, cli_parse_matrix, cli_parse_errors, cli_all_value_enums, helpers_stress, cli_combos, prefs_file_roundtrip, app_sort_and_columns, app_bookmarks_integration, scan_directory_sort_integration, cli_apply_to_integration, dedup_disk_integration, …)
+# Integration tests: cargo test --tests  (each tests/*.rs = separate binary)
+#   Areas: CLI parsing/smoke (cli_*), prefs load/roundtrip (prefs_*), App/columns (app_*),
+#   scan_directory + progress (scan_*), helpers invariants (helpers_*), dedup_disk_totals (dedup_*), etc.
 
 # ── RUN BENCHMARKS ─────────────────────────────
 cargo bench
@@ -490,7 +492,7 @@ cargo bench
 | Job | What it runs |
 |:---|:---|
 | **Check** | `cargo check --locked --all-targets` on Ubuntu and macOS |
-| **Test** | `cargo test --locked --lib`, then `--tests` (all `tests/*.rs` binaries), then `--doc` on Ubuntu and macOS |
+| **Test** | `cargo test --locked --lib`, then `--tests` (one integration binary per `tests/*.rs`), then `--doc` on Ubuntu and macOS |
 | **Format** | `cargo fmt --all --check` on Ubuntu |
 | **Clippy** | `cargo clippy --locked --all-targets -- -D warnings` on Ubuntu |
 
