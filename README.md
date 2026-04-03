@@ -502,6 +502,8 @@ Matrix jobs (**Check**, **Test**) use `fail-fast: false` so a failure on one OS 
 
 The **Test** job sets `RUST_BACKTRACE=1` so panics print a full stack trace in the Actions log (useful when a test fails only on one OS).
 
+All jobs inherit `CARGO_NET_RETRY=2` so Cargo retries failed network fetches (crates.io / git dependencies) when the network or registry is slow.
+
 To match CI locally before pushing:
 
 ```bash

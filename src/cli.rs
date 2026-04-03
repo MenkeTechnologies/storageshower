@@ -1470,4 +1470,20 @@ mod tests {
         assert!(cli.list_colors);
         assert_eq!(cli.config.as_deref(), Some("/tmp/ss.conf"));
     }
+
+    #[test]
+    fn export_theme_with_color_flag_parse() {
+        let cli = Cli::parse_from(["storageshower", "--export-theme", "--color", "purple"]);
+        assert!(cli.export_theme);
+        assert_eq!(cli.color_mode, Some(ColorMode::Purple));
+    }
+
+    #[test]
+    fn version_flag_does_not_set_other_flags() {
+        let cli = Cli::parse_from(["storageshower", "-V"]);
+        assert!(cli.version);
+        assert!(!cli.help);
+        assert!(!cli.list_colors);
+        assert!(!cli.export_theme);
+    }
 }

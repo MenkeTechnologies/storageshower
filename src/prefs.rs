@@ -560,4 +560,26 @@ bookmarks = []
         let p: Prefs = toml::from_str(t).unwrap();
         assert!(p.bookmarks.is_empty());
     }
+
+    #[test]
+    fn prefs_deserialize_sort_mode_size() {
+        let t = r#"
+sort_mode = "Size"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert_eq!(p.sort_mode, crate::types::SortMode::Size);
+    }
 }

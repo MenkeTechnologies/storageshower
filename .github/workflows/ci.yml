@@ -18,6 +18,8 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  # Fewer flaky failures when crates.io / git deps are slow under load.
+  CARGO_NET_RETRY: 2
 
 jobs:
   check:

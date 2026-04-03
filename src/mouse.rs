@@ -346,6 +346,22 @@ mod tests {
         assert_eq!(app.show_help, prev_help);
     }
 
+    #[test]
+    fn mouse_scroll_down_no_crash() {
+        let mut app = test_app();
+        app.handle_mouse(
+            MouseEvent {
+                kind: MouseEventKind::ScrollDown,
+                column: 10,
+                row: 10,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            24,
+        );
+        assert!(!app.quit);
+    }
+
     // ── Mouse click to select disk ────────────────────────
 
     #[test]
