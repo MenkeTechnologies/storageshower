@@ -476,7 +476,7 @@ Measured with [Criterion.rs](https://github.com/bheisler/criterion.rs) on Apple 
 # ── RUN TESTS ──────────────────────────────────
 cargo test
 # Library unit tests: #[cfg(test)] modules under src/
-# Integration tests: tests/integration.rs
+# Integration tests: cargo test --tests (tests/*.rs, e.g. integration.rs, cli_binary.rs)
 
 # ── RUN BENCHMARKS ─────────────────────────────
 cargo bench
@@ -490,7 +490,7 @@ cargo bench
 | Job | What it runs |
 |:---|:---|
 | **Check** | `cargo check --locked --all-targets` on Ubuntu and macOS |
-| **Test** | `cargo test --locked --lib`, then `--test integration`, then `--doc` on Ubuntu and macOS |
+| **Test** | `cargo test --locked --lib`, then `--tests` (all `tests/*.rs` binaries), then `--doc` on Ubuntu and macOS |
 | **Format** | `cargo fmt --all --check` on Ubuntu |
 | **Clippy** | `cargo clippy --locked --all-targets -- -D warnings` on Ubuntu |
 
@@ -507,7 +507,7 @@ All jobs inherit `CARGO_NET_RETRY=2` so Cargo retries failed network fetches (cr
 To match CI locally before pushing:
 
 ```bash
-cargo fmt --all --check && cargo clippy --locked --all-targets -- -D warnings && cargo test --locked --lib && cargo test --locked --test integration && cargo test --locked --doc
+cargo fmt --all --check && cargo clippy --locked --all-targets -- -D warnings && cargo test --locked --lib && cargo test --locked --tests && cargo test --locked --doc
 ```
 
 To run **all** tests (library + integration + doc) in one command: `cargo test --locked`.

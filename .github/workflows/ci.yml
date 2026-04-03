@@ -53,7 +53,7 @@ jobs:
       - name: Library unit tests
         run: cargo test --locked --lib
       - name: Integration tests
-        run: cargo test --locked --test integration
+        run: cargo test --locked --tests
       - name: Doc tests
         run: cargo test --locked --doc
 
