@@ -491,7 +491,9 @@ cargo test
 #   helpers format tables (helpers_format_table_*), column width / threshold edges (cli_width_threshold_*),
 #   scan_directory nested dirs (scan_directory_nested_*), ColorMode cycle (types_color_mode_cycle_*),
 #   filter path shapes (app_filter_paths_*), binary smoke (cli_binary_more_smoke_*),
-#   prefs active_theme TOML (prefs_toml_active_theme_*), network FS detection (is_network_fs_*),
+#   prefs active_theme TOML (prefs_toml_active_theme_*), truncate_mount edges (helpers_truncate_*),
+#   DiskEntry fields (types_disk_entry_*), scan progress partial callbacks (scan_directory_progress_partial_*),
+#   deep CLI stacks (cli_apply_deep_stack_*), network FS detection (is_network_fs_*),
 #   theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
