@@ -157,3 +157,29 @@ fn units_gib_flag_parses_with_version() {
     let s = String::from_utf8_lossy(&o.stdout);
     assert!(s.contains(env!("CARGO_PKG_VERSION")));
 }
+
+#[test]
+fn export_theme_with_config_path_exits_zero() {
+    let o = output(&["--config", "/dev/null", "--export-theme"]);
+    assert!(
+        o.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&o.stderr)
+    );
+}
+
+#[test]
+fn help_with_refresh_flag_exits_zero() {
+    let o = output(&["--refresh", "5", "--help"]);
+    assert!(o.status.success());
+    let s = String::from_utf8_lossy(&o.stdout);
+    assert!(s.len() > 80, "expected help text");
+}
+
+#[test]
+fn bar_style_gradient_with_help_exits_zero() {
+    let o = output(&["--bar-style", "gradient", "--help"]);
+    assert!(o.status.success());
+    let s = String::from_utf8_lossy(&o.stdout);
+    assert!(s.len() > 80);
+}
