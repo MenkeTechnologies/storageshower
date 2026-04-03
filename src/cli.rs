@@ -854,4 +854,36 @@ mod tests {
         cli.apply_to(&mut prefs);
         assert!(prefs.show_all);
     }
+
+    #[test]
+    fn export_theme_flag_parses() {
+        let cli = Cli::parse_from(["storageshower", "--export-theme"]);
+        assert!(cli.export_theme);
+    }
+
+    #[test]
+    fn apply_theme_sets_active_theme() {
+        let cli = Cli::parse_from(["storageshower", "--theme", "my_dark_theme"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.active_theme.as_deref(), Some("my_dark_theme"));
+    }
+
+    #[test]
+    fn apply_tooltips_enables() {
+        let cli = Cli::parse_from(["storageshower", "--tooltips"]);
+        let mut prefs = Prefs::default();
+        prefs.show_tooltips = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_tooltips);
+    }
+
+    #[test]
+    fn apply_no_tooltips_disables() {
+        let cli = Cli::parse_from(["storageshower", "--no-tooltips"]);
+        let mut prefs = Prefs::default();
+        assert!(prefs.show_tooltips);
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.show_tooltips);
+    }
 }

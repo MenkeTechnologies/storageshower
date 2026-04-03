@@ -473,6 +473,9 @@ Measured with [Criterion.rs](https://github.com/bheisler/criterion.rs) on Apple 
 | `format_all_disks` (200) | `~15.7 µs` |
 
 ```bash
+# ── RUN TESTS ──────────────────────────────────
+cargo test
+
 # ── RUN BENCHMARKS ─────────────────────────────
 cargo bench
 # results in target/criterion/
