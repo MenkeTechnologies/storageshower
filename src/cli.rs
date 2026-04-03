@@ -1373,4 +1373,31 @@ mod tests {
         cli.apply_to(&mut prefs);
         assert!(!prefs.show_bars);
     }
+
+    #[test]
+    fn virtual_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--no-virtual", "--virtual"]);
+        let mut prefs = Prefs::default();
+        prefs.show_all = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_all);
+    }
+
+    #[test]
+    fn no_border_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--border", "--no-border"]);
+        let mut prefs = Prefs::default();
+        prefs.show_border = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.show_border);
+    }
+
+    #[test]
+    fn header_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--no-header", "--header"]);
+        let mut prefs = Prefs::default();
+        prefs.show_header = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_header);
+    }
 }

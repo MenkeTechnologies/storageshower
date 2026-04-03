@@ -652,4 +652,14 @@ mod tests {
         }
         assert_eq!(seen.len(), 4);
     }
+
+    #[test]
+    fn drill_sort_mode_variants_are_unique() {
+        use std::collections::BTreeSet;
+        let mut seen = BTreeSet::new();
+        for m in [DrillSortMode::Size, DrillSortMode::Name] {
+            assert!(seen.insert(format!("{m:?}")), "duplicate {m:?}");
+        }
+        assert_eq!(seen.len(), 2);
+    }
 }

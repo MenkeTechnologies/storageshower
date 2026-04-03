@@ -492,4 +492,27 @@ full_mount = false
         let p: Prefs = toml::from_str(t).unwrap();
         assert!(p.show_local);
     }
+
+    #[test]
+    fn prefs_deserialize_custom_thresholds() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 55
+thresh_crit = 88
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert_eq!(p.thresh_warn, 55);
+        assert_eq!(p.thresh_crit, 88);
+    }
 }

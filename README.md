@@ -489,10 +489,12 @@ cargo bench
 
 | Job | What it runs |
 |:---|:---|
-| **Check** | `cargo check --all-targets` on Ubuntu and macOS |
-| **Test** | `cargo test` on Ubuntu and macOS |
+| **Check** | `cargo check --locked --all-targets` on Ubuntu and macOS |
+| **Test** | `cargo test --locked` on Ubuntu and macOS |
 | **Format** | `cargo fmt --all --check` on Ubuntu |
-| **Clippy** | `cargo clippy --all-targets -- -D warnings` on Ubuntu |
+| **Clippy** | `cargo clippy --locked --all-targets -- -D warnings` on Ubuntu |
+
+The `--locked` flag fails the job if `Cargo.lock` is out of sync with `Cargo.toml`, so CI always resolves the same dependency graph as a fresh clone with a committed lockfile.
 
 Concurrent runs for the same branch are cancelled when a newer commit is pushed (`concurrency.cancel-in-progress`). The workflow uses least-privilege `contents: read` permissions.
 
@@ -503,7 +505,7 @@ The **Test** job sets `RUST_BACKTRACE=1` so panics print a full stack trace in t
 To match CI locally before pushing:
 
 ```bash
-cargo fmt --all --check && cargo clippy --all-targets -- -D warnings && cargo test
+cargo fmt --all --check && cargo clippy --locked --all-targets -- -D warnings && cargo test --locked
 ```
 
 ---

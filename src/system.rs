@@ -1048,6 +1048,17 @@ mod tests {
     }
 
     #[test]
+    fn compute_io_rates_empty_mount_map_returns_empty() {
+        let mut prev = IoSnapshot::new();
+        prev.insert("d0".into(), (1u64, 2u64));
+        let mut curr = IoSnapshot::new();
+        curr.insert("d0".into(), (100u64, 200u64));
+        let mount_dev = HashMap::new();
+        let rates = compute_io_rates(&prev, &curr, 1.0, &mount_dev);
+        assert!(rates.is_empty());
+    }
+
+    #[test]
     fn compute_io_rates_negative_delta_saturates_to_zero() {
         let mut prev = IoSnapshot::new();
         prev.insert("disk0".into(), (5000, 5000));
