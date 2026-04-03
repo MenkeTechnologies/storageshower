@@ -261,6 +261,10 @@ pub fn scan_directory_with_progress(
 
 // ─── Disk collection ───────────────────────────────────────────────────────
 
+/// Enumerate mounted filesystems with usage stats.
+///
+/// Entries with an empty mount path are skipped: some hosts (including CI
+/// runners) can occasionally report unusable `getmntinfo`/`mounts` rows.
 pub fn collect_disk_entries() -> Vec<DiskEntry> {
     collect_all_mounts()
 }
@@ -277,10 +281,13 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
         let entries = std::slice::from_raw_parts(mntbuf, count as usize);
         entries
             .iter()
-            .map(|fs| {
+            .filter_map(|fs| {
                 let mount = CStr::from_ptr(fs.f_mntonname.as_ptr())
                     .to_string_lossy()
                     .to_string();
+                if mount.is_empty() {
+                    return None;
+                }
                 let fstype = CStr::from_ptr(fs.f_fstypename.as_ptr())
                     .to_string_lossy()
                     .to_string();
@@ -302,7 +309,7 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 } else {
                     None
                 };
-                DiskEntry {
+                Some(DiskEntry {
                     mount,
                     used,
                     total,
@@ -313,7 +320,7 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                     io_read_rate: None,
                     io_write_rate: None,
                     smart_status: None,
-                }
+                })
             })
             .collect()
     }
@@ -333,6 +340,9 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 return None;
             }
             let mount = parts[1].to_string();
+            if mount.is_empty() {
+                return None;
+            }
             let fstype = parts[2].to_string();
             let mut stat: std::mem::MaybeUninit<libc::statvfs> = std::mem::MaybeUninit::uninit();
             let c_mount = std::ffi::CString::new(mount.as_str()).ok()?;
@@ -380,7 +390,7 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
     disks
         .list()
         .iter()
-        .map(|d| {
+        .filter_map(|d| {
             let total = d.total_space();
             let avail = d.available_space();
             let used = total.saturating_sub(avail);
@@ -390,13 +400,16 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 0.0
             };
             let mount = d.mount_point().to_string_lossy().to_string();
+            if mount.is_empty() {
+                return None;
+            }
             let fs = d.file_system().to_string_lossy().to_string();
             let latency_ms = if is_network_fs(&fs) {
                 measure_mount_latency(&mount)
             } else {
                 None
             };
-            DiskEntry {
+            Some(DiskEntry {
                 mount,
                 used,
                 total,
@@ -407,7 +420,7 @@ fn collect_all_mounts() -> Vec<DiskEntry> {
                 io_read_rate: None,
                 io_write_rate: None,
                 smart_status: None,
-            }
+            })
         })
         .collect()
 }

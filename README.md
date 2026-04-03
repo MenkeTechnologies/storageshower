@@ -483,8 +483,8 @@ cargo test
 #   prefs TOML/custom themes (prefs_custom_themes_*), system API smoke (system_public_api_*),
 #   core types enums (types_core_enums_*), filter+bookmark combos (app_filter_bookmark_*),
 #   sort rev Pct/Size (app_sort_rev_pct_size_*), serde JSON types (serde_json_public_types_*),
-#   clipboard API (copy_to_clipboard_*), network FS detection (is_network_fs_*),
-#   theme JSON (theme_colors_json_*), etc.
+#   clipboard API (copy_to_clipboard_*), CLI apply bundles (cli_apply_bundles_*),
+#   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
 #   for an approximate listed-test count (includes lib + integration + names; doc tests run separately).
@@ -514,6 +514,8 @@ Matrix jobs (**Check**, **Test**) use `fail-fast: false` so a failure on one OS 
 The **Test** job sets `RUST_BACKTRACE=1` so panics print a full stack trace in the Actions log (useful when a test fails only on one OS).
 
 All jobs inherit `CARGO_NET_RETRY=2` so Cargo retries failed network fetches (crates.io / git dependencies) when the network or registry is slow.
+
+Disk enumeration (`collect_disk_entries`) omits rows with an empty mount path so the TUI never shows blank mounts (this also avoids flaky tests on macOS CI when the OS reports odd mount table entries).
 
 To match CI locally before pushing:
 
