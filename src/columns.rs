@@ -210,4 +210,11 @@ mod tests {
         let p = Prefs::default();
         assert_eq!(mount_col_width(100, &p), 33);
     }
+
+    #[test]
+    fn mount_col_width_compact_ignores_terminal_fraction() {
+        let mut p = Prefs::default();
+        p.compact = true;
+        assert_eq!(mount_col_width(200, &p), 16);
+    }
 }

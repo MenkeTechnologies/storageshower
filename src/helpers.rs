@@ -501,6 +501,11 @@ mod tests {
     }
 
     #[test]
+    fn format_uptime_only_hours_no_days_branch() {
+        assert_eq!(format_uptime(3 * 3600 + 2 * 60), "3h2m");
+    }
+
+    #[test]
     fn format_bytes_human_exactly_one_kib() {
         assert_eq!(format_bytes(1024, UnitMode::Human), "1.0K");
     }

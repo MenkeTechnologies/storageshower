@@ -1400,4 +1400,49 @@ mod tests {
         cli.apply_to(&mut prefs);
         assert!(prefs.show_header);
     }
+
+    #[test]
+    fn used_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--no-used", "--used"]);
+        let mut prefs = Prefs::default();
+        prefs.show_used = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_used);
+    }
+
+    #[test]
+    fn compact_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--no-compact", "--compact"]);
+        let mut prefs = Prefs::default();
+        prefs.compact = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.compact);
+    }
+
+    #[test]
+    fn full_mount_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--no-full-mount", "--full-mount"]);
+        let mut prefs = Prefs::default();
+        prefs.full_mount = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.full_mount);
+    }
+
+    #[test]
+    fn tooltips_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--no-tooltips", "--tooltips"]);
+        let mut prefs = Prefs::default();
+        prefs.show_tooltips = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_tooltips);
+    }
+
+    #[test]
+    fn no_reverse_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--reverse", "--no-reverse"]);
+        let mut prefs = Prefs::default();
+        prefs.sort_rev = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.sort_rev);
+    }
 }
