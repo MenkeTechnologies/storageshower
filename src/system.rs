@@ -780,6 +780,13 @@ mod tests {
         assert!(s < 60);
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn epoch_to_local_idempotent_for_fixed_epoch() {
+        let e: i64 = 1_704_067_200; // arbitrary positive instant
+        assert_eq!(epoch_to_local(e), epoch_to_local(e));
+    }
+
     #[test]
     fn get_username_returns_something() {
         // On CI/dev machines USER is almost always set

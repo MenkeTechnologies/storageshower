@@ -569,6 +569,20 @@ mod tests {
     }
 
     #[test]
+    fn color_mode_display_names_are_unique() {
+        use std::collections::BTreeSet;
+        let mut seen = BTreeSet::new();
+        for &m in ColorMode::ALL {
+            let label = m.name();
+            assert!(
+                seen.insert(label.to_string()),
+                "duplicate ColorMode::name() for {m:?}: {label:?}"
+            );
+        }
+        assert_eq!(seen.len(), ColorMode::ALL.len());
+    }
+
+    #[test]
     fn theme_colors_all_channels_roundtrip_json() {
         let t = ThemeColors {
             blue: 0,
