@@ -480,6 +480,7 @@ cargo test
 #   Areas: CLI parsing/smoke (cli_*), prefs load/roundtrip (prefs_*), App/columns (app_*),
 #   scan_directory + progress (scan_*), helpers invariants (helpers_*), public helpers API
 #   (helpers_public_api_*), dedup_disk_totals (dedup_* + dedup_disk_totals_integration),
+#   prefs TOML/custom themes (prefs_custom_themes_*), system API smoke (system_public_api_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
