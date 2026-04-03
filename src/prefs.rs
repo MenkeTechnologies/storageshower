@@ -445,4 +445,29 @@ active_theme = "saved-slot"
         let p: Prefs = toml::from_str(t).unwrap();
         assert_eq!(p.active_theme.as_deref(), Some("saved-slot"));
     }
+
+    #[test]
+    fn prefs_deserialize_active_theme_and_bookmarks_together() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+active_theme = "neonpink"
+bookmarks = ["/", "/home"]
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert_eq!(p.active_theme.as_deref(), Some("neonpink"));
+        assert_eq!(p.bookmarks, vec!["/", "/home"]);
+    }
 }

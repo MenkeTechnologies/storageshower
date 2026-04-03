@@ -1123,6 +1123,44 @@ mod tests {
     }
 
     #[test]
+    fn apply_io_rates_maps_each_mount_independently() {
+        let mut entries = vec![
+            DiskEntry {
+                mount: "/a".into(),
+                used: 0,
+                total: 1,
+                pct: 0.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+            DiskEntry {
+                mount: "/b".into(),
+                used: 0,
+                total: 1,
+                pct: 0.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+        ];
+        let mut rates = IoRates::new();
+        rates.insert("/a".into(), (11.0, 22.0));
+        rates.insert("/b".into(), (33.0, 44.0));
+        apply_io_rates(&mut entries, &rates);
+        assert!((entries[0].io_read_rate.unwrap() - 11.0).abs() < f64::EPSILON);
+        assert!((entries[0].io_write_rate.unwrap() - 22.0).abs() < f64::EPSILON);
+        assert!((entries[1].io_read_rate.unwrap() - 33.0).abs() < f64::EPSILON);
+        assert!((entries[1].io_write_rate.unwrap() - 44.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
     fn apply_smart_status_missing_mount_leaves_none() {
         let mut entries = vec![DiskEntry {
             mount: "/x".into(),

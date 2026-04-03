@@ -1328,4 +1328,31 @@ mod tests {
             assert_eq!(prefs.color_mode, expected, "flag={flag}");
         }
     }
+
+    #[test]
+    fn short_refresh_flag_overrides_prefs() {
+        let cli = Cli::parse_from(["storageshower", "-r", "7"]);
+        let mut prefs = Prefs::default();
+        prefs.refresh_rate = 1;
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.refresh_rate, 7);
+    }
+
+    #[test]
+    fn apply_col_pct_isolated_override() {
+        let cli = Cli::parse_from(["storageshower", "--col-pct", "11"]);
+        let mut prefs = Prefs::default();
+        prefs.col_pct_w = 3;
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.col_pct_w, 11);
+    }
+
+    #[test]
+    fn apply_col_mount_isolated_override() {
+        let cli = Cli::parse_from(["storageshower", "--col-mount", "19"]);
+        let mut prefs = Prefs::default();
+        prefs.col_mount_w = 8;
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.col_mount_w, 19);
+    }
 }

@@ -498,6 +498,8 @@ Concurrent runs for the same branch are cancelled when a newer commit is pushed 
 
 Matrix jobs (**Check**, **Test**) use `fail-fast: false` so a failure on one OS still runs the other. Each job has a wall-clock **timeout** (30 minutes for build/test/clippy, 10 minutes for format) so hung runners cannot burn minutes indefinitely.
 
+The **Test** job sets `RUST_BACKTRACE=1` so panics print a full stack trace in the Actions log (useful when a test fails only on one OS).
+
 To match CI locally before pushing:
 
 ```bash

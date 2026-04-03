@@ -1918,4 +1918,19 @@ mod tests {
         app.handle_key(make_key(KeyCode::Esc));
         assert!(!app.quit);
     }
+
+    #[test]
+    fn f2_and_f3_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::F(2)));
+        app.handle_key(make_key(KeyCode::F(3)));
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn tab_key_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Tab));
+        assert!(!app.quit);
+    }
 }
