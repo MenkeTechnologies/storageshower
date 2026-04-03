@@ -475,12 +475,26 @@ Measured with [Criterion.rs](https://github.com/bheisler/criterion.rs) on Apple 
 ```bash
 # ── RUN TESTS ──────────────────────────────────
 cargo test
-# Unit tests live in #[cfg(test)] modules under src/; integration tests in tests/integration.rs.
+# Library unit tests: #[cfg(test)] modules under src/
+# Integration tests: tests/integration.rs
 
 # ── RUN BENCHMARKS ─────────────────────────────
 cargo bench
 # results in target/criterion/
 ```
+
+#### `// CI_PIPELINE`
+
+[GitHub Actions](.github/workflows/ci.yml) runs on every push and pull request to `main`:
+
+| Job | What it runs |
+|:---|:---|
+| **Check** | `cargo check --all-targets` on Ubuntu and macOS |
+| **Test** | `cargo test` on Ubuntu and macOS |
+| **Format** | `cargo fmt --all --check` on Ubuntu |
+| **Clippy** | `cargo clippy --all-targets -- -D warnings` on Ubuntu |
+
+Concurrent runs for the same branch are cancelled when a newer commit is pushed (`concurrency.cancel-in-progress`). The workflow uses least-privilege `contents: read` permissions.
 
 ---
 

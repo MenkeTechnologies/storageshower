@@ -1880,4 +1880,26 @@ mod tests {
         app.handle_key(make_key(KeyCode::Delete));
         assert!(!app.quit);
     }
+
+    #[test]
+    fn left_right_arrow_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Left));
+        app.handle_key(make_key(KeyCode::Right));
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn f12_key_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::F(12)));
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn null_byte_char_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char('\0')));
+        assert!(!app.quit);
+    }
 }

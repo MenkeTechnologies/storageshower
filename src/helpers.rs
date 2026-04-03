@@ -478,4 +478,20 @@ mod tests {
     fn format_bytes_gib_mode_zero() {
         assert_eq!(format_bytes(0, UnitMode::GiB), "0.0G");
     }
+
+    #[test]
+    fn format_rate_exactly_one_gib_per_sec() {
+        assert_eq!(format_rate(1_073_741_824.0), "1.0G/s");
+    }
+
+    #[test]
+    fn format_rate_just_under_one_gib_per_sec() {
+        let s = format_rate(1_073_741_823.0);
+        assert!(s.ends_with("M/s"), "got {s}");
+    }
+
+    #[test]
+    fn format_uptime_two_full_days() {
+        assert_eq!(format_uptime(86400 * 2), "2d0h0m");
+    }
 }

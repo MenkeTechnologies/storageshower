@@ -1208,6 +1208,32 @@ mod tests {
     }
 
     #[test]
+    fn sort_drill_entries_size_reversed() {
+        use crate::types::DirEntry;
+
+        let mut app = test_app();
+        app.drill.sort = DrillSortMode::Size;
+        app.drill.sort_rev = true;
+        app.drill.entries = vec![
+            DirEntry {
+                path: "/s".into(),
+                name: "small".into(),
+                size: 1,
+                is_dir: true,
+            },
+            DirEntry {
+                path: "/l".into(),
+                name: "large".into(),
+                size: 999,
+                is_dir: true,
+            },
+        ];
+        app.sort_drill_entries();
+        assert_eq!(app.drill.entries[0].name, "small");
+        assert_eq!(app.drill.entries[1].name, "large");
+    }
+
+    #[test]
     fn update_sorted_bookmarks_pin_order() {
         let mut app = test_app();
         app.prefs.bookmarks = vec!["/data".into(), "/".into()];

@@ -1247,4 +1247,61 @@ mod tests {
         cli.apply_to(&mut prefs);
         assert_eq!(prefs.bar_style, BarStyle::Gradient);
     }
+
+    #[test]
+    fn parse_color_cyber_frost_kebab() {
+        let cli = Cli::parse_from(["storageshower", "--color", "cyber-frost"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.color_mode, ColorMode::CyberFrost);
+    }
+
+    #[test]
+    fn parse_color_plasma_core_kebab() {
+        let cli = Cli::parse_from(["storageshower", "--color", "plasma-core"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.color_mode, ColorMode::PlasmaCore);
+    }
+
+    #[test]
+    fn parse_color_night_city_kebab() {
+        let cli = Cli::parse_from(["storageshower", "--color", "night-city"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.color_mode, ColorMode::NightCity);
+    }
+
+    #[test]
+    fn parse_color_holo_shift_kebab() {
+        let cli = Cli::parse_from(["storageshower", "--color", "holo-shift"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.color_mode, ColorMode::HoloShift);
+    }
+
+    #[test]
+    fn parse_color_bio_hazard_kebab() {
+        let cli = Cli::parse_from(["storageshower", "--color", "bio-hazard"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.color_mode, ColorMode::BioHazard);
+    }
+
+    #[test]
+    fn apply_refresh_rate_zero() {
+        let cli = Cli::parse_from(["storageshower", "-r", "0"]);
+        let mut prefs = Prefs::default();
+        prefs.refresh_rate = 9;
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.refresh_rate, 0);
+    }
+
+    #[test]
+    fn parse_theme_name_with_hyphen() {
+        let cli = Cli::parse_from(["storageshower", "--theme", "neon-pink"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.active_theme.as_deref(), Some("neon-pink"));
+    }
 }

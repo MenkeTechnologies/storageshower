@@ -390,4 +390,36 @@ show_tooltips = false
         assert_eq!(p.bar_style, crate::types::BarStyle::Thin);
         assert_eq!(p.color_mode, crate::types::ColorMode::Cyan);
     }
+
+    #[test]
+    fn prefs_deserialize_custom_theme_table() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+
+[custom_themes.cyber]
+blue = 33
+green = 44
+purple = 55
+light_purple = 66
+royal = 77
+dark_purple = 88
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        let th = p.custom_themes.get("cyber").expect("cyber theme");
+        assert_eq!(th.blue, 33);
+        assert_eq!(th.dark_purple, 88);
+    }
 }

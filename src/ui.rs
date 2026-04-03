@@ -3826,4 +3826,10 @@ mod tests {
         let c = gradient_color_at(0.33, ColorMode::Default);
         assert_ne!(c, Color::Reset);
     }
+
+    #[test]
+    fn gradient_color_at_two_thirds_band() {
+        let c = gradient_color_at(0.66, ColorMode::Matrix);
+        assert_ne!(c, Color::Reset);
+    }
 }

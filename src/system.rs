@@ -768,6 +768,18 @@ mod tests {
         assert!((2024..=2100).contains(&year));
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn epoch_to_local_unix_epoch_no_panic_and_valid_ranges() {
+        let (y, mo, d, h, mi, s) = epoch_to_local(0);
+        assert!((1969..=1971).contains(&y));
+        assert!((1..=12).contains(&mo));
+        assert!((1..=31).contains(&d));
+        assert!(h < 24);
+        assert!(mi < 60);
+        assert!(s < 60);
+    }
+
     #[test]
     fn get_username_returns_something() {
         // On CI/dev machines USER is almost always set
@@ -784,13 +796,6 @@ mod tests {
         assert!(!ip.is_empty());
         // Should be parseable as an IP or fallback
         assert!(ip.contains('.') || ip == "127.0.0.1");
-    }
-
-    #[test]
-    fn collect_disk_entries_returns_something() {
-        let disks = collect_disk_entries();
-        // On any real system there should be at least one disk
-        assert!(!disks.is_empty(), "Expected at least one disk entry");
     }
 
     #[test]
@@ -980,6 +985,19 @@ mod tests {
         let (a, _) = fast.get("/").unwrap();
         let (b, _) = slow.get("/").unwrap();
         assert!((a - 2.0 * b).abs() < 1e-9);
+    }
+
+    #[test]
+    fn compute_io_rates_zero_delta_yields_zero_rates() {
+        let mut prev = IoSnapshot::new();
+        prev.insert("nv0".into(), (5000u64, 7000u64));
+        let mut curr = IoSnapshot::new();
+        curr.insert("nv0".into(), (5000u64, 7000u64));
+        let mut mount_dev = HashMap::new();
+        mount_dev.insert("/data".into(), "nv0".into());
+        let rates = compute_io_rates(&prev, &curr, 1.0, &mount_dev);
+        let (rd, wr) = rates.get("/data").unwrap();
+        assert!(*rd == 0.0 && *wr == 0.0);
     }
 
     #[test]

@@ -204,4 +204,10 @@ mod tests {
         p.col_bar_end_w = 3;
         assert_eq!(right_col_width_static(&p), 5);
     }
+
+    #[test]
+    fn mount_col_width_quarter_terminal_default() {
+        let p = Prefs::default();
+        assert_eq!(mount_col_width(100, &p), 33);
+    }
 }
