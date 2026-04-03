@@ -501,6 +501,9 @@ cargo test
 #   prefs TOML bar style (prefs_toml_bar_style_*), binary warn/crit (cli_binary_warn_crit_*),
 #   format_bytes unit modes (helpers_format_bytes_modes_*), three-mount sort (app_sort_three_mounts_*),
 #   BarStyle JSON (types_bar_style_json_*),
+#   UI palette / gradient (ui_palette_gradient_*), prefs TOML column widths (prefs_toml_column_widths_*),
+#   chrono_now / epoch_to_local (system_time_local_*), columns width API (columns_public_width_*),
+#   CLI column apply (cli_apply_column_widths_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
