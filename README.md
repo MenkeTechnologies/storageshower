@@ -493,7 +493,9 @@ cargo test
 #   filter path shapes (app_filter_paths_*), binary smoke (cli_binary_more_smoke_*),
 #   prefs active_theme TOML (prefs_toml_active_theme_*), truncate_mount edges (helpers_truncate_*),
 #   DiskEntry fields (types_disk_entry_*), scan progress partial callbacks (scan_directory_progress_partial_*),
-#   deep CLI stacks (cli_apply_deep_stack_*), network FS detection (is_network_fs_*),
+#   deep CLI stacks (cli_apply_deep_stack_*), bookmarks+sort_rev (app_bookmarks_sort_rev_*),
+#   prefs TOML many bookmarks (prefs_toml_bookmarks_many_*), binary export/list (cli_binary_export_list_*),
+#   helpers latency/rate edges (helpers_latency_rate_*), network FS detection (is_network_fs_*),
 #   theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
