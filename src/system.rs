@@ -1023,6 +1023,45 @@ mod tests {
     }
 
     #[test]
+    fn apply_io_rates_missing_mount_leaves_none() {
+        let mut entries = vec![DiskEntry {
+            mount: "/only".into(),
+            used: 0,
+            total: 1,
+            pct: 0.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        }];
+        let rates = IoRates::new();
+        apply_io_rates(&mut entries, &rates);
+        assert!(entries[0].io_read_rate.is_none());
+        assert!(entries[0].io_write_rate.is_none());
+    }
+
+    #[test]
+    fn apply_smart_status_missing_mount_leaves_none() {
+        let mut entries = vec![DiskEntry {
+            mount: "/x".into(),
+            used: 0,
+            total: 1,
+            pct: 0.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        }];
+        let smart = SmartMap::new();
+        apply_smart_status(&mut entries, &smart);
+        assert!(entries[0].smart_status.is_none());
+    }
+
+    #[test]
     fn apply_smart_status_sets_fields() {
         let mut entries = vec![DiskEntry {
             mount: "/".into(),

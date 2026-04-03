@@ -3778,4 +3778,33 @@ mod tests {
         assert_ne!(neg, Color::Reset);
         assert_ne!(over, Color::Reset);
     }
+
+    // ── segment_at_x (title/footer bar hit testing) ─────────
+
+    #[test]
+    fn segment_at_x_first_column() {
+        let bar = "Alpha\u{2502}Beta\u{2502}Gamma";
+        assert_eq!(super::segment_at_x(bar, 0, 0), Some("Alpha".into()));
+        assert_eq!(super::segment_at_x(bar, 2, 0), Some("Alpha".into()));
+    }
+
+    #[test]
+    fn segment_at_x_second_column() {
+        let bar = "Alpha\u{2502}Beta\u{2502}Gamma";
+        // First column is rel_x 0..5 (segment len 5 + pipe = 6); rel_x 6 is second column.
+        assert_eq!(super::segment_at_x(bar, 6, 0), Some("Beta".into()));
+    }
+
+    #[test]
+    fn segment_at_x_respects_bar_start_offset() {
+        let bar = "X\u{2502}Y";
+        assert_eq!(super::segment_at_x(bar, 10, 10), Some("X".into()));
+        assert_eq!(super::segment_at_x(bar, 12, 10), Some("Y".into()));
+    }
+
+    #[test]
+    fn segment_at_x_no_pipes_whole_string() {
+        let bar = "only";
+        assert_eq!(super::segment_at_x(bar, 0, 0), Some("only".into()));
+    }
 }

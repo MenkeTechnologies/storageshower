@@ -463,7 +463,7 @@ mod tests {
     use super::*;
     use crate::cli::Cli;
     use crate::testutil::*;
-    use crate::types::{ColorMode, HoverZone, ThemeColors};
+    use crate::types::{ColorMode, DrillSortMode, HoverZone, ThemeColors};
     use clap::Parser;
     use crossterm::event::KeyCode;
     use std::time::Instant;
@@ -1079,5 +1079,105 @@ mod tests {
         app.prefs.show_header = true;
         app.hover.pos = Some((0, 2));
         assert!(app.hovered_disk_index().is_none());
+    }
+
+    #[test]
+    fn hovered_drill_index_rows() {
+        use crate::types::DirEntry;
+
+        let mut app = test_app();
+        app.drill.entries = vec![
+            DirEntry {
+                path: "/a".into(),
+                name: "a".into(),
+                size: 1,
+                is_dir: true,
+            },
+            DirEntry {
+                path: "/b".into(),
+                name: "b".into(),
+                size: 2,
+                is_dir: true,
+            },
+        ];
+        app.prefs.show_border = false;
+        app.hover.pos = Some((10, 4));
+        assert_eq!(app.hovered_drill_index(), Some(0));
+        app.hover.pos = Some((10, 5));
+        assert_eq!(app.hovered_drill_index(), Some(1));
+    }
+
+    #[test]
+    fn hovered_drill_index_none_above_entries() {
+        let mut app = test_app();
+        app.drill.entries.push(crate::types::DirEntry {
+            path: "/x".into(),
+            name: "x".into(),
+            size: 1,
+            is_dir: true,
+        });
+        app.prefs.show_border = false;
+        app.hover.pos = Some((10, 2));
+        assert!(app.hovered_drill_index().is_none());
+    }
+
+    #[test]
+    fn save_noop_in_test_mode() {
+        let mut app = test_app();
+        app.test_mode = true;
+        app.save();
+    }
+
+    #[test]
+    fn sort_drill_entries_by_name_case() {
+        use crate::types::DirEntry;
+
+        let mut app = test_app();
+        app.drill.sort = DrillSortMode::Name;
+        app.drill.sort_rev = false;
+        app.drill.entries = vec![
+            DirEntry {
+                path: "/z".into(),
+                name: "Zebra".into(),
+                size: 100,
+                is_dir: true,
+            },
+            DirEntry {
+                path: "/a".into(),
+                name: "alpha".into(),
+                size: 50,
+                is_dir: true,
+            },
+        ];
+        app.sort_drill_entries();
+        assert_eq!(app.drill.entries[0].name, "alpha");
+        assert_eq!(app.drill.entries[1].name, "Zebra");
+        assert_eq!(app.drill.selected, 0);
+    }
+
+    #[test]
+    fn sort_drill_entries_by_size_desc() {
+        use crate::types::DirEntry;
+
+        let mut app = test_app();
+        app.drill.sort = DrillSortMode::Size;
+        app.drill.sort_rev = false;
+        app.drill.entries = vec![
+            DirEntry {
+                path: "/s".into(),
+                name: "small".into(),
+                size: 1,
+                is_dir: true,
+            },
+            DirEntry {
+                path: "/l".into(),
+                name: "large".into(),
+                size: 999,
+                is_dir: true,
+            },
+        ];
+        app.sort_drill_entries();
+        assert_eq!(app.drill.entries[0].name, "large");
+        assert_eq!(app.drill.entries[1].name, "small");
     }
 }

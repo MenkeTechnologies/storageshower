@@ -545,4 +545,20 @@ mod tests {
         let _b = a;
         let _c = a;
     }
+
+    #[test]
+    fn drill_sort_mode_debug_nonempty() {
+        assert!(!format!("{:?}", DrillSortMode::Size).is_empty());
+    }
+
+    #[test]
+    fn view_mode_debug_nonempty() {
+        assert!(!format!("{:?}", ViewMode::DrillDown).is_empty());
+    }
+
+    #[test]
+    fn hover_zone_disk_row_debug() {
+        let s = format!("{:?}", HoverZone::DiskRow(42));
+        assert!(s.contains("42"));
+    }
 }

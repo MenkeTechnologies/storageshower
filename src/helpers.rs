@@ -418,4 +418,14 @@ mod tests {
     fn format_bytes_gib_mode_fraction() {
         assert_eq!(format_bytes(536_870_912, UnitMode::GiB), "0.5G");
     }
+
+    #[test]
+    fn format_bytes_mib_exact_one() {
+        assert_eq!(format_bytes(1_048_576, UnitMode::MiB), "1.0M");
+    }
+
+    #[test]
+    fn format_latency_exactly_one_ms() {
+        assert_eq!(format_latency(1.0), "1ms");
+    }
 }
