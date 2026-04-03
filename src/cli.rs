@@ -1355,4 +1355,22 @@ mod tests {
         cli.apply_to(&mut prefs);
         assert_eq!(prefs.col_mount_w, 19);
     }
+
+    #[test]
+    fn apply_col_bar_end_isolated_override() {
+        let cli = Cli::parse_from(["storageshower", "--col-bar-end", "42"]);
+        let mut prefs = Prefs::default();
+        prefs.col_bar_end_w = 6;
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.col_bar_end_w, 42);
+    }
+
+    #[test]
+    fn no_bars_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--bars", "--no-bars"]);
+        let mut prefs = Prefs::default();
+        prefs.show_bars = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.show_bars);
+    }
 }

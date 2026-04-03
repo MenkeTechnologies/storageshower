@@ -485,7 +485,7 @@ cargo bench
 
 #### `// CI_PIPELINE`
 
-[GitHub Actions](.github/workflows/ci.yml) runs on every push and pull request to `main`:
+[GitHub Actions](.github/workflows/ci.yml) runs on every push and pull request to `main`, on [merge queue](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/merging-a-pull-request-with-a-merge-queue) batches (when enabled), and can be run manually via **Actions → CI → Run workflow** (`workflow_dispatch`).
 
 | Job | What it runs |
 |:---|:---|

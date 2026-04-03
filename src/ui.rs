@@ -3838,4 +3838,12 @@ mod tests {
         let bar = "A\u{2502}B\u{2502}C";
         assert_eq!(super::segment_at_x(bar, 12, 0), Some("C".into()));
     }
+
+    #[test]
+    fn segment_at_x_on_pipe_selects_next_segment() {
+        let bar = "Foo\u{2502}Bar";
+        // "Foo" segment covers rel_x 0..4 (len 3 + pipe); cursor on the pipe still counts as Foo.
+        assert_eq!(super::segment_at_x(bar, 3, 0), Some("Foo".into()));
+        assert_eq!(super::segment_at_x(bar, 4, 0), Some("Bar".into()));
+    }
 }

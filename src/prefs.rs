@@ -470,4 +470,26 @@ bookmarks = ["/", "/home"]
         assert_eq!(p.active_theme.as_deref(), Some("neonpink"));
         assert_eq!(p.bookmarks, vec!["/", "/home"]);
     }
+
+    #[test]
+    fn prefs_deserialize_show_local_true() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = true
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert!(p.show_local);
+    }
 }

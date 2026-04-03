@@ -970,6 +970,12 @@ mod tests {
         assert!(is_network_fs("cifs"));
         assert!(is_network_fs("smbfs"));
         assert!(is_network_fs("fuse.sshfs"));
+        assert!(is_network_fs("afp"));
+        assert!(is_network_fs("ncp"));
+        assert!(is_network_fs("fuse.rclone"));
+        assert!(is_network_fs("fuse.s3fs"));
+        assert!(is_network_fs("9p"));
+        assert!(is_network_fs("afs"));
         assert!(!is_network_fs("apfs"));
         assert!(!is_network_fs("ext4"));
         assert!(!is_network_fs("xfs"));
@@ -1001,6 +1007,21 @@ mod tests {
         let slow = compute_io_rates(&prev, &curr, 2.0, &mount_dev);
         let (a, _) = fast.get("/").unwrap();
         let (b, _) = slow.get("/").unwrap();
+        assert!((a - 2.0 * b).abs() < 1e-9);
+    }
+
+    #[test]
+    fn compute_io_rates_half_second_elapsed_doubles_rate_vs_one_second() {
+        let mut prev = IoSnapshot::new();
+        prev.insert("d1".into(), (0u64, 0u64));
+        let mut curr = IoSnapshot::new();
+        curr.insert("d1".into(), (1000u64, 2000u64));
+        let mut mount_dev = HashMap::new();
+        mount_dev.insert("/mnt".into(), "d1".into());
+        let half = compute_io_rates(&prev, &curr, 0.5, &mount_dev);
+        let one = compute_io_rates(&prev, &curr, 1.0, &mount_dev);
+        let (a, _) = half.get("/mnt").unwrap();
+        let (b, _) = one.get("/mnt").unwrap();
         assert!((a - 2.0 * b).abs() < 1e-9);
     }
 

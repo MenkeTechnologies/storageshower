@@ -637,4 +637,19 @@ mod tests {
         }
         assert_eq!(seen.len(), 4);
     }
+
+    #[test]
+    fn unit_mode_variants_are_unique() {
+        use std::collections::BTreeSet;
+        let mut seen = BTreeSet::new();
+        for u in [
+            UnitMode::Human,
+            UnitMode::GiB,
+            UnitMode::MiB,
+            UnitMode::Bytes,
+        ] {
+            assert!(seen.insert(format!("{u:?}")), "duplicate {u:?}");
+        }
+        assert_eq!(seen.len(), 4);
+    }
 }

@@ -707,7 +707,7 @@ mod tests {
     use crate::prefs::Prefs;
     use crate::testutil::*;
     use crate::types::*;
-    use crossterm::event::KeyCode;
+    use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
     use std::sync::{Arc, Mutex};
 
     // ── Key handling — quit ────────────────────────────────
@@ -1931,6 +1931,18 @@ mod tests {
     fn tab_key_no_crash() {
         let mut app = test_app();
         app.handle_key(make_key(KeyCode::Tab));
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn shift_tab_no_crash() {
+        let mut app = test_app();
+        app.handle_key(KeyEvent {
+            code: KeyCode::BackTab,
+            modifiers: KeyModifiers::SHIFT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        });
         assert!(!app.quit);
     }
 }
