@@ -498,6 +498,9 @@ cargo test
 #   helpers latency/rate edges (helpers_latency_rate_*), uptime edges (helpers_uptime_*),
 #   prefs TOML sort modes (prefs_toml_sort_modes_*), dedup order behavior (dedup_disk_totals_order_*),
 #   scan dotfiles (scan_directory_dotfile_*), CLI misc apply (cli_misc_parse_apply_*),
+#   prefs TOML bar style (prefs_toml_bar_style_*), binary warn/crit (cli_binary_warn_crit_*),
+#   format_bytes unit modes (helpers_format_bytes_modes_*), three-mount sort (app_sort_three_mounts_*),
+#   BarStyle JSON (types_bar_style_json_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
