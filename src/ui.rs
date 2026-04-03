@@ -3743,4 +3743,39 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn palette_for_prefs_uses_custom_theme_indices() {
+        use crate::prefs::Prefs;
+        use crate::types::ThemeColors;
+
+        let mut prefs = Prefs::default();
+        prefs.active_theme = Some("cyber".into());
+        prefs.custom_themes.insert(
+            "cyber".into(),
+            ThemeColors {
+                blue: 33,
+                green: 44,
+                purple: 55,
+                light_purple: 66,
+                royal: 77,
+                dark_purple: 88,
+            },
+        );
+        let (a, b, c, d, e, f) = palette_for_prefs(&prefs);
+        assert_eq!(a, Color::Indexed(33));
+        assert_eq!(b, Color::Indexed(44));
+        assert_eq!(c, Color::Indexed(55));
+        assert_eq!(d, Color::Indexed(66));
+        assert_eq!(e, Color::Indexed(77));
+        assert_eq!(f, Color::Indexed(88));
+    }
+
+    #[test]
+    fn gradient_color_at_out_of_range_frac_still_resolves() {
+        let neg = gradient_color_at(-1.0, ColorMode::Green);
+        let over = gradient_color_at(10.0, ColorMode::Purple);
+        assert_ne!(neg, Color::Reset);
+        assert_ne!(over, Color::Reset);
+    }
 }

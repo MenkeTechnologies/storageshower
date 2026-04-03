@@ -461,8 +461,12 @@ pub use crate::columns::{mount_col_width, right_col_width, right_col_width_stati
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cli::Cli;
     use crate::testutil::*;
+    use crate::types::{ColorMode, HoverZone, ThemeColors};
+    use clap::Parser;
     use crossterm::event::KeyCode;
+    use std::time::Instant;
 
     // ── Sorting ────────────────────────────────────────────
 
@@ -893,5 +897,187 @@ mod tests {
             Ok(()) => {}
             Err(err) => assert!(err.contains("clipboard"), "unexpected error message: {err}"),
         }
+    }
+
+    // ── CLI → App::new ──────────────────────────────────────
+
+    #[test]
+    fn app_new_applies_cli_sort_and_refresh() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let cli = Cli::parse_from(["storageshower", "-s", "pct", "-r", "7"]);
+        let app = App::new(shared, &cli);
+        assert_eq!(app.prefs.sort_mode, SortMode::Pct);
+        assert_eq!(app.prefs.refresh_rate, 7);
+    }
+
+    #[test]
+    fn app_new_applies_cli_color_and_thresholds() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let cli = Cli::parse_from(["storageshower", "--color", "cyan", "-w", "55", "-C", "88"]);
+        let app = App::new(shared, &cli);
+        assert_eq!(app.prefs.color_mode, ColorMode::Cyan);
+        assert_eq!(app.prefs.thresh_warn, 55);
+        assert_eq!(app.prefs.thresh_crit, 88);
+    }
+
+    // ── Theme list / chooser preview ────────────────────────
+
+    #[test]
+    fn all_themes_len_matches_builtins_plus_custom() {
+        let mut app = test_app();
+        assert_eq!(app.all_themes().len(), ColorMode::ALL.len());
+        app.prefs.custom_themes.insert(
+            "zzz_custom".into(),
+            ThemeColors {
+                blue: 1,
+                green: 2,
+                purple: 3,
+                light_purple: 4,
+                royal: 5,
+                dark_purple: 6,
+            },
+        );
+        assert_eq!(app.all_themes().len(), ColorMode::ALL.len() + 1);
+    }
+
+    #[test]
+    fn all_themes_custom_sorted_lexicographically() {
+        let mut app = test_app();
+        app.prefs.custom_themes.insert(
+            "b_theme".into(),
+            ThemeColors {
+                blue: 1,
+                green: 2,
+                purple: 3,
+                light_purple: 4,
+                royal: 5,
+                dark_purple: 6,
+            },
+        );
+        app.prefs.custom_themes.insert(
+            "a_theme".into(),
+            ThemeColors {
+                blue: 10,
+                green: 11,
+                purple: 12,
+                light_purple: 13,
+                royal: 14,
+                dark_purple: 15,
+            },
+        );
+        let themes = app.all_themes();
+        let n = ColorMode::ALL.len();
+        assert_eq!(themes[n].0, "a_theme");
+        assert_eq!(themes[n + 1].0, "b_theme");
+    }
+
+    #[test]
+    fn apply_selected_theme_first_builtin_clears_active_theme() {
+        let mut app = test_app();
+        app.prefs.active_theme = Some("ghost".into());
+        app.theme_chooser.selected = 0;
+        app.apply_selected_theme();
+        assert_eq!(app.prefs.color_mode, ColorMode::ALL[0]);
+        assert!(app.prefs.active_theme.is_none());
+    }
+
+    #[test]
+    fn apply_selected_theme_custom_key_sets_active_theme() {
+        let mut app = test_app();
+        app.prefs.custom_themes.insert(
+            "mine_only".into(),
+            ThemeColors {
+                blue: 20,
+                green: 21,
+                purple: 22,
+                light_purple: 23,
+                royal: 24,
+                dark_purple: 25,
+            },
+        );
+        let idx = app
+            .all_themes()
+            .iter()
+            .position(|(k, _)| k == "mine_only")
+            .expect("custom theme in list");
+        app.theme_chooser.selected = idx;
+        app.apply_selected_theme();
+        assert_eq!(app.prefs.active_theme.as_deref(), Some("mine_only"));
+    }
+
+    // ── Drill scroll ────────────────────────────────────────
+
+    #[test]
+    fn ensure_drill_visible_pulls_scroll_to_selected() {
+        let mut app = test_app();
+        app.drill.selected = 0;
+        app.drill.scroll_offset = 10;
+        app.ensure_drill_visible(5);
+        assert_eq!(app.drill.scroll_offset, 0);
+    }
+
+    #[test]
+    fn ensure_drill_visible_advances_offset_when_below_fold() {
+        let mut app = test_app();
+        app.drill.selected = 9;
+        app.drill.scroll_offset = 0;
+        app.ensure_drill_visible(3);
+        assert_eq!(app.drill.scroll_offset, 7);
+    }
+
+    #[test]
+    fn drill_current_path_from_vec() {
+        let mut app = test_app();
+        app.drill.path = vec!["/a".into(), "/a/b".into()];
+        assert_eq!(app.drill_current_path(), "/a/b");
+    }
+
+    // ── Hover helpers ─────────────────────────────────────
+
+    #[test]
+    fn hover_ready_false_without_timer() {
+        let app = test_app();
+        assert!(!app.hover_ready());
+    }
+
+    #[test]
+    fn hover_ready_false_immediately_after_since_set() {
+        let mut app = test_app();
+        app.hover.since = Some(Instant::now());
+        app.hover.right_click = false;
+        assert!(!app.hover_ready());
+    }
+
+    #[test]
+    fn hovered_zone_none_without_position() {
+        let app = test_app();
+        assert_eq!(app.hovered_zone(50), HoverZone::None);
+    }
+
+    #[test]
+    fn hovered_zone_title_when_border_and_y_matches() {
+        let mut app = test_app();
+        app.prefs.show_border = true;
+        app.hover.pos = Some((3, 1));
+        assert_eq!(app.hovered_zone(45), HoverZone::TitleBar);
+    }
+
+    #[test]
+    fn hovered_disk_index_first_disk_row() {
+        let mut app = test_app();
+        app.prefs.show_border = false;
+        app.prefs.show_header = true;
+        // first_disk_row = 0 + 2 + 2 = 4
+        app.hover.pos = Some((0, 4));
+        assert_eq!(app.hovered_disk_index(), Some(0));
+    }
+
+    #[test]
+    fn hovered_disk_index_none_above_table() {
+        let mut app = test_app();
+        app.prefs.show_border = false;
+        app.prefs.show_header = true;
+        app.hover.pos = Some((0, 2));
+        assert!(app.hovered_disk_index().is_none());
     }
 }

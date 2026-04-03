@@ -403,4 +403,19 @@ mod tests {
     fn format_uptime_hour_only_no_days() {
         assert_eq!(format_uptime(7200), "2h0m");
     }
+
+    #[test]
+    fn format_rate_negative_falls_through_zero_band() {
+        assert_eq!(format_rate(-50.0), "0B/s");
+    }
+
+    #[test]
+    fn format_bytes_human_exactly_one_byte_below_kilo() {
+        assert_eq!(format_bytes(1023, UnitMode::Human), "1023B");
+    }
+
+    #[test]
+    fn format_bytes_gib_mode_fraction() {
+        assert_eq!(format_bytes(536_870_912, UnitMode::GiB), "0.5G");
+    }
 }

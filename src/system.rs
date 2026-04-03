@@ -977,6 +977,31 @@ mod tests {
     }
 
     #[test]
+    fn compute_io_rates_negative_delta_saturates_to_zero() {
+        let mut prev = IoSnapshot::new();
+        prev.insert("disk0".into(), (5000, 5000));
+        let mut curr = IoSnapshot::new();
+        curr.insert("disk0".into(), (1000, 2000));
+        let mut mount_dev = HashMap::new();
+        mount_dev.insert("/".into(), "disk0".into());
+        let rates = compute_io_rates(&prev, &curr, 1.0, &mount_dev);
+        let (rd, wr) = rates.get("/").unwrap();
+        assert!(*rd == 0.0 && *wr == 0.0);
+    }
+
+    #[test]
+    fn compute_io_rates_skips_unknown_device() {
+        let mut prev = IoSnapshot::new();
+        prev.insert("disk0".into(), (100, 100));
+        let mut curr = IoSnapshot::new();
+        curr.insert("disk0".into(), (200, 200));
+        let mut mount_dev = HashMap::new();
+        mount_dev.insert("/mnt".into(), "disk_missing".into());
+        let rates = compute_io_rates(&prev, &curr, 1.0, &mount_dev);
+        assert!(rates.is_empty());
+    }
+
+    #[test]
     fn apply_io_rates_sets_fields() {
         let mut entries = vec![DiskEntry {
             mount: "/".into(),
