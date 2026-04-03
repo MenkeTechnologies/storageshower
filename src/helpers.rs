@@ -438,4 +438,14 @@ mod tests {
     fn format_uptime_only_minutes_no_hours() {
         assert_eq!(format_uptime(3599), "59m");
     }
+
+    #[test]
+    fn format_bytes_bytes_mode_one_mebibyte() {
+        assert_eq!(format_bytes(1_048_576, UnitMode::Bytes), "1048576B");
+    }
+
+    #[test]
+    fn format_latency_ten_seconds() {
+        assert_eq!(format_latency(10_000.0), "10.0s");
+    }
 }

@@ -1828,4 +1828,21 @@ mod tests {
         app.handle_key(make_key(KeyCode::Esc));
         assert!(!app.quit);
     }
+
+    #[test]
+    fn digit_keys_no_quit_outside_filter() {
+        let mut app = test_app();
+        for code in [KeyCode::Char('1'), KeyCode::Char('2'), KeyCode::Char('9')] {
+            app.handle_key(make_key(code));
+        }
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn page_up_down_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::PageUp));
+        app.handle_key(make_key(KeyCode::PageDown));
+        assert!(!app.quit);
+    }
 }

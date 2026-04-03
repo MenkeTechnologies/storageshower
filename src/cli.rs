@@ -1097,4 +1097,47 @@ mod tests {
         assert!(!prefs.show_bars);
         assert!(!prefs.show_header);
     }
+
+    #[test]
+    fn long_reverse_flag_sets_sort_rev() {
+        let cli = Cli::parse_from(["storageshower", "--reverse"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert!(prefs.sort_rev);
+    }
+
+    #[test]
+    fn long_no_compact_flag() {
+        let cli = Cli::parse_from(["storageshower", "--no-compact"]);
+        let mut prefs = Prefs::default();
+        prefs.compact = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.compact);
+    }
+
+    #[test]
+    fn long_no_full_mount_flag() {
+        let cli = Cli::parse_from(["storageshower", "--no-full-mount"]);
+        let mut prefs = Prefs::default();
+        prefs.full_mount = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.full_mount);
+    }
+
+    #[test]
+    fn long_refresh_flag() {
+        let cli = Cli::parse_from(["storageshower", "--refresh", "3"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.refresh_rate, 3);
+    }
+
+    #[test]
+    fn long_warn_and_crit_flags() {
+        let cli = Cli::parse_from(["storageshower", "--warn", "61", "--crit", "91"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.thresh_warn, 61);
+        assert_eq!(prefs.thresh_crit, 91);
+    }
 }

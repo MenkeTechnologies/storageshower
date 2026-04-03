@@ -583,4 +583,14 @@ mod tests {
         assert_eq!(u.blue, 0);
         assert_eq!(u.green, 255);
     }
+
+    #[test]
+    fn color_mode_next_cycles_full_palette_exactly() {
+        let n = ColorMode::ALL.len();
+        let mut m = ColorMode::ALL[0];
+        for _ in 0..n {
+            m = m.next();
+        }
+        assert_eq!(m, ColorMode::ALL[0]);
+    }
 }

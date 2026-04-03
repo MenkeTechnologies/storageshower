@@ -183,4 +183,11 @@ mod tests {
         let w = mount_col_width(24, &p);
         assert_eq!(w, 12);
     }
+
+    #[test]
+    fn mount_col_width_narrow_inner_uses_twelve_floor() {
+        let p = Prefs::default();
+        let w = mount_col_width(20, &p);
+        assert_eq!(w, 12);
+    }
 }

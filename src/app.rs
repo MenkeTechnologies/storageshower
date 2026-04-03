@@ -1222,4 +1222,22 @@ mod tests {
         app.update_sorted();
         assert_eq!(app.sorted_disks().len(), app.disks.len());
     }
+
+    #[test]
+    fn ensure_visible_scrolls_when_selection_below_fold() {
+        let mut app = test_app();
+        app.selected = Some(3);
+        app.scroll_offset = 0;
+        app.ensure_visible(2);
+        assert_eq!(app.scroll_offset, 2);
+    }
+
+    #[test]
+    fn ensure_visible_noop_when_selection_already_visible() {
+        let mut app = test_app();
+        app.selected = Some(1);
+        app.scroll_offset = 0;
+        app.ensure_visible(5);
+        assert_eq!(app.scroll_offset, 0);
+    }
 }

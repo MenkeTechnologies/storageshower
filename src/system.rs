@@ -1014,6 +1014,24 @@ mod tests {
     }
 
     #[test]
+    fn compute_io_rates_two_mounts_same_device() {
+        let mut prev = IoSnapshot::new();
+        prev.insert("sdX".into(), (1000, 2000));
+        let mut curr = IoSnapshot::new();
+        curr.insert("sdX".into(), (3000, 5000));
+        let mut mount_dev = HashMap::new();
+        mount_dev.insert("/a".into(), "sdX".into());
+        mount_dev.insert("/b".into(), "sdX".into());
+        let rates = compute_io_rates(&prev, &curr, 2.0, &mount_dev);
+        let (a_rd, a_wr) = rates.get("/a").unwrap();
+        let (b_rd, b_wr) = rates.get("/b").unwrap();
+        assert!((a_rd - b_rd).abs() < f64::EPSILON);
+        assert!((a_wr - b_wr).abs() < f64::EPSILON);
+        assert!((*a_rd - 1000.0).abs() < f64::EPSILON);
+        assert!((*a_wr - 1500.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
     fn apply_io_rates_sets_fields() {
         let mut entries = vec![DiskEntry {
             mount: "/".into(),

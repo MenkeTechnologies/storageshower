@@ -271,4 +271,50 @@ full_mount = false
         assert!(p.show_tooltips);
         assert!(p.show_all);
     }
+
+    #[test]
+    fn prefs_deserialize_show_all_false() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+show_all = false
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert!(!p.show_all);
+    }
+
+    #[test]
+    fn prefs_deserialize_unit_mode_gib() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+unit_mode = "GiB"
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert_eq!(p.unit_mode, crate::types::UnitMode::GiB);
+    }
 }

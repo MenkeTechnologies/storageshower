@@ -3813,4 +3813,11 @@ mod tests {
         let bar = "A\u{2502}B\u{2502}C";
         assert_eq!(super::segment_at_x(bar, 500, 0), Some("C".into()));
     }
+
+    #[test]
+    fn set_str_max_w_one_writes_single_glyph() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 5));
+        set_str(&mut buf, 0, 0, "Hello", Style::default(), 1);
+        assert_eq!(buf[(0, 0)].symbol(), "H");
+    }
 }
