@@ -449,4 +449,100 @@ mod tests {
         let last = *ColorMode::ALL.last().expect("ColorMode::ALL non-empty");
         assert_eq!(last.next(), ColorMode::ALL[0]);
     }
+
+    #[test]
+    fn color_mode_name_nonempty_for_all() {
+        for &mode in ColorMode::ALL {
+            let n = mode.name();
+            assert!(!n.is_empty(), "{mode:?}");
+        }
+    }
+
+    #[test]
+    fn drill_sort_mode_equality() {
+        assert_eq!(DrillSortMode::Size, DrillSortMode::Size);
+        assert_ne!(DrillSortMode::Size, DrillSortMode::Name);
+    }
+
+    #[test]
+    fn hover_zone_equality() {
+        assert_eq!(HoverZone::None, HoverZone::None);
+        assert_eq!(HoverZone::DiskRow(3), HoverZone::DiskRow(3));
+        assert_ne!(HoverZone::DiskRow(0), HoverZone::DiskRow(1));
+        assert_ne!(HoverZone::TitleBar, HoverZone::FooterBar);
+    }
+
+    #[test]
+    fn view_mode_equality() {
+        assert_eq!(ViewMode::Disks, ViewMode::Disks);
+        assert_ne!(ViewMode::Disks, ViewMode::DrillDown);
+    }
+
+    #[test]
+    fn smart_health_exhaustive_eq() {
+        assert_eq!(SmartHealth::Verified, SmartHealth::Verified);
+        assert_ne!(SmartHealth::Verified, SmartHealth::Failing);
+        assert_ne!(SmartHealth::Failing, SmartHealth::Unknown);
+        assert_ne!(SmartHealth::Unknown, SmartHealth::Verified);
+    }
+
+    #[test]
+    fn dir_entry_clone() {
+        let d = DirEntry {
+            path: "/a/b".into(),
+            name: "b".into(),
+            size: 99,
+            is_dir: true,
+        };
+        let c = d.clone();
+        assert_eq!(c.path, d.path);
+        assert_eq!(c.size, 99);
+        assert!(c.is_dir);
+    }
+
+    #[test]
+    fn theme_colors_serde_json_roundtrip() {
+        let t = ThemeColors {
+            blue: 10,
+            green: 20,
+            purple: 30,
+            light_purple: 40,
+            royal: 50,
+            dark_purple: 60,
+        };
+        let s = serde_json::to_string(&t).unwrap();
+        let u: ThemeColors = serde_json::from_str(&s).unwrap();
+        assert_eq!(u.blue, t.blue);
+        assert_eq!(u.green, t.green);
+        assert_eq!(u.purple, t.purple);
+        assert_eq!(u.light_purple, t.light_purple);
+        assert_eq!(u.royal, t.royal);
+        assert_eq!(u.dark_purple, t.dark_purple);
+    }
+
+    #[test]
+    fn disk_entry_smart_status_roundtrip_clone() {
+        let d = DiskEntry {
+            mount: "/".into(),
+            used: 1,
+            total: 2,
+            pct: 50.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: Some(1.5),
+            io_read_rate: Some(100.0),
+            io_write_rate: Some(200.0),
+            smart_status: Some(SmartHealth::Failing),
+        };
+        let c = d.clone();
+        assert_eq!(c.smart_status, Some(SmartHealth::Failing));
+        assert_eq!(c.io_read_rate, Some(100.0));
+    }
+
+    #[test]
+    fn drag_target_is_copy() {
+        let a = DragTarget::MountSep;
+        let _b = a;
+        let _c = a;
+    }
 }

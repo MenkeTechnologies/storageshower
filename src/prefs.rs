@@ -218,4 +218,34 @@ mod tests {
         assert_eq!(loaded.sort_mode, SortMode::Pct);
         assert_eq!(loaded.refresh_rate, 9);
     }
+
+    #[test]
+    fn load_prefs_from_empty_file_yields_defaults() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("empty.conf");
+        std::fs::write(&path, "").expect("write empty");
+        let p = load_prefs_from(Some(path.to_str().expect("utf8 path")));
+        assert_eq!(p.sort_mode, crate::types::SortMode::Name);
+        assert_eq!(p.refresh_rate, 1);
+    }
+
+    #[test]
+    fn load_prefs_from_garbage_toml_yields_defaults() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("bad.conf");
+        std::fs::write(&path, "this is not [[valid]] toml {{{").expect("write");
+        let p = load_prefs_from(Some(path.to_str().expect("utf8 path")));
+        assert_eq!(p.sort_mode, crate::types::SortMode::Name);
+    }
+
+    #[test]
+    fn prefs_toml_roundtrip_active_theme_and_bookmarks() {
+        let mut p = Prefs::default();
+        p.active_theme = Some("neon".into());
+        p.bookmarks = vec!["/home".into(), "/data".into()];
+        let s = toml::to_string_pretty(&p).unwrap();
+        let q: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(q.active_theme.as_deref(), Some("neon"));
+        assert_eq!(q.bookmarks, vec!["/home", "/data"]);
+    }
 }

@@ -886,4 +886,156 @@ mod tests {
         cli.apply_to(&mut prefs);
         assert!(!prefs.show_tooltips);
     }
+
+    #[test]
+    fn short_config_flag() {
+        let cli = Cli::parse_from(["storageshower", "-c", "/path/to/x.conf"]);
+        assert_eq!(cli.config.as_deref(), Some("/path/to/x.conf"));
+    }
+
+    #[test]
+    fn short_sort_name() {
+        let cli = Cli::parse_from(["storageshower", "-s", "name"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.sort_mode, SortMode::Name);
+    }
+
+    #[test]
+    fn no_reverse_flag() {
+        let cli = Cli::parse_from(["storageshower", "--no-reverse"]);
+        let mut prefs = Prefs::default();
+        prefs.sort_rev = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.sort_rev);
+    }
+
+    #[test]
+    fn no_local_flag() {
+        let cli = Cli::parse_from(["storageshower", "--no-local"]);
+        let mut prefs = Prefs::default();
+        prefs.show_local = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.show_local);
+    }
+
+    #[test]
+    fn refresh_short_flag() {
+        let cli = Cli::parse_from(["storageshower", "-r", "12"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.refresh_rate, 12);
+    }
+
+    #[test]
+    fn warn_crit_short_flags() {
+        let cli = Cli::parse_from(["storageshower", "-w", "55", "-C", "92"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.thresh_warn, 55);
+        assert_eq!(prefs.thresh_crit, 92);
+    }
+
+    #[test]
+    fn compact_short_flag() {
+        let cli = Cli::parse_from(["storageshower", "-k"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert!(prefs.compact);
+    }
+
+    #[test]
+    fn full_mount_short_flag() {
+        let cli = Cli::parse_from(["storageshower", "-f"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert!(prefs.full_mount);
+    }
+
+    #[test]
+    fn units_short_flag_mib() {
+        let cli = Cli::parse_from(["storageshower", "-u", "mib"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.unit_mode, UnitMode::MiB);
+    }
+
+    #[test]
+    fn list_colors_long_flag() {
+        let cli = Cli::parse_from(["storageshower", "--list-colors"]);
+        assert!(cli.list_colors);
+    }
+
+    #[test]
+    fn export_theme_with_theme_name() {
+        let cli = Cli::parse_from(["storageshower", "--export-theme", "--theme", "custom1"]);
+        assert!(cli.export_theme);
+        assert_eq!(cli.theme.as_deref(), Some("custom1"));
+    }
+
+    #[test]
+    fn parse_multiple_display_negations() {
+        let cli = Cli::parse_from([
+            "storageshower",
+            "--no-bars",
+            "--no-border",
+            "--no-header",
+            "--no-used",
+            "--no-tooltips",
+            "--no-virtual",
+        ]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.show_bars);
+        assert!(!prefs.show_border);
+        assert!(!prefs.show_header);
+        assert!(!prefs.show_used);
+        assert!(!prefs.show_tooltips);
+        assert!(!prefs.show_all);
+    }
+
+    #[test]
+    fn parse_positive_display_overrides() {
+        let cli = Cli::parse_from([
+            "storageshower",
+            "--bars",
+            "--border",
+            "--header",
+            "--used",
+            "--tooltips",
+            "--virtual",
+        ]);
+        let mut prefs = Prefs::default();
+        prefs.show_bars = false;
+        prefs.show_border = false;
+        prefs.show_header = false;
+        prefs.show_used = false;
+        prefs.show_tooltips = false;
+        prefs.show_all = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_bars);
+        assert!(prefs.show_border);
+        assert!(prefs.show_header);
+        assert!(prefs.show_used);
+        assert!(prefs.show_tooltips);
+        assert!(prefs.show_all);
+    }
+
+    #[test]
+    fn invalid_refresh_nonnumeric_errors() {
+        let r = Cli::try_parse_from(["storageshower", "-r", "nope"]);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn invalid_thresh_warn_nonnumeric_errors() {
+        let r = Cli::try_parse_from(["storageshower", "-w", "xx"]);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn invalid_crit_nonnumeric_errors() {
+        let r = Cli::try_parse_from(["storageshower", "-C", "??"]);
+        assert!(r.is_err());
+    }
 }

@@ -475,6 +475,7 @@ Measured with [Criterion.rs](https://github.com/bheisler/criterion.rs) on Apple 
 ```bash
 # ── RUN TESTS ──────────────────────────────────
 cargo test
+# Unit tests live in #[cfg(test)] modules under src/; integration tests in tests/integration.rs.
 
 # ── RUN BENCHMARKS ─────────────────────────────
 cargo bench

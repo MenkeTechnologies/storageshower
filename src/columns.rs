@@ -47,7 +47,8 @@ pub fn mount_col_width(inner_w: u16, prefs: &Prefs) -> usize {
 mod tests {
     use super::*;
     use crate::app::App;
-    use crate::types::SysStats;
+    use crate::testutil::test_app;
+    use crate::types::{SysStats, UnitMode};
     use std::sync::{Arc, Mutex};
 
     #[test]
@@ -145,5 +146,41 @@ mod tests {
         app.prefs = Prefs::default();
         app.prefs.col_bar_end_w = 2;
         assert_eq!(right_col_width(&app), 5); // min 5
+    }
+
+    #[test]
+    fn right_col_width_dynamic_at_least_min_with_sample_disks() {
+        let mut app = test_app();
+        app.prefs.col_bar_end_w = 0;
+        app.prefs.show_used = true;
+        let w = right_col_width(&app);
+        assert!(w >= 22);
+    }
+
+    #[test]
+    fn right_col_width_wider_with_bytes_unit_mode() {
+        let mut app = test_app();
+        app.prefs.unit_mode = UnitMode::Bytes;
+        app.prefs.col_bar_end_w = 0;
+        let w_bytes = right_col_width(&app);
+        app.prefs.unit_mode = UnitMode::Human;
+        let w_human = right_col_width(&app);
+        assert!(w_bytes >= w_human);
+    }
+
+    #[test]
+    fn right_col_width_custom_pct_column_wide() {
+        let mut app = test_app();
+        app.prefs.col_pct_w = 12;
+        app.prefs.col_bar_end_w = 0;
+        let w = right_col_width(&app);
+        assert!(w >= 22);
+    }
+
+    #[test]
+    fn mount_col_width_at_tiny_terminal_uses_floor() {
+        let p = Prefs::default();
+        let w = mount_col_width(24, &p);
+        assert_eq!(w, 12);
     }
 }

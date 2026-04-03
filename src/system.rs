@@ -887,6 +887,61 @@ mod tests {
     }
 
     #[test]
+    fn dedup_disk_totals_empty() {
+        assert_eq!(dedup_disk_totals(&[]), (0, 0));
+    }
+
+    #[test]
+    fn dedup_disk_totals_skips_zero_total() {
+        let disks = vec![DiskEntry {
+            mount: "/empty".into(),
+            used: 0,
+            total: 0,
+            pct: 0.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        }];
+        assert_eq!(dedup_disk_totals(&disks), (0, 0));
+    }
+
+    #[test]
+    fn dedup_disk_totals_counts_duplicate_used_once_per_unique_total() {
+        let disks = vec![
+            DiskEntry {
+                mount: "/a".into(),
+                used: 100,
+                total: 1000,
+                pct: 10.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+            DiskEntry {
+                mount: "/b".into(),
+                used: 200,
+                total: 1000,
+                pct: 20.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+        ];
+        let (total, used) = dedup_disk_totals(&disks);
+        assert_eq!(total, 1000);
+        assert_eq!(used, 100);
+    }
+
+    #[test]
     fn is_network_fs_detects_known_types() {
         assert!(is_network_fs("nfs"));
         assert!(is_network_fs("nfs4"));

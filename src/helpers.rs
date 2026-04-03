@@ -334,4 +334,73 @@ mod tests {
     fn format_rate_gigabytes() {
         assert_eq!(format_rate(1_073_741_824.0), "1.0G/s");
     }
+
+    #[test]
+    fn format_rate_sub_one_is_zero_band() {
+        assert_eq!(format_rate(0.5), "0B/s");
+        assert_eq!(format_rate(0.99), "0B/s");
+    }
+
+    #[test]
+    fn format_rate_just_below_kilo_boundary() {
+        assert_eq!(format_rate(1023.9), "1024B/s");
+    }
+
+    #[test]
+    fn format_rate_just_below_mebi_boundary() {
+        let x = 1_048_576.0 - 1.0;
+        let s = format_rate(x);
+        assert!(s.ends_with("K/s"), "got {s}");
+    }
+
+    #[test]
+    fn format_rate_just_below_gibi_boundary() {
+        let x = 1_073_741_824.0 - 1.0;
+        let s = format_rate(x);
+        assert!(s.ends_with("M/s"), "got {s}");
+    }
+
+    #[test]
+    fn format_rate_very_large() {
+        let s = format_rate(50.0 * 1_073_741_824.0);
+        assert_eq!(s, "50.0G/s");
+    }
+
+    #[test]
+    fn format_latency_boundary_ms_vs_s() {
+        assert_eq!(format_latency(999.0), "999ms");
+        assert_eq!(format_latency(1000.0), "1.0s");
+    }
+
+    #[test]
+    fn format_latency_fractional_ms_rounds() {
+        assert_eq!(format_latency(42.7), "43ms");
+    }
+
+    #[test]
+    fn truncate_mount_width_zero_nonempty() {
+        let r = truncate_mount("/ab", 0);
+        assert_eq!(r, "\u{2026}");
+    }
+
+    #[test]
+    fn truncate_mount_width_one() {
+        let r = truncate_mount("/ab", 1);
+        assert_eq!(r.chars().count(), 1);
+    }
+
+    #[test]
+    fn format_bytes_human_one_below_tera() {
+        assert_eq!(format_bytes(1_099_511_627_775, UnitMode::Human), "1024.0G");
+    }
+
+    #[test]
+    fn format_uptime_day_with_nonzero_hours_minutes() {
+        assert_eq!(format_uptime(86400 + 3661), "1d1h1m");
+    }
+
+    #[test]
+    fn format_uptime_hour_only_no_days() {
+        assert_eq!(format_uptime(7200), "2h0m");
+    }
 }
