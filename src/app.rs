@@ -1301,4 +1301,13 @@ mod tests {
         app.ensure_visible(3);
         assert_eq!(app.scroll_offset, 0);
     }
+
+    #[test]
+    fn ensure_visible_no_selection_leaves_scroll_unchanged() {
+        let mut app = test_app();
+        app.selected = None;
+        app.scroll_offset = 7;
+        app.ensure_visible(4);
+        assert_eq!(app.scroll_offset, 7);
+    }
 }

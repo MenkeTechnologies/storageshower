@@ -490,7 +490,7 @@ cargo bench
 | Job | What it runs |
 |:---|:---|
 | **Check** | `cargo check --locked --all-targets` on Ubuntu and macOS |
-| **Test** | `cargo test --locked --lib` then `cargo test --locked --test integration` on Ubuntu and macOS |
+| **Test** | `cargo test --locked --lib`, then `--test integration`, then `--doc` on Ubuntu and macOS |
 | **Format** | `cargo fmt --all --check` on Ubuntu |
 | **Clippy** | `cargo clippy --locked --all-targets -- -D warnings` on Ubuntu |
 
@@ -505,8 +505,10 @@ The **Test** job sets `RUST_BACKTRACE=1` so panics print a full stack trace in t
 To match CI locally before pushing:
 
 ```bash
-cargo fmt --all --check && cargo clippy --locked --all-targets -- -D warnings && cargo test --locked --lib && cargo test --locked --test integration
+cargo fmt --all --check && cargo clippy --locked --all-targets -- -D warnings && cargo test --locked --lib && cargo test --locked --test integration && cargo test --locked --doc
 ```
+
+To run **all** tests (library + integration + doc) in one command: `cargo test --locked`.
 
 ---
 

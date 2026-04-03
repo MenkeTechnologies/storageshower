@@ -3846,4 +3846,9 @@ mod tests {
         assert_eq!(super::segment_at_x(bar, 3, 0), Some("Foo".into()));
         assert_eq!(super::segment_at_x(bar, 4, 0), Some("Bar".into()));
     }
+
+    #[test]
+    fn segment_at_x_empty_title_bar() {
+        assert_eq!(super::segment_at_x("", 0, 0), Some(String::new()));
+    }
 }

@@ -52,6 +52,8 @@ jobs:
         run: cargo test --locked --lib
       - name: Integration tests
         run: cargo test --locked --test integration
+      - name: Doc tests
+        run: cargo test --locked --doc
 
   fmt:
     name: Format

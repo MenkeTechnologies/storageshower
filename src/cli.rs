@@ -1445,4 +1445,29 @@ mod tests {
         cli.apply_to(&mut prefs);
         assert!(!prefs.sort_rev);
     }
+
+    #[test]
+    fn local_only_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--no-local", "--local-only"]);
+        let mut prefs = Prefs::default();
+        prefs.show_local = false;
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_local);
+    }
+
+    #[test]
+    fn no_local_wins_when_last_in_argv() {
+        let cli = Cli::parse_from(["storageshower", "--local-only", "--no-local"]);
+        let mut prefs = Prefs::default();
+        prefs.show_local = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.show_local);
+    }
+
+    #[test]
+    fn list_colors_with_config_path_parse() {
+        let cli = Cli::parse_from(["storageshower", "--list-colors", "--config", "/tmp/ss.conf"]);
+        assert!(cli.list_colors);
+        assert_eq!(cli.config.as_deref(), Some("/tmp/ss.conf"));
+    }
 }

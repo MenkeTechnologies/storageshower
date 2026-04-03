@@ -217,4 +217,14 @@ mod tests {
         p.compact = true;
         assert_eq!(mount_col_width(200, &p), 16);
     }
+
+    #[test]
+    fn right_col_width_empty_sorted_disks_uses_floor() {
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.prefs.show_used = true;
+        app.prefs.col_bar_end_w = 0;
+        app.prefs.col_pct_w = 0;
+        assert_eq!(right_col_width(&app), 22);
+    }
 }

@@ -515,4 +515,49 @@ full_mount = false
         assert_eq!(p.thresh_warn, 55);
         assert_eq!(p.thresh_crit, 88);
     }
+
+    #[test]
+    fn prefs_deserialize_high_refresh_rate() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 99
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert_eq!(p.refresh_rate, 99);
+    }
+
+    #[test]
+    fn prefs_deserialize_empty_bookmarks_array() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+bookmarks = []
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert!(p.bookmarks.is_empty());
+    }
 }
