@@ -476,7 +476,7 @@ Measured with [Criterion.rs](https://github.com/bheisler/criterion.rs) on Apple 
 # ── RUN TESTS ──────────────────────────────────
 cargo test
 # Library unit tests: #[cfg(test)] modules under src/
-# Integration tests: cargo test --tests (tests/*.rs — integration, cli_binary, cli_parse_matrix, cli_all_value_enums, helpers_stress, cli_combos, …)
+# Integration tests: cargo test --tests (tests/*.rs — integration, cli_binary, cli_parse_matrix, cli_all_value_enums, helpers_stress, cli_combos, prefs_file_roundtrip, …)
 
 # ── RUN BENCHMARKS ─────────────────────────────
 cargo bench
