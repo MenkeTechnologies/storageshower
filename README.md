@@ -487,7 +487,9 @@ cargo test
 #   show_local + filter (app_show_local_*), prefs vs CLI merge (prefs_merge_cli_*),
 #   short flags (cli_short_flags_*), CLI inverse prefs (cli_inverse_prefs_*),
 #   bookmarks + sort modes (app_bookmarks_sort_modes_*), prefs TOML flags (prefs_toml_flags_*),
-#   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
+#   CLI meta flags (cli_meta_flags_*), dedup deep cases (dedup_disk_totals_deep_*),
+#   helpers format tables (helpers_format_table_*), network FS detection (is_network_fs_*),
+#   theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
 #   for an approximate listed-test count (includes lib + integration + names; doc tests run separately).
