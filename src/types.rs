@@ -561,4 +561,26 @@ mod tests {
         let s = format!("{:?}", HoverZone::DiskRow(42));
         assert!(s.contains("42"));
     }
+
+    #[test]
+    fn color_mode_name_neon_noir_and_zaibatsu() {
+        assert_eq!(ColorMode::NeonNoir.name(), "Neon Noir");
+        assert_eq!(ColorMode::Zaibatsu.name(), "Zaibatsu");
+    }
+
+    #[test]
+    fn theme_colors_all_channels_roundtrip_json() {
+        let t = ThemeColors {
+            blue: 0,
+            green: 255,
+            purple: 128,
+            light_purple: 64,
+            royal: 32,
+            dark_purple: 16,
+        };
+        let s = serde_json::to_string(&t).unwrap();
+        let u: ThemeColors = serde_json::from_str(&s).unwrap();
+        assert_eq!(u.blue, 0);
+        assert_eq!(u.green, 255);
+    }
 }

@@ -428,4 +428,14 @@ mod tests {
     fn format_latency_exactly_one_ms() {
         assert_eq!(format_latency(1.0), "1ms");
     }
+
+    #[test]
+    fn format_bytes_bytes_mode_three_digits() {
+        assert_eq!(format_bytes(999, UnitMode::Bytes), "999B");
+    }
+
+    #[test]
+    fn format_uptime_only_minutes_no_hours() {
+        assert_eq!(format_uptime(3599), "59m");
+    }
 }

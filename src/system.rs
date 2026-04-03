@@ -1002,6 +1002,18 @@ mod tests {
     }
 
     #[test]
+    fn compute_io_rates_negative_elapsed_returns_empty() {
+        let mut prev = IoSnapshot::new();
+        prev.insert("d0".into(), (1u64, 1u64));
+        let mut curr = IoSnapshot::new();
+        curr.insert("d0".into(), (2u64, 2u64));
+        let mut mount_dev = HashMap::new();
+        mount_dev.insert("/".into(), "d0".into());
+        let rates = compute_io_rates(&prev, &curr, -1.0, &mount_dev);
+        assert!(rates.is_empty());
+    }
+
+    #[test]
     fn apply_io_rates_sets_fields() {
         let mut entries = vec![DiskEntry {
             mount: "/".into(),

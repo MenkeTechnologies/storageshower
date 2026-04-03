@@ -1806,4 +1806,26 @@ mod tests {
         assert_eq!(app.theme_chooser.selected, 0);
         assert_eq!(app.prefs.color_mode, ColorMode::Default);
     }
+
+    #[test]
+    fn key_space_no_crash_in_normal_mode() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Char(' ')));
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn key_tab_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Tab));
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn esc_with_theme_chooser_closed_noop_state() {
+        let mut app = test_app();
+        assert!(!app.theme_chooser.active);
+        app.handle_key(make_key(KeyCode::Esc));
+        assert!(!app.quit);
+    }
 }

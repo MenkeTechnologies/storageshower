@@ -1180,4 +1180,46 @@ mod tests {
         assert_eq!(app.drill.entries[0].name, "large");
         assert_eq!(app.drill.entries[1].name, "small");
     }
+
+    #[test]
+    fn update_sorted_bookmarks_pin_order() {
+        let mut app = test_app();
+        app.prefs.bookmarks = vec!["/data".into(), "/".into()];
+        app.update_sorted();
+        let mounts: Vec<&str> = app
+            .sorted_disks()
+            .iter()
+            .map(|d| d.mount.as_str())
+            .collect();
+        // Bookmarked mounts grouped first; within the group, prior sort order (name) is kept.
+        assert_eq!(mounts, vec!["/", "/data", "/home", "/tmp"]);
+    }
+
+    #[test]
+    fn show_local_drops_zero_total_unknown_kind() {
+        let mut app = test_app();
+        app.disks.push(DiskEntry {
+            mount: "/phantom".into(),
+            used: 0,
+            total: 0,
+            pct: 0.0,
+            kind: DiskKind::Unknown(-1),
+            fs: "none".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        });
+        app.prefs.show_local = true;
+        app.update_sorted();
+        assert!(!app.sorted_disks().iter().any(|d| d.mount == "/phantom"));
+    }
+
+    #[test]
+    fn empty_filter_shows_all_after_update() {
+        let mut app = test_app();
+        app.filter.text.clear();
+        app.update_sorted();
+        assert_eq!(app.sorted_disks().len(), app.disks.len());
+    }
 }

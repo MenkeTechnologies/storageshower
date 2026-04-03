@@ -1038,4 +1038,63 @@ mod tests {
         let r = Cli::try_parse_from(["storageshower", "-C", "??"]);
         assert!(r.is_err());
     }
+
+    #[test]
+    fn refresh_rate_zero_allowed() {
+        let cli = Cli::parse_from(["storageshower", "-r", "0"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.refresh_rate, 0);
+    }
+
+    #[test]
+    fn col_widths_zero_explicit() {
+        let cli = Cli::parse_from([
+            "storageshower",
+            "--col-mount",
+            "0",
+            "--col-bar-end",
+            "0",
+            "--col-pct",
+            "0",
+        ]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.col_mount_w, 0);
+        assert_eq!(prefs.col_bar_end_w, 0);
+        assert_eq!(prefs.col_pct_w, 0);
+    }
+
+    #[test]
+    fn long_sort_flag_pct() {
+        let cli = Cli::parse_from(["storageshower", "--sort", "pct"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.sort_mode, SortMode::Pct);
+    }
+
+    #[test]
+    fn long_local_only_flag() {
+        let cli = Cli::parse_from(["storageshower", "--local-only"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert!(prefs.show_local);
+    }
+
+    #[test]
+    fn long_units_human() {
+        let cli = Cli::parse_from(["storageshower", "--units", "human"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.unit_mode, UnitMode::Human);
+    }
+
+    #[test]
+    fn long_no_bars_combo() {
+        let cli = Cli::parse_from(["storageshower", "--no-bars", "--no-header"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.show_bars);
+        assert!(!prefs.show_header);
+    }
 }

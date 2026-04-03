@@ -3807,4 +3807,10 @@ mod tests {
         let bar = "only";
         assert_eq!(super::segment_at_x(bar, 0, 0), Some("only".into()));
     }
+
+    #[test]
+    fn segment_at_x_past_end_falls_back_to_last_segment() {
+        let bar = "A\u{2502}B\u{2502}C";
+        assert_eq!(super::segment_at_x(bar, 500, 0), Some("C".into()));
+    }
 }
