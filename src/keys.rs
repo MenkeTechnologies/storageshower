@@ -1902,4 +1902,20 @@ mod tests {
         app.handle_key(make_key(KeyCode::Char('\0')));
         assert!(!app.quit);
     }
+
+    #[test]
+    fn up_down_arrow_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Up));
+        app.handle_key(make_key(KeyCode::Down));
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn esc_twice_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Esc));
+        app.handle_key(make_key(KeyCode::Esc));
+        assert!(!app.quit);
+    }
 }

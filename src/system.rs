@@ -897,6 +897,23 @@ mod tests {
     }
 
     #[test]
+    fn dedup_disk_totals_single_positive_total() {
+        let disks = vec![DiskEntry {
+            mount: "/solo".into(),
+            used: 12,
+            total: 100,
+            pct: 12.0,
+            kind: DiskKind::SSD,
+            fs: "ext4".into(),
+            latency_ms: None,
+            io_read_rate: None,
+            io_write_rate: None,
+            smart_status: None,
+        }];
+        assert_eq!(dedup_disk_totals(&disks), (100, 12));
+    }
+
+    #[test]
     fn dedup_disk_totals_skips_zero_total() {
         let disks = vec![DiskEntry {
             mount: "/empty".into(),

@@ -422,4 +422,27 @@ dark_purple = 88
         assert_eq!(th.blue, 33);
         assert_eq!(th.dark_purple, 88);
     }
+
+    #[test]
+    fn prefs_deserialize_active_theme_string() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+active_theme = "saved-slot"
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert_eq!(p.active_theme.as_deref(), Some("saved-slot"));
+    }
 }

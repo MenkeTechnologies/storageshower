@@ -3832,4 +3832,10 @@ mod tests {
         let c = gradient_color_at(0.66, ColorMode::Matrix);
         assert_ne!(c, Color::Reset);
     }
+
+    #[test]
+    fn segment_at_x_third_column() {
+        let bar = "A\u{2502}B\u{2502}C";
+        assert_eq!(super::segment_at_x(bar, 12, 0), Some("C".into()));
+    }
 }

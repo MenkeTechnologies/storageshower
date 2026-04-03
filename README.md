@@ -496,6 +496,14 @@ cargo bench
 
 Concurrent runs for the same branch are cancelled when a newer commit is pushed (`concurrency.cancel-in-progress`). The workflow uses least-privilege `contents: read` permissions.
 
+Matrix jobs (**Check**, **Test**) use `fail-fast: false` so a failure on one OS still runs the other. Each job has a wall-clock **timeout** (30 minutes for build/test/clippy, 10 minutes for format) so hung runners cannot burn minutes indefinitely.
+
+To match CI locally before pushing:
+
+```bash
+cargo fmt --all --check && cargo clippy --all-targets -- -D warnings && cargo test
+```
+
 ---
 
 ### `> CONFIG_PERSISTENCE.log`

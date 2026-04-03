@@ -494,4 +494,15 @@ mod tests {
     fn format_uptime_two_full_days() {
         assert_eq!(format_uptime(86400 * 2), "2d0h0m");
     }
+
+    #[test]
+    fn format_bytes_human_exactly_one_kib() {
+        assert_eq!(format_bytes(1024, UnitMode::Human), "1.0K");
+    }
+
+    #[test]
+    fn truncate_mount_preserves_leading_slash_when_wide() {
+        let r = truncate_mount("/very/long/mount/point", 40);
+        assert!(r.starts_with('/'));
+    }
 }

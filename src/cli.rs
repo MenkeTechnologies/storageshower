@@ -1304,4 +1304,28 @@ mod tests {
         cli.apply_to(&mut prefs);
         assert_eq!(prefs.active_theme.as_deref(), Some("neon-pink"));
     }
+
+    #[test]
+    fn parse_color_kebab_void_walker_quantum_flux_laser_grid() {
+        let cases = [
+            ("void-walker", ColorMode::VoidWalker),
+            ("quantum-flux", ColorMode::QuantumFlux),
+            ("laser-grid", ColorMode::LaserGrid),
+            ("deep-net", ColorMode::DeepNet),
+            ("steel-nerve", ColorMode::SteelNerve),
+            ("dark-signal", ColorMode::DarkSignal),
+            ("glitch-pop", ColorMode::GlitchPop),
+            ("toxic-waste", ColorMode::ToxicWaste),
+            ("chrome-heart", ColorMode::ChromeHeart),
+            ("megacorp", ColorMode::Megacorp),
+            ("overlock", ColorMode::Overlock),
+            ("darkwave", ColorMode::Darkwave),
+        ];
+        for (flag, expected) in cases {
+            let cli = Cli::parse_from(["storageshower", "--color", flag]);
+            let mut prefs = Prefs::default();
+            cli.apply_to(&mut prefs);
+            assert_eq!(prefs.color_mode, expected, "flag={flag}");
+        }
+    }
 }

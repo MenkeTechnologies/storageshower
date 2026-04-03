@@ -601,4 +601,15 @@ mod tests {
         let u = format!("{:?}", DiskKind::Unknown(-9));
         assert!(u.contains("-9") || u.contains("Unknown"));
     }
+
+    #[test]
+    fn color_mode_all_variants_are_unique() {
+        use std::collections::BTreeSet;
+        let mut seen = BTreeSet::new();
+        for &m in ColorMode::ALL {
+            let key = format!("{m:?}");
+            assert!(seen.insert(key), "duplicate ColorMode: {m:?}");
+        }
+        assert_eq!(seen.len(), ColorMode::ALL.len());
+    }
 }
