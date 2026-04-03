@@ -485,8 +485,9 @@ cargo test
 #   sort rev Pct/Size (app_sort_rev_pct_size_*), serde JSON types (serde_json_public_types_*),
 #   clipboard API (copy_to_clipboard_*), CLI apply bundles (cli_apply_bundles_*),
 #   show_local + filter (app_show_local_*), prefs vs CLI merge (prefs_merge_cli_*),
-#   short flags (cli_short_flags_*), network FS detection (is_network_fs_*),
-#   theme JSON (theme_colors_json_*), etc.
+#   short flags (cli_short_flags_*), CLI inverse prefs (cli_inverse_prefs_*),
+#   bookmarks + sort modes (app_bookmarks_sort_modes_*), prefs TOML flags (prefs_toml_flags_*),
+#   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
 #   for an approximate listed-test count (includes lib + integration + names; doc tests run separately).
