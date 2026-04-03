@@ -183,3 +183,17 @@ fn bar_style_gradient_with_help_exits_zero() {
     let s = String::from_utf8_lossy(&o.stdout);
     assert!(s.len() > 80);
 }
+
+#[test]
+fn color_red_with_version_exits_zero() {
+    let o = output(&["--color", "red", "-V"]);
+    assert!(o.status.success());
+    assert!(String::from_utf8_lossy(&o.stdout).contains(env!("CARGO_PKG_VERSION")));
+}
+
+#[test]
+fn crit_warn_with_help_exits_zero() {
+    let o = output(&["--warn", "70", "--crit", "90", "--help"]);
+    assert!(o.status.success());
+    assert!(String::from_utf8_lossy(&o.stdout).len() > 100);
+}
