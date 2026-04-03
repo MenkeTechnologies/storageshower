@@ -463,4 +463,19 @@ mod tests {
     fn format_bytes_mib_half() {
         assert_eq!(format_bytes(524_288, UnitMode::MiB), "0.5M");
     }
+
+    #[test]
+    fn format_uptime_exactly_one_day() {
+        assert_eq!(format_uptime(86400), "1d0h0m");
+    }
+
+    #[test]
+    fn format_uptime_one_day_one_minute() {
+        assert_eq!(format_uptime(86400 + 60), "1d0h1m");
+    }
+
+    #[test]
+    fn format_bytes_gib_mode_zero() {
+        assert_eq!(format_bytes(0, UnitMode::GiB), "0.0G");
+    }
 }

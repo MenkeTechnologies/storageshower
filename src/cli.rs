@@ -1188,4 +1188,63 @@ mod tests {
         assert!(cli.is_ok());
         assert!(cli.unwrap().help);
     }
+
+    #[test]
+    fn long_sort_name_flag() {
+        let cli = Cli::parse_from(["storageshower", "--sort", "name"]);
+        let mut prefs = Prefs::default();
+        prefs.sort_mode = SortMode::Pct;
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.sort_mode, SortMode::Name);
+    }
+
+    #[test]
+    fn long_bar_style_solid() {
+        let cli = Cli::parse_from(["storageshower", "--bar-style", "solid"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.bar_style, BarStyle::Solid);
+    }
+
+    #[test]
+    fn parse_color_neon_noir_kebab() {
+        let cli = Cli::parse_from(["storageshower", "--color", "neon-noir"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.color_mode, ColorMode::NeonNoir);
+    }
+
+    #[test]
+    fn parse_color_blade_runner_kebab() {
+        let cli = Cli::parse_from(["storageshower", "--color", "blade-runner"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.color_mode, ColorMode::BladeRunner);
+    }
+
+    #[test]
+    fn parse_color_zaibatsu() {
+        let cli = Cli::parse_from(["storageshower", "--color", "zaibatsu"]);
+        let mut prefs = Prefs::default();
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.color_mode, ColorMode::Zaibatsu);
+    }
+
+    #[test]
+    fn no_reverse_long_clears_sort_rev() {
+        let cli = Cli::parse_from(["storageshower", "--no-reverse"]);
+        let mut prefs = Prefs::default();
+        prefs.sort_rev = true;
+        cli.apply_to(&mut prefs);
+        assert!(!prefs.sort_rev);
+    }
+
+    #[test]
+    fn short_bar_style_gradient() {
+        let cli = Cli::parse_from(["storageshower", "-b", "gradient"]);
+        let mut prefs = Prefs::default();
+        prefs.bar_style = BarStyle::Ascii;
+        cli.apply_to(&mut prefs);
+        assert_eq!(prefs.bar_style, BarStyle::Gradient);
+    }
 }

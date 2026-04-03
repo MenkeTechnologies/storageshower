@@ -190,4 +190,18 @@ mod tests {
         let w = mount_col_width(20, &p);
         assert_eq!(w, 12);
     }
+
+    #[test]
+    fn mount_col_width_third_of_inner_when_above_floor() {
+        let p = Prefs::default();
+        assert_eq!(mount_col_width(90, &p), 30);
+    }
+
+    #[test]
+    fn right_col_width_static_no_used_custom_bar_end_still_clamps_min() {
+        let mut p = Prefs::default();
+        p.show_used = false;
+        p.col_bar_end_w = 3;
+        assert_eq!(right_col_width_static(&p), 5);
+    }
 }

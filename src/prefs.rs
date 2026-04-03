@@ -365,4 +365,29 @@ bookmarks = ["/mnt/a", "/mnt/b"]
         let p: Prefs = toml::from_str(t).unwrap();
         assert_eq!(p.bookmarks, vec!["/mnt/a", "/mnt/b"]);
     }
+
+    #[test]
+    fn prefs_deserialize_show_tooltips_false() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Thin"
+color_mode = "Cyan"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+show_tooltips = false
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert!(!p.show_tooltips);
+        assert_eq!(p.bar_style, crate::types::BarStyle::Thin);
+        assert_eq!(p.color_mode, crate::types::ColorMode::Cyan);
+    }
 }

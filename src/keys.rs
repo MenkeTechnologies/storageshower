@@ -1859,4 +1859,25 @@ mod tests {
         app.handle_key(make_key(KeyCode::End));
         assert!(!app.quit);
     }
+
+    #[test]
+    fn back_tab_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::BackTab));
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn f1_key_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::F(1)));
+        assert!(!app.quit);
+    }
+
+    #[test]
+    fn delete_forward_no_crash() {
+        let mut app = test_app();
+        app.handle_key(make_key(KeyCode::Delete));
+        assert!(!app.quit);
+    }
 }

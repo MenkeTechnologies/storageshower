@@ -1182,6 +1182,32 @@ mod tests {
     }
 
     #[test]
+    fn sort_drill_entries_name_reversed() {
+        use crate::types::DirEntry;
+
+        let mut app = test_app();
+        app.drill.sort = DrillSortMode::Name;
+        app.drill.sort_rev = true;
+        app.drill.entries = vec![
+            DirEntry {
+                path: "/z".into(),
+                name: "Zebra".into(),
+                size: 1,
+                is_dir: true,
+            },
+            DirEntry {
+                path: "/a".into(),
+                name: "alpha".into(),
+                size: 1,
+                is_dir: true,
+            },
+        ];
+        app.sort_drill_entries();
+        assert_eq!(app.drill.entries[0].name, "Zebra");
+        assert_eq!(app.drill.entries[1].name, "alpha");
+    }
+
+    #[test]
     fn update_sorted_bookmarks_pin_order() {
         let mut app = test_app();
         app.prefs.bookmarks = vec!["/data".into(), "/".into()];

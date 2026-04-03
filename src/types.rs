@@ -593,4 +593,12 @@ mod tests {
         }
         assert_eq!(m, ColorMode::ALL[0]);
     }
+
+    #[test]
+    fn disk_kind_debug_ssd_and_unknown() {
+        let s = format!("{:?}", DiskKind::SSD);
+        assert!(!s.is_empty());
+        let u = format!("{:?}", DiskKind::Unknown(-9));
+        assert!(u.contains("-9") || u.contains("Unknown"));
+    }
 }

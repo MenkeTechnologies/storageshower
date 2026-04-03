@@ -968,6 +968,21 @@ mod tests {
     }
 
     #[test]
+    fn compute_io_rates_longer_elapsed_halves_rate() {
+        let mut prev = IoSnapshot::new();
+        prev.insert("disk0".into(), (1000, 2000));
+        let mut curr = IoSnapshot::new();
+        curr.insert("disk0".into(), (3000, 6000));
+        let mut mount_dev = HashMap::new();
+        mount_dev.insert("/".into(), "disk0".into());
+        let fast = compute_io_rates(&prev, &curr, 1.0, &mount_dev);
+        let slow = compute_io_rates(&prev, &curr, 2.0, &mount_dev);
+        let (a, _) = fast.get("/").unwrap();
+        let (b, _) = slow.get("/").unwrap();
+        assert!((a - 2.0 * b).abs() < 1e-9);
+    }
+
+    #[test]
     fn compute_io_rates_zero_elapsed() {
         let prev = IoSnapshot::new();
         let curr = IoSnapshot::new();
