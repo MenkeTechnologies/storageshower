@@ -761,6 +761,12 @@ cargo test
 #   warn/crit+no-virtual (cli_apply_warn_crit_no_virtual_*), palette zaibatsu/sunset (ui_palette_zaibatsu_sunset_distinct_*),
 #   binary deep-net/bio-hazard (cli_binary_deep_net_bio_hazard_*), binary night-city/glitch-pop (cli_binary_night_city_glitch_pop_*),
 #   refresh+full-mount (cli_apply_refresh_full_mount_*),
+#   scan seventy-five/seventy-six files (scan_directory_seventy_five_files_*, scan_directory_seventy_six_files_*),
+#   bookmarks thirty-four paths (prefs_toml_bookmarks_thirty_four_entries_*), dedup thirty-five uniques (dedup_disk_totals_thirty_five_unique_totals_*),
+#   format_bytes 38/39 KiB human (helpers_format_bytes_38_kib_human_*), warn/crit+no-tooltips (cli_apply_warn_crit_no_tooltips_*),
+#   palette overlock/matrix (ui_palette_overlock_matrix_distinct_*), binary amber/plasma-core (cli_binary_amber_plasma_core_*),
+#   refresh+no-compact (cli_apply_refresh_no_compact_*), binary quantum-flux/megacorp (cli_binary_quantum_flux_megacorp_*),
+#   binary darkwave/matrix (cli_binary_darkwave_matrix_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
