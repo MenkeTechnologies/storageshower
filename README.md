@@ -677,6 +677,12 @@ cargo test
 #   palette toxic-waste/void-walker (ui_palette_toxic_waste_void_walker_distinct_*), binary bio-hazard/neon-noir (cli_binary_bio_hazard_neon_noir_*),
 #   sort pct+col-mount (cli_apply_sort_pct_col_mount_*), binary cyber-frost/laser-grid (cli_binary_cyber_frost_laser_grid_*),
 #   sort name+col-mount (cli_apply_sort_name_col_mount_*),
+#   scan forty-seven/forty-eight files (scan_directory_forty_seven_files_*, scan_directory_forty_eight_files_*),
+#   bookmarks twenty paths (prefs_toml_bookmarks_twenty_entries_*), dedup twenty-one uniques (dedup_disk_totals_twenty_one_unique_totals_*),
+#   format_bytes 10/11 KiB human (helpers_format_bytes_10_kib_human_*), sort size+col-bar-end (cli_apply_sort_size_col_bar_end_*),
+#   palette blade-runner/cyber-frost (ui_palette_blade_runner_cyber_frost_distinct_*), binary megacorp/toxic-waste (cli_binary_megacorp_toxic_waste_*),
+#   sort name+col-pct (cli_apply_sort_name_col_pct_*), binary zaibatsu/void-walker (cli_binary_zaibatsu_void_walker_*),
+#   sort pct+col-pct (cli_apply_sort_pct_col_pct_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
