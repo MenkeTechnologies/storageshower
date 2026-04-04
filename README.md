@@ -617,6 +617,12 @@ cargo test
 #   format_rate 128 KiB/s (helpers_format_rate_128_k_per_sec_*), theme+virtual+tooltips (cli_apply_theme_virtual_tooltips_*),
 #   palette blade-runner/void-walker (ui_palette_blade_runner_void_walker_distinct_*), name sort two bookmarks (app_sort_name_two_bookmarks_*),
 #   binary night-city/holo-shift (cli_binary_night_city_holo_shift_*), sort pct+human units (cli_apply_sort_pct_units_human_*),
+#   scan twenty-seven/twenty-eight files (scan_directory_twenty_seven_files_*, scan_directory_twenty_eight_files_*),
+#   bookmarks ten paths (prefs_toml_bookmarks_ten_entries_*), dedup eleven uniques (dedup_disk_totals_eleven_unique_totals_*),
+#   format_rate 64 KiB/s (helpers_format_rate_64_k_per_sec_*), color+theme+compact (cli_apply_color_theme_compact_*),
+#   palette sakura/matrix (ui_palette_sakura_matrix_distinct_*), binary toxic-waste/zaibatsu (cli_binary_toxic_waste_zaibatsu_*),
+#   sort size+bars+border (cli_apply_sort_size_bars_border_*), size sort three bookmarks (app_sort_size_three_bookmarks_*),
+#   binary sunset/blade-runner (cli_binary_sunset_blade_runner_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
