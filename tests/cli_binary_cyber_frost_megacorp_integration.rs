@@ -1,4 +1,4 @@
-//! Binary smoke: `steel-nerve` and `chrome-heart` color flags.
+//! Binary smoke: `cyber-frost` and `megacorp` color flags.
 
 use std::process::Command;
 
@@ -14,13 +14,13 @@ fn output(args: &[&str]) -> std::process::Output {
 }
 
 #[test]
-fn steel_nerve_units_gib_version() {
-    let o = output(&["--color", "steel-nerve", "-u", "gib", "-V"]);
+fn cyber_frost_local_only_version() {
+    let o = output(&["--color", "cyber-frost", "-l", "-V"]);
     assert!(o.status.success());
 }
 
 #[test]
-fn chrome_heart_no_border_version() {
-    let o = output(&["--color", "chrome-heart", "--no-border", "-V"]);
+fn megacorp_reverse_version() {
+    let o = output(&["--color", "megacorp", "-R", "-V"]);
     assert!(o.status.success());
 }

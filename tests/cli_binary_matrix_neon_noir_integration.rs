@@ -1,4 +1,4 @@
-//! Binary smoke: `steel-nerve` and `chrome-heart` color flags.
+//! Binary smoke: `matrix` and `neon-noir` color flags.
 
 use std::process::Command;
 
@@ -14,13 +14,13 @@ fn output(args: &[&str]) -> std::process::Output {
 }
 
 #[test]
-fn steel_nerve_units_gib_version() {
-    let o = output(&["--color", "steel-nerve", "-u", "gib", "-V"]);
+fn matrix_virtual_version() {
+    let o = output(&["--color", "matrix", "--virtual", "-V"]);
     assert!(o.status.success());
 }
 
 #[test]
-fn chrome_heart_no_border_version() {
-    let o = output(&["--color", "chrome-heart", "--no-border", "-V"]);
+fn neon_noir_no_compact_version() {
+    let o = output(&["--color", "neon-noir", "--no-compact", "-V"]);
     assert!(o.status.success());
 }
