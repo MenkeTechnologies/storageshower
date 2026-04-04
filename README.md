@@ -584,6 +584,12 @@ cargo test
 #   sort size+column widths (cli_apply_sort_size_col_widths_*), dedup order dup/unique (dedup_disk_totals_dup_then_unique_order_*),
 #   binary neon-noir/default (cli_binary_neon_noir_default_*), refresh+bar+sort (cli_apply_refresh_bar_style_sort_*),
 #   no-local+compact (cli_apply_no_local_compact_*),
+#   scan fifteen/sixteen files (scan_directory_fifteen_files_*, scan_directory_sixteen_files_*),
+#   binary deep-net/holo-shift (cli_binary_deep_net_holo_shift_*), used+header+tooltips (cli_apply_used_header_tooltips_combo_*),
+#   prefs TOML custom thresh (prefs_toml_thresh_custom_*), palette purple/amber (ui_palette_purple_amber_distinct_*),
+#   dedup five uniques (dedup_disk_totals_five_unique_totals_*), binary quantum-flux/glitch-pop (cli_binary_quantum_flux_glitch_pop_*),
+#   size sort single bookmark (app_sort_size_single_bookmark_*), thresh+col widths (cli_apply_thresh_crit_col_pct_*),
+#   dedup zero totals mixed (dedup_disk_totals_zero_between_positives_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
