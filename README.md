@@ -504,6 +504,11 @@ cargo test
 #   UI palette / gradient (ui_palette_gradient_*), prefs TOML column widths (prefs_toml_column_widths_*),
 #   chrono_now / epoch_to_local (system_time_local_*), columns width API (columns_public_width_*),
 #   CLI column apply (cli_apply_column_widths_*),
+#   ColorMode / SortMode JSON (types_color_mode_json_roundtrip_*, types_sort_mode_json_roundtrip_*),
+#   CLI theme/tooltips/virtual apply (cli_apply_theme_tooltips_virtual_*),
+#   prefs TOML show_tooltips/show_all (prefs_toml_show_tooltips_show_all_*),
+#   scan empty dir (scan_directory_empty_dir_*), binary theme/virtual/tooltips (cli_binary_theme_virtual_tooltips_*),
+#   human tera boundary (helpers_human_tera_boundary_*), empty sorted disks (app_update_sorted_empty_disks_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
