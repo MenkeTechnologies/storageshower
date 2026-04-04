@@ -612,6 +612,11 @@ cargo test
 #   format_rate 256 KiB/s (helpers_format_rate_256_k_per_sec_*), full-mount+local+refresh (cli_apply_full_mount_local_refresh_*),
 #   palette neon-noir/chrome-heart (ui_palette_neon_noir_chrome_heart_distinct_*), pct sort two bookmarks (app_sort_pct_two_bookmarks_*),
 #   binary glitch-pop/quantum-flux (cli_binary_glitch_pop_quantum_flux_*), sort name+thresh+cols (cli_apply_sort_name_thresh_col_widths_*),
+#   scan twenty-five/twenty-six files (scan_directory_twenty_five_files_*, scan_directory_twenty_six_files_*),
+#   bookmarks nine paths (prefs_toml_bookmarks_nine_entries_*), dedup ten uniques (dedup_disk_totals_ten_unique_totals_*),
+#   format_rate 128 KiB/s (helpers_format_rate_128_k_per_sec_*), theme+virtual+tooltips (cli_apply_theme_virtual_tooltips_*),
+#   palette blade-runner/void-walker (ui_palette_blade_runner_void_walker_distinct_*), name sort two bookmarks (app_sort_name_two_bookmarks_*),
+#   binary night-city/holo-shift (cli_binary_night_city_holo_shift_*), sort pct+human units (cli_apply_sort_pct_units_human_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
