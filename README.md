@@ -905,6 +905,13 @@ cargo test
 #   CLI no-local: reverse+no-virtual, reverse+no-compact, tooltips+no-virtual, border+no-tooltips, bars+no-compact, full-mount+no-virtual (cli_apply_*_no_local_*),
 #   palettes cyan/matrix, purple/amber, matrix/sunset, steel-nerve/overlock, void-walker/cyber-frost (ui_palette_*_distinct_*),
 #   binary purple/amber, cyan/matrix, default/matrix, blue/red, green/cyan, neon-noir/toxic-waste, chrome-heart/blade-runner, zaibatsu/megacorp (cli_binary_*_*),
+#   scan one-hundred-forty-three→one-hundred-fifty-four files (scan_directory_one_hundred_forty_three_files_* … scan_directory_one_hundred_fifty_four_files_*),
+#   bookmarks sixty/sixty-one paths (prefs_toml_bookmarks_sixty_entries_*, prefs_toml_bookmarks_sixty_one_entries_*),
+#   dedup sixty-one/sixty-two uniques (dedup_disk_totals_sixty_one_unique_totals_*, dedup_disk_totals_sixty_two_unique_totals_*),
+#   format_bytes 98–105 KiB human (helpers_format_bytes_98_kib_human_* … helpers_format_bytes_104_kib_human_*),
+#   CLI no-local: full-mount+no-used, tooltips+no-compact, compact+no-border, reverse+no-border, reverse+no-header, refresh+no-virtual (cli_apply_*_no_local_*),
+#   palettes blue/purple, quantum-flux/darkwave, night-city/deep-net, glitch-pop/holo-shift, amber/plasma-core (ui_palette_*_distinct_*),
+#   binary default/purple, holo-shift/dark-signal, night-city/laser-grid, cyber-frost/blade-runner, plasma-core/void-walker, green/purple, sakura/neon-noir, toxic-waste/quantum-flux (cli_binary_*_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
