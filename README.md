@@ -530,6 +530,11 @@ cargo test
 #   scan three files (scan_directory_three_files_*), CLI inverse bundles (cli_apply_inverse_flags_bundle_*),
 #   Unicode filter (app_filter_unicode_mount_*), chrono_now shape (system_chrono_now_shape_*),
 #   latency seconds branch (helpers_format_latency_second_branch_*), right col pct override (columns_right_col_pct_override_*),
+#   prefs TOML show_local (prefs_toml_show_local_*), CLI builtin colors (cli_apply_color_builtin_*),
+#   binary local/virtual/refresh (cli_binary_local_virtual_refresh_*), format_rate MeBi boundary (helpers_format_rate_mebi_boundary_*),
+#   dedup all same total (dedup_disk_totals_all_same_total_*), scan file+subdir (scan_directory_file_and_subdir_*),
+#   Unicode name sort (app_sort_name_unicode_*), palette named modes (ui_palette_named_modes_*),
+#   theme/color/export flags (cli_theme_color_export_flags_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
