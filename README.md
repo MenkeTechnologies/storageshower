@@ -954,6 +954,13 @@ cargo test
 #   CLI no-local: border+full-mount, used+compact, tooltips+no-bars, header+no-bars, bars+tooltips, virtual+no-full-mount (cli_apply_*_no_local_*),
 #   palettes cyan/void-walker, sakura/quantum-flux, megacorp/laser-grid, default/toxic-waste, neon-noir/megacorp (ui_palette_*_distinct_*),
 #   binary default/toxic-waste, dark-signal/zaibatsu, purple/glitch-pop, green/amber, blade-runner/dark-signal, neon-noir/steel-nerve, quantum-flux/night-city, red/chrome-heart (cli_binary_*_*),
+#   scan two-hundred-twenty-seven→two-hundred-thirty-eight files (scan_directory_two_hundred_twenty_seven_files_* … scan_directory_two_hundred_thirty_eight_files_*),
+#   bookmarks seventy-four/seventy-five paths (prefs_toml_bookmarks_seventy_four_entries_*, prefs_toml_bookmarks_seventy_five_entries_*),
+#   dedup seventy-five/seventy-six uniques (dedup_disk_totals_seventy_five_unique_totals_*, dedup_disk_totals_seventy_six_unique_totals_*),
+#   format_bytes 154–161 KiB human (helpers_format_bytes_154_kib_human_* … helpers_format_bytes_160_kib_human_*),
+#   CLI no-local: virtual+compact, tooltips+no-used, header+full-mount, bars+full-mount, used+no-header, border+no-compact (cli_apply_*_no_local_*),
+#   palettes cyan/megacorp, matrix/glitch-pop, red/deep-net, sunset/overlock, green/plasma-core (ui_palette_*_distinct_*),
+#   binary cyan/steel-nerve, purple/toxic-waste, night-city/void-walker, holo-shift/neon-noir, default/laser-grid, bio-hazard/quantum-flux, red/sakura, blue/megacorp (cli_binary_*_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
