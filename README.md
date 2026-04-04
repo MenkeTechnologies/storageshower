@@ -509,6 +509,11 @@ cargo test
 #   prefs TOML show_tooltips/show_all (prefs_toml_show_tooltips_show_all_*),
 #   scan empty dir (scan_directory_empty_dir_*), binary theme/virtual/tooltips (cli_binary_theme_virtual_tooltips_*),
 #   human tera boundary (helpers_human_tera_boundary_*), empty sorted disks (app_update_sorted_empty_disks_*),
+#   CLI positive chrome flags (cli_apply_positive_chrome_flags_*), prefs TOML refresh_rate (prefs_toml_refresh_rate_*),
+#   prefs TOML unit_mode strings (prefs_toml_unit_mode_strings_*), scan one/two files (scan_directory_one_file_*),
+#   network FS case (is_network_fs_case_*), get_local_ip (system_get_local_ip_*), multi-G/s format_rate (helpers_format_rate_multi_gig_*),
+#   binary compact/reverse/sort (cli_binary_compact_reverse_sort_*), CLI --config parse (cli_config_flag_parsed_*),
+#   equal-total size sort stability (app_sort_equal_total_stable_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
