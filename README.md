@@ -590,6 +590,12 @@ cargo test
 #   dedup five uniques (dedup_disk_totals_five_unique_totals_*), binary quantum-flux/glitch-pop (cli_binary_quantum_flux_glitch_pop_*),
 #   size sort single bookmark (app_sort_size_single_bookmark_*), thresh+col widths (cli_apply_thresh_crit_col_pct_*),
 #   dedup zero totals mixed (dedup_disk_totals_zero_between_positives_*),
+#   scan seventeen/eighteen files (scan_directory_seventeen_files_*, scan_directory_eighteen_files_*),
+#   binary dark-signal/night-city (cli_binary_dark_signal_night_city_*), export-theme+compact (cli_apply_export_theme_compact_*),
+#   bookmarks five paths (prefs_toml_bookmarks_five_entries_*), palette default/matrix (ui_palette_default_matrix_distinct_*),
+#   dedup six uniques (dedup_disk_totals_six_unique_totals_*), sort size+units+rev (cli_apply_sort_size_units_reverse_*),
+#   pct sort single bookmark (app_sort_pct_bookmark_one_*), latency 50ms branch (helpers_format_latency_50ms_branch_*),
+#   binary amber/blue (cli_binary_amber_blue_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
