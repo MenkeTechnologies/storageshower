@@ -725,6 +725,12 @@ cargo test
 #   palette cyan/blue (ui_palette_cyan_blue_distinct_*), binary blade-runner/megacorp (cli_binary_blade_runner_megacorp_*),
 #   binary void-walker/toxic-waste (cli_binary_void_walker_toxic_waste_*), refresh+col-mount (cli_apply_refresh_col_mount_*),
 #   binary night-city/zaibatsu (cli_binary_night_city_zaibatsu_*),
+#   scan sixty-three/sixty-four files (scan_directory_sixty_three_files_*, scan_directory_sixty_four_files_*),
+#   bookmarks twenty-eight paths (prefs_toml_bookmarks_twenty_eight_entries_*), dedup twenty-nine uniques (dedup_disk_totals_twenty_nine_unique_totals_*),
+#   format_bytes 26/27 KiB human (helpers_format_bytes_26_kib_human_*), refresh+col-pct (cli_apply_refresh_col_pct_*),
+#   refresh+col-bar-end (cli_apply_refresh_col_bar_end_*), palette default/purple (ui_palette_default_purple_distinct_*),
+#   binary default/zaibatsu (cli_binary_default_zaibatsu_*), binary laser-grid/void-walker (cli_binary_laser_grid_void_walker_*),
+#   binary sunset/zaibatsu (cli_binary_sunset_zaibatsu_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
