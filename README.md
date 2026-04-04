@@ -875,6 +875,12 @@ cargo test
 #   no-header+no-used+no-local (cli_apply_no_header_no_used_no_local_*), palette bio-hazard/megacorp (ui_palette_bio_hazard_megacorp_distinct_*),
 #   binary void-walker/quantum-flux (cli_binary_void_walker_quantum_flux_*), darkwave/plasma-core (cli_binary_darkwave_plasma_core_*),
 #   binary night-city/deep-net (cli_binary_night_city_deep_net_*),
+#   scan one-hundred-thirteen/one-hundred-fourteen files (scan_directory_one_hundred_thirteen_files_*, scan_directory_one_hundred_fourteen_files_*),
+#   bookmarks fifty-three paths (prefs_toml_bookmarks_fifty_three_entries_*), dedup fifty-four uniques (dedup_disk_totals_fifty_four_unique_totals_*),
+#   format_bytes 76/77 KiB human (helpers_format_bytes_76_kib_human_*), no-bars+no-used+no-local (cli_apply_no_bars_no_used_no_local_*),
+#   no-border+no-header+no-local (cli_apply_no_border_no_header_no_local_*), palette cyber-frost/holo-shift (ui_palette_cyber_frost_holo_shift_distinct_*),
+#   binary laser-grid/glitch-pop (cli_binary_laser_grid_glitch_pop_*), cyber-frost/holo-shift (cli_binary_cyber_frost_holo_shift_*),
+#   binary steel-nerve/zaibatsu (cli_binary_steel_nerve_zaibatsu_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
