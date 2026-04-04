@@ -653,6 +653,12 @@ cargo test
 #   palette matrix/green (ui_palette_matrix_green_distinct_*), binary dark-signal/cyber-frost (cli_binary_dark_signal_cyber_frost_*),
 #   theme+export+color (cli_apply_theme_export_color_parse_*), name sort four bookmarks (app_sort_name_four_bookmarks_*),
 #   binary void-walker/steel-nerve (cli_binary_void_walker_steel_nerve_*),
+#   scan thirty-nine/forty files (scan_directory_thirty_nine_files_*, scan_directory_forty_files_*),
+#   bookmarks sixteen paths (prefs_toml_bookmarks_sixteen_entries_*), dedup seventeen uniques (dedup_disk_totals_seventeen_unique_totals_*),
+#   format_bytes 2/3 KiB human (helpers_format_bytes_three_kib_human_*), sort pct+GiB units (cli_apply_sort_pct_units_gib_*),
+#   palette cyan/purple (ui_palette_cyan_purple_distinct_*), binary sunset/darkwave (cli_binary_sunset_darkwave_*),
+#   no-used+no-tooltips (cli_apply_no_used_no_tooltips_*), sort size+col-mount/bar-end (cli_apply_sort_size_col_mount_bar_end_*),
+#   binary overlock/zaibatsu (cli_binary_overlock_zaibatsu_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
