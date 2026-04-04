@@ -553,6 +553,13 @@ cargo test
 #   prefs TOML single col widths (prefs_toml_col_widths_single_*), epoch_to_local large deterministic (system_epoch_to_local_large_deterministic_*),
 #   binary megacorp/zaibatsu (cli_binary_megacorp_zaibatsu_*), binary toxic/overlock (cli_binary_toxic_overlock_*),
 #   latency ms/s boundary (helpers_format_latency_ms_s_boundary_*), local+full-mount (cli_apply_local_full_mount_*),
+#   binary palette deep batch (cli_binary_palette_deep_batch_*), scan seven files (scan_directory_seven_files_*),
+#   dedup singleton (dedup_disk_totals_singleton_*), uptime weeks (helpers_format_uptime_weeks_*),
+#   prefs TOML all column widths (prefs_toml_all_column_widths_*), palette plasma/night (ui_palette_plasma_night_*),
+#   mount width third (columns_mount_width_third_fraction_*), CLI sort name+refresh (cli_apply_sort_name_refresh_*),
+#   get_battery smoke (system_get_battery_smoke_*), bars+border positive (cli_apply_bars_border_positive_*),
+#   tmpfs show_all (app_tmpfs_show_all_*), format_bytes u64::MAX (helpers_format_bytes_u64_max_no_panic_*),
+#   parse export-theme (cli_parse_export_theme_flags_*), binary cyber-frost/steel-nerve (cli_binary_cyber_frost_steel_nerve_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
