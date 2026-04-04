@@ -919,6 +919,13 @@ cargo test
 #   CLI no-local: no-used+no-tooltips, full-mount+no-border, refresh+no-compact, reverse+no-used, full-mount+no-header, no-virtual+no-tooltips (cli_apply_*_no_local_*),
 #   palettes blade-runner/toxic-waste, sunset/chrome-heart, neon-noir/cyber-frost, overlock/zaibatsu, dark-signal/plasma-core (ui_palette_*_distinct_*),
 #   binary matrix/neon-noir, red/green, deep-net/glitch-pop, steel-nerve/chrome-heart, default/amber, zaibatsu/sunset, cyber-frost/megacorp, blade-runner/void-walker (cli_binary_*_*),
+#   scan one-hundred-sixty-seven→one-hundred-seventy-eight files (scan_directory_one_hundred_sixty_seven_files_* … scan_directory_one_hundred_seventy_eight_files_*),
+#   bookmarks sixty-four/sixty-five paths (prefs_toml_bookmarks_sixty_four_entries_*, prefs_toml_bookmarks_sixty_five_entries_*),
+#   dedup sixty-five/sixty-six uniques (dedup_disk_totals_sixty_five_unique_totals_*, dedup_disk_totals_sixty_six_unique_totals_*),
+#   format_bytes 114–121 KiB human (helpers_format_bytes_114_kib_human_* … helpers_format_bytes_120_kib_human_*),
+#   CLI no-local: no-bars+no-tooltips, refresh+no-header, reverse+no-tooltips, full-mount+no-compact, compact+no-tooltips, reverse+no-bars (cli_apply_*_no_local_*),
+#   palettes sakura/purple, green/matrix, laser-grid/sunset, bio-hazard/darkwave, night-city/plasma-core (ui_palette_*_distinct_*),
+#   binary matrix/blade-runner, steel-nerve/toxic-waste, megacorp/void-walker, sakura/purple, laser-grid/sunset, bio-hazard/darkwave, night-city/plasma-core, quantum-flux/overlock (cli_binary_*_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l

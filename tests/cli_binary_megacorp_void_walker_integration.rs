@@ -1,4 +1,4 @@
-//! Binary smoke: `bio-hazard` and `darkwave` color flags.
+//! Binary smoke: `megacorp` and `void-walker` color flags.
 
 use std::process::Command;
 
@@ -14,13 +14,13 @@ fn output(args: &[&str]) -> std::process::Output {
 }
 
 #[test]
-fn bio_hazard_bars_version() {
-    let o = output(&["--color", "bio-hazard", "--bars", "-V"]);
+fn megacorp_compact_version() {
+    let o = output(&["--color", "megacorp", "--compact", "-V"]);
     assert!(o.status.success());
 }
 
 #[test]
-fn darkwave_sort_size_version() {
-    let o = output(&["--color", "darkwave", "-s", "size", "-V"]);
+fn void_walker_tooltips_version() {
+    let o = output(&["--color", "void-walker", "--tooltips", "-V"]);
     assert!(o.status.success());
 }

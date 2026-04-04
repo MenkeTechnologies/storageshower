@@ -14,13 +14,13 @@ fn output(args: &[&str]) -> std::process::Output {
 }
 
 #[test]
-fn laser_grid_no_virtual_version() {
-    let o = output(&["--color", "laser-grid", "--no-virtual", "-V"]);
+fn laser_grid_full_mount_version() {
+    let o = output(&["--color", "laser-grid", "--full-mount", "-V"]);
     assert!(o.status.success());
 }
 
 #[test]
-fn sunset_refresh_help() {
-    let o = output(&["--color", "sunset", "-r", "5", "--help"]);
+fn sunset_no_used_version() {
+    let o = output(&["--color", "sunset", "--no-used", "-V"]);
     assert!(o.status.success());
 }

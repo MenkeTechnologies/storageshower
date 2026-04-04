@@ -14,13 +14,13 @@ fn output(args: &[&str]) -> std::process::Output {
 }
 
 #[test]
-fn night_city_no_bars_version() {
-    let o = output(&["--color", "night-city", "--no-bars", "-V"]);
+fn night_city_no_compact_version() {
+    let o = output(&["--color", "night-city", "--no-compact", "-V"]);
     assert!(o.status.success());
 }
 
 #[test]
-fn plasma_core_sort_name_help() {
-    let o = output(&["--color", "plasma-core", "-s", "name", "--help"]);
+fn plasma_core_header_version() {
+    let o = output(&["--color", "plasma-core", "--header", "-V"]);
     assert!(o.status.success());
 }
