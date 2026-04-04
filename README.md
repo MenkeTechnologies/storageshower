@@ -541,6 +541,12 @@ cargo test
 #   scan four files (scan_directory_four_files_*), CLI refresh+thresh (cli_apply_refresh_warn_crit_*),
 #   narrow mount column (columns_mount_narrow_terminal_*), prefs show_all false (prefs_toml_show_all_false_*),
 #   prefs single bookmark (prefs_toml_single_bookmark_*), binary no chrome (cli_binary_no_chrome_flags_*),
+#   CLI sort all modes (cli_apply_sort_all_modes_*), prefs TOML sort_rev (prefs_toml_sort_rev_*),
+#   binary -h/--help (cli_binary_help_short_and_long_*), gradient frac extremes (ui_gradient_frac_extremes_*),
+#   right col bar-end override (columns_right_col_bar_end_override_*), CLI sort+warn+refresh (cli_apply_sort_warn_refresh_*),
+#   scan five files (scan_directory_five_files_*), dedup large uniques (dedup_disk_totals_large_unique_totals_*),
+#   prefs two bookmarks (prefs_toml_bookmarks_two_entries_*), human GiB boundary (helpers_human_giga_boundary_*),
+#   CLI no-reverse/no-compact (cli_apply_no_reverse_no_compact_*), binary cyberpunk colors (cli_binary_cyberpunk_color_smoke_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
