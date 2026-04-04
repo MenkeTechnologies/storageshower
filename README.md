@@ -567,6 +567,12 @@ cargo test
 #   binary void-walker/neon-noir (cli_binary_void_walker_neon_noir_*), epoch negative deterministic (system_epoch_negative_deterministic_*),
 #   pct sort same total (app_sort_pct_same_total_*), 100 GiB/s rate (helpers_format_rate_100_gib_per_sec_*),
 #   binary glitch-pop/chrome-heart (cli_binary_glitch_pop_chrome_heart_*), sort pct+units (cli_apply_sort_pct_units_*),
+#   scan nine/ten files (scan_directory_nine_files_*, scan_directory_ten_files_*),
+#   binary blade-runner/toxic-waste (cli_binary_blade_runner_toxic_waste_*), no-used/no-header (cli_apply_no_used_no_header_combo_*),
+#   format_rate sub 1 B/s (helpers_format_rate_sub_one_byte_*), dedup triple same total (dedup_disk_totals_three_same_total_first_wins_*),
+#   palette sakura/sunset (ui_palette_sakura_sunset_distinct_*), no-bars/no-border (cli_apply_no_bars_no_border_combo_*),
+#   binary matrix/sunset (cli_binary_matrix_sunset_*), size sort same total (app_sort_size_same_total_stable_*),
+#   short flags stack (cli_apply_short_stack_local_refresh_*), binary darkwave/sakura (cli_binary_darkwave_sakura_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
