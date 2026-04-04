@@ -886,6 +886,11 @@ cargo test
 #   format_bytes 78/79 KiB human (helpers_format_bytes_78_kib_human_*), no-compact+no-virtual+no-local (cli_apply_no_compact_no_virtual_no_local_*),
 #   no-bars+no-header+no-local (cli_apply_no_bars_no_header_no_local_*), palette neon-noir/blade-runner (ui_palette_neon_noir_blade_runner_distinct_*),
 #   binary sunset/megacorp (cli_binary_sunset_megacorp_*), matrix/deep-net (cli_binary_matrix_deep_net_*), green/blue (cli_binary_green_blue_*),
+#   scan one-hundred-seventeen/one-hundred-eighteen files (scan_directory_one_hundred_seventeen_files_*, scan_directory_one_hundred_eighteen_files_*),
+#   bookmarks fifty-five paths (prefs_toml_bookmarks_fifty_five_entries_*), dedup fifty-six uniques (dedup_disk_totals_fifty_six_unique_totals_*),
+#   format_bytes 80/81 KiB human (helpers_format_bytes_80_kib_human_*), no-border+no-used+no-local (cli_apply_no_border_no_used_no_local_*),
+#   no-compact+no-header+no-local (cli_apply_no_compact_no_header_no_local_*), palette glitch-pop/zaibatsu (ui_palette_glitch_pop_zaibatsu_distinct_*),
+#   binary sakura/cyber-frost (cli_binary_sakura_cyber_frost_*), overlock/night-city (cli_binary_overlock_night_city_*), cyan/purple (cli_binary_cyan_purple_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
