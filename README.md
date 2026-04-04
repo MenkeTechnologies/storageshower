@@ -520,6 +520,11 @@ cargo test
 #   dedup mixed mounts (dedup_disk_totals_mixed_mounts_*), human K boundary (helpers_human_kilo_boundary_*),
 #   pct sort rev three mounts (app_sort_pct_three_mounts_*), prefs TOML empty bookmarks (prefs_toml_bookmarks_empty_*),
 #   CLI sort+refresh+bar (cli_apply_sort_refresh_bar_*),
+#   scan missing path (scan_directory_missing_path_*), CLI hyphenated color (cli_apply_color_hyphenated_*),
+#   CLI units all (cli_apply_units_all_*), UnitMode JSON (types_unit_mode_json_roundtrip_*),
+#   gradient_color_at boundaries (ui_gradient_color_at_boundaries_*), uptime multi-day (helpers_uptime_multi_day_*),
+#   binary hyphenated color (cli_binary_color_hyphen_smoke_*), TOML inline custom themes (toml_custom_theme_inline_deserialize_*),
+#   four bookmarks (app_bookmarks_four_mounts_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
