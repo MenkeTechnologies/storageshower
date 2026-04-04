@@ -547,6 +547,12 @@ cargo test
 #   scan five files (scan_directory_five_files_*), dedup large uniques (dedup_disk_totals_large_unique_totals_*),
 #   prefs two bookmarks (prefs_toml_bookmarks_two_entries_*), human GiB boundary (helpers_human_giga_boundary_*),
 #   CLI no-reverse/no-compact (cli_apply_no_reverse_no_compact_*), binary cyberpunk colors (cli_binary_cyberpunk_color_smoke_*),
+#   CLI theme/units/config (cli_apply_theme_units_config_*), binary version stdout (cli_binary_version_stdout_*),
+#   scan six files (scan_directory_six_files_*), dedup interleaved totals (dedup_disk_totals_interleaved_*),
+#   mount column compact vs col_mount (columns_mount_compact_*), virtual+tooltips apply (cli_apply_virtual_tooltips_positive_*),
+#   prefs TOML single col widths (prefs_toml_col_widths_single_*), epoch_to_local large deterministic (system_epoch_to_local_large_deterministic_*),
+#   binary megacorp/zaibatsu (cli_binary_megacorp_zaibatsu_*), binary toxic/overlock (cli_binary_toxic_overlock_*),
+#   latency ms/s boundary (helpers_format_latency_ms_s_boundary_*), local+full-mount (cli_apply_local_full_mount_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
