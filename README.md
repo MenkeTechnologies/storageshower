@@ -623,6 +623,12 @@ cargo test
 #   palette sakura/matrix (ui_palette_sakura_matrix_distinct_*), binary toxic-waste/zaibatsu (cli_binary_toxic_waste_zaibatsu_*),
 #   sort size+bars+border (cli_apply_sort_size_bars_border_*), size sort three bookmarks (app_sort_size_three_bookmarks_*),
 #   binary sunset/blade-runner (cli_binary_sunset_blade_runner_*),
+#   scan twenty-nine/thirty files (scan_directory_twenty_nine_files_*, scan_directory_thirty_files_*),
+#   bookmarks eleven paths (prefs_toml_bookmarks_eleven_entries_*), dedup twelve uniques (dedup_disk_totals_twelve_unique_totals_*),
+#   format_rate 32 KiB/s (helpers_format_rate_32_k_per_sec_*), list-colors+export-theme (cli_apply_list_colors_export_theme_*),
+#   palette amber/cyan (ui_palette_amber_cyan_distinct_*), binary plasma-core/steel-nerve (cli_binary_plasma_core_steel_nerve_*),
+#   sort name+header+used (cli_apply_sort_name_header_used_*), pct sort three bookmarks (app_sort_pct_three_bookmarks_*),
+#   binary red/void-walker (cli_binary_red_sector_void_walker_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
