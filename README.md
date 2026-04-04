@@ -671,6 +671,12 @@ cargo test
 #   palette chrome-heart/plasma-core (ui_palette_chrome_heart_plasma_core_distinct_*), binary holo-shift/plasma-core (cli_binary_holo_shift_plasma_core_*),
 #   warn/crit+sort name (cli_apply_warn_crit_sort_name_*), sort pct+col-bar-end (cli_apply_sort_pct_col_bar_end_*),
 #   binary deep-net/laser-grid (cli_binary_deep_net_laser_grid_*),
+#   scan forty-five/forty-six files (scan_directory_forty_five_files_*, scan_directory_forty_six_files_*),
+#   bookmarks nineteen paths (prefs_toml_bookmarks_nineteen_entries_*), dedup twenty uniques (dedup_disk_totals_twenty_unique_totals_*),
+#   format_bytes 8/9 KiB human (helpers_format_bytes_8_kib_human_*), sort name+GiB units (cli_apply_sort_name_units_gib_*),
+#   palette toxic-waste/void-walker (ui_palette_toxic_waste_void_walker_distinct_*), binary bio-hazard/neon-noir (cli_binary_bio_hazard_neon_noir_*),
+#   sort pct+col-mount (cli_apply_sort_pct_col_mount_*), binary cyber-frost/laser-grid (cli_binary_cyber_frost_laser_grid_*),
+#   sort name+col-mount (cli_apply_sort_name_col_mount_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
