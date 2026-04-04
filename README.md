@@ -961,6 +961,13 @@ cargo test
 #   CLI no-local: virtual+compact, tooltips+no-used, header+full-mount, bars+full-mount, used+no-header, border+no-compact (cli_apply_*_no_local_*),
 #   palettes cyan/megacorp, matrix/glitch-pop, red/deep-net, sunset/overlock, green/plasma-core (ui_palette_*_distinct_*),
 #   binary cyan/steel-nerve, purple/toxic-waste, night-city/void-walker, holo-shift/neon-noir, default/laser-grid, bio-hazard/quantum-flux, red/sakura, blue/megacorp (cli_binary_*_*),
+#   scan two-hundred-thirty-nine→two-hundred-fifty files (scan_directory_two_hundred_thirty_nine_files_* … scan_directory_two_hundred_fifty_files_*),
+#   bookmarks seventy-six/seventy-seven paths (prefs_toml_bookmarks_seventy_six_entries_*, prefs_toml_bookmarks_seventy_seven_entries_*),
+#   dedup seventy-seven/seventy-eight uniques (dedup_disk_totals_seventy_seven_unique_totals_*, dedup_disk_totals_seventy_eight_unique_totals_*),
+#   format_bytes 162–169 KiB human (helpers_format_bytes_162_kib_human_* … helpers_format_bytes_168_kib_human_*),
+#   CLI no-local: virtual+no-bars, border+no-used, compact+no-used, header+no-used, bars+no-header, border+no-virtual (cli_apply_*_no_local_*),
+#   palettes amber/glitch-pop, purple/darkwave, cyan/zaibatsu, matrix/megacorp, sunset/holo-shift (ui_palette_*_distinct_*),
+#   binary green/sunset, red/neon-noir, purple/darkwave, cyan/zaibatsu, matrix/megacorp, bio-hazard/steel-nerve, void-walker/chrome-heart, sakura/darkwave (cli_binary_*_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
