@@ -926,6 +926,13 @@ cargo test
 #   CLI no-local: no-bars+no-tooltips, refresh+no-header, reverse+no-tooltips, full-mount+no-compact, compact+no-tooltips, reverse+no-bars (cli_apply_*_no_local_*),
 #   palettes sakura/purple, green/matrix, laser-grid/sunset, bio-hazard/darkwave, night-city/plasma-core (ui_palette_*_distinct_*),
 #   binary matrix/blade-runner, steel-nerve/toxic-waste, megacorp/void-walker, sakura/purple, laser-grid/sunset, bio-hazard/darkwave, night-city/plasma-core, quantum-flux/overlock (cli_binary_*_*),
+#   scan one-hundred-seventy-nine→one-hundred-ninety files (scan_directory_one_hundred_seventy_nine_files_* … scan_directory_one_hundred_ninety_files_*),
+#   bookmarks sixty-six/sixty-seven paths (prefs_toml_bookmarks_sixty_six_entries_*, prefs_toml_bookmarks_sixty_seven_entries_*),
+#   dedup sixty-seven/sixty-eight uniques (dedup_disk_totals_sixty_seven_unique_totals_*, dedup_disk_totals_sixty_eight_unique_totals_*),
+#   format_bytes 122–129 KiB human (helpers_format_bytes_122_kib_human_* … helpers_format_bytes_128_kib_human_*),
+#   CLI no-local: refresh+no-bars, refresh+no-used, header+no-tooltips, full-mount+no-tooltips, refresh+no-border, tooltips+no-border (cli_apply_*_no_local_*),
+#   palettes cyber-frost/laser-grid, void-walker/plasma-core, megacorp/chrome-heart, holo-shift/steel-nerve, deep-net/dark-signal (ui_palette_*_distinct_*),
+#   binary sakura/deep-net, neon-noir/bio-hazard, zaibatsu/plasma-core, overlock/void-walker, toxic-waste/deep-net, darkwave/glitch-pop, chrome-heart/plasma-core, green/bio-hazard (cli_binary_*_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
