@@ -525,6 +525,11 @@ cargo test
 #   gradient_color_at boundaries (ui_gradient_color_at_boundaries_*), uptime multi-day (helpers_uptime_multi_day_*),
 #   binary hyphenated color (cli_binary_color_hyphen_smoke_*), TOML inline custom themes (toml_custom_theme_inline_deserialize_*),
 #   four bookmarks (app_bookmarks_four_mounts_*),
+#   ColorMode next cycle (types_color_mode_next_cycle_*), CLI bar styles (cli_apply_bar_style_all_*),
+#   binary bar-style stacks (cli_binary_bar_style_stack_*), prefs TOML compact/full_mount (prefs_toml_compact_full_mount_*),
+#   scan three files (scan_directory_three_files_*), CLI inverse bundles (cli_apply_inverse_flags_bundle_*),
+#   Unicode filter (app_filter_unicode_mount_*), chrono_now shape (system_chrono_now_shape_*),
+#   latency seconds branch (helpers_format_latency_second_branch_*), right col pct override (columns_right_col_pct_override_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
