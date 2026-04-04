@@ -743,6 +743,12 @@ cargo test
 #   warn/crit+virtual (cli_apply_warn_crit_virtual_*), palette blue/red (ui_palette_blue_red_distinct_*),
 #   binary neon-noir/sunset (cli_binary_neon_noir_sunset_*), binary plasma-core/glitch-pop (cli_binary_plasma_core_glitch_pop_*),
 #   refresh+local-only (cli_apply_refresh_local_only_*),
+#   scan sixty-nine/seventy files (scan_directory_sixty_nine_files_*, scan_directory_seventy_files_*),
+#   bookmarks thirty-one paths (prefs_toml_bookmarks_thirty_one_entries_*), dedup thirty-two uniques (dedup_disk_totals_thirty_two_unique_totals_*),
+#   format_bytes 32/33 KiB human (helpers_format_bytes_32_kib_human_*), warn/crit+tooltips (cli_apply_warn_crit_tooltips_*),
+#   warn/crit+no-header (cli_apply_warn_crit_no_header_*), palette cyan/sunset (ui_palette_cyan_sunset_distinct_*),
+#   binary steel-nerve/bio-hazard (cli_binary_steel_nerve_bio_hazard_*), binary dark-signal/sunset (cli_binary_dark_signal_sunset_*),
+#   refresh+reverse (cli_apply_refresh_reverse_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
