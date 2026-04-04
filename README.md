@@ -975,6 +975,13 @@ cargo test
 #   CLI no-local: compact+no-bars, virtual+no-compact, reverse+no-full-mount, used+no-virtual, border+no-header, bars+no-virtual (cli_apply_*_no_local_*),
 #   palettes red/zaibatsu, green/neon-noir, blue/blade-runner, cyan/bio-hazard, amber/night-city (ui_palette_*_distinct_*),
 #   binary blue/plasma-core, red/matrix, amber/chrome-heart, toxic-waste/plasma-core, darkwave/laser-grid, holo-shift/zaibatsu, green/dark-signal, quantum-flux/chrome-heart (cli_binary_*_*),
+#   scan two-hundred-sixty-three→two-hundred-seventy-four files (scan_directory_two_hundred_sixty_three_files_* … scan_directory_two_hundred_seventy_four_files_*),
+#   bookmarks eighty/eighty-one paths (prefs_toml_bookmarks_eighty_entries_*, prefs_toml_bookmarks_eighty_one_entries_*),
+#   dedup eighty-one/eighty-two uniques (dedup_disk_totals_eighty_one_unique_totals_*, dedup_disk_totals_eighty_two_unique_totals_*),
+#   format_bytes 178–185 KiB human (helpers_format_bytes_178_kib_human_* … helpers_format_bytes_184_kib_human_*),
+#   CLI no-local: header+no-border, compact+no-virtual, used+no-compact, virtual+no-tooltips, compact+no-header, full-mount+no-reverse (cli_apply_*_no_local_*),
+#   palettes green/chrome-heart, matrix/night-city, purple/toxic-waste, sakura/void-walker, default/overlock (ui_palette_*_distinct_*),
+#   binary purple/deep-net, matrix/night-city, sakura/overlock, default/quantum-flux, green/neon-noir, amber/toxic-waste, red/void-walker, steel-nerve/void-walker (cli_binary_*_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
