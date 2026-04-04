@@ -869,6 +869,12 @@ cargo test
 #   virtual+tooltips+no-local (cli_apply_virtual_tooltips_no_local_*), palette toxic-waste/dark-signal (ui_palette_toxic_waste_dark_signal_distinct_*),
 #   binary sunset/holo-shift (cli_binary_sunset_holo_shift_*), steel-nerve/quantum-flux (cli_binary_steel_nerve_quantum_flux_*),
 #   binary blade-runner/zaibatsu (cli_binary_blade_runner_zaibatsu_*),
+#   scan one-hundred-eleven/one-hundred-twelve files (scan_directory_one_hundred_eleven_files_*, scan_directory_one_hundred_twelve_files_*),
+#   bookmarks fifty-two paths (prefs_toml_bookmarks_fifty_two_entries_*), dedup fifty-three uniques (dedup_disk_totals_fifty_three_unique_totals_*),
+#   format_bytes 74/75 KiB human (helpers_format_bytes_74_kib_human_*), sort+thin+no-local (cli_apply_sort_bar_style_no_local_*),
+#   no-header+no-used+no-local (cli_apply_no_header_no_used_no_local_*), palette bio-hazard/megacorp (ui_palette_bio_hazard_megacorp_distinct_*),
+#   binary void-walker/quantum-flux (cli_binary_void_walker_quantum_flux_*), darkwave/plasma-core (cli_binary_darkwave_plasma_core_*),
+#   binary night-city/deep-net (cli_binary_night_city_deep_net_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
