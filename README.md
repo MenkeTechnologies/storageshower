@@ -573,6 +573,11 @@ cargo test
 #   palette sakura/sunset (ui_palette_sakura_sunset_distinct_*), no-bars/no-border (cli_apply_no_bars_no_border_combo_*),
 #   binary matrix/sunset (cli_binary_matrix_sunset_*), size sort same total (app_sort_size_same_total_stable_*),
 #   short flags stack (cli_apply_short_stack_local_refresh_*), binary darkwave/sakura (cli_binary_darkwave_sakura_*),
+#   scan eleven/twelve files (scan_directory_eleven_files_*, scan_directory_twelve_files_*),
+#   binary amber/red (cli_binary_amber_red_*), no-full-mount+compact (cli_apply_no_full_mount_compact_*),
+#   format_rate 1023/1024 B/s (helpers_format_rate_exact_1024_bps_*), bookmarks three paths (prefs_toml_bookmarks_three_entries_*),
+#   palette green/blue (ui_palette_green_blue_distinct_*), binary purple/green (cli_binary_purple_green_*),
+#   dedup four totals / two pairs (dedup_disk_totals_four_unique_totals_*), sort name+thresh (cli_apply_sort_name_thresh_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
