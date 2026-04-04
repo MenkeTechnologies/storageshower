@@ -773,6 +773,12 @@ cargo test
 #   palette red/blue (ui_palette_red_blue_distinct_*), binary blade-runner/neon-noir (cli_binary_blade_runner_neon_noir_*),
 #   refresh+no-local (cli_apply_refresh_no_local_*), binary steel-nerve/cyber-frost (cli_binary_steel_nerve_cyber_frost_*),
 #   binary laser-grid/sunset (cli_binary_laser_grid_sunset_*),
+#   scan seventy-nine/eighty files (scan_directory_seventy_nine_files_*, scan_directory_eighty_files_*),
+#   bookmarks thirty-six paths (prefs_toml_bookmarks_thirty_six_entries_*), dedup thirty-seven uniques (dedup_disk_totals_thirty_seven_unique_totals_*),
+#   format_bytes 42/43 KiB human (helpers_format_bytes_42_kib_human_*), sort+no-local (cli_apply_sort_no_local_*),
+#   warn/crit+local-only (cli_apply_warn_crit_local_only_*), palette green/cyan (ui_palette_green_cyan_distinct_*),
+#   binary matrix/sakura (cli_binary_matrix_sakura_*), void-walker/matrix (cli_binary_void_walker_matrix_*),
+#   binary deep-net/plasma-core (cli_binary_deep_net_plasma_core_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
