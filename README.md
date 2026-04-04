@@ -863,6 +863,12 @@ cargo test
 #   reverse+compact+no-local (cli_apply_reverse_compact_no_local_*), palette green/red (ui_palette_green_red_distinct_*),
 #   binary green/matrix (cli_binary_green_matrix_*), red/plasma-core (cli_binary_red_plasma_core_*),
 #   binary chrome-heart/quantum-flux (cli_binary_chrome_heart_quantum_flux_*),
+#   scan one-hundred-nine/one-hundred-ten files (scan_directory_one_hundred_nine_files_*, scan_directory_one_hundred_ten_files_*),
+#   bookmarks fifty-one paths (prefs_toml_bookmarks_fifty_one_entries_*), dedup fifty-two uniques (dedup_disk_totals_fifty_two_unique_totals_*),
+#   format_bytes 72/73 KiB human (helpers_format_bytes_72_kib_human_*), no-bars+no-border+no-local (cli_apply_no_bars_no_border_no_local_*),
+#   virtual+tooltips+no-local (cli_apply_virtual_tooltips_no_local_*), palette toxic-waste/dark-signal (ui_palette_toxic_waste_dark_signal_distinct_*),
+#   binary sunset/holo-shift (cli_binary_sunset_holo_shift_*), steel-nerve/quantum-flux (cli_binary_steel_nerve_quantum_flux_*),
+#   binary blade-runner/zaibatsu (cli_binary_blade_runner_zaibatsu_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l

@@ -1,0 +1,26 @@
+//! Binary smoke: `sunset` and `holo-shift` color flags.
+
+use std::process::Command;
+
+fn exe() -> &'static str {
+    env!("CARGO_BIN_EXE_storageshower")
+}
+
+fn output(args: &[&str]) -> std::process::Output {
+    Command::new(exe())
+        .args(args)
+        .output()
+        .unwrap_or_else(|e| panic!("spawn {}: {e}", exe()))
+}
+
+#[test]
+fn sunset_no_tooltips_version() {
+    let o = output(&["--color", "sunset", "--no-tooltips", "-V"]);
+    assert!(o.status.success());
+}
+
+#[test]
+fn holo_shift_crit_help() {
+    let o = output(&["--color", "holo-shift", "-C", "88", "--help"]);
+    assert!(o.status.success());
+}
