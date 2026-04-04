@@ -578,6 +578,12 @@ cargo test
 #   format_rate 1023/1024 B/s (helpers_format_rate_exact_1024_bps_*), bookmarks three paths (prefs_toml_bookmarks_three_entries_*),
 #   palette green/blue (ui_palette_green_blue_distinct_*), binary purple/green (cli_binary_purple_green_*),
 #   dedup four totals / two pairs (dedup_disk_totals_four_unique_totals_*), sort name+thresh (cli_apply_sort_name_thresh_*),
+#   scan thirteen/fourteen files (scan_directory_thirteen_files_*, scan_directory_fourteen_files_*),
+#   binary default/cyan (cli_binary_default_cyan_*), no-virtual+no-tooltips (cli_apply_no_virtual_no_tooltips_combo_*),
+#   bookmarks four paths (prefs_toml_bookmarks_four_entries_*), palette cyan/red (ui_palette_cyan_red_distinct_*),
+#   sort size+column widths (cli_apply_sort_size_col_widths_*), dedup order dup/unique (dedup_disk_totals_dup_then_unique_order_*),
+#   binary neon-noir/default (cli_binary_neon_noir_default_*), refresh+bar+sort (cli_apply_refresh_bar_style_sort_*),
+#   no-local+compact (cli_apply_no_local_compact_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
