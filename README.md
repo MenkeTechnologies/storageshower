@@ -689,6 +689,12 @@ cargo test
 #   palette darkwave/deep-net (ui_palette_darkwave_deep_net_distinct_*), binary neon-noir/laser-grid (cli_binary_neon_noir_laser_grid_*),
 #   sort size+col-mount (cli_apply_sort_size_col_mount_*), binary overlock/darkwave (cli_binary_overlock_darkwave_*),
 #   warn/crit+col-mount (cli_apply_warn_crit_col_mount_*),
+#   scan fifty-one/fifty-two files (scan_directory_fifty_one_files_*, scan_directory_fifty_two_files_*),
+#   bookmarks twenty-two paths (prefs_toml_bookmarks_twenty_two_entries_*), dedup twenty-three uniques (dedup_disk_totals_twenty_three_unique_totals_*),
+#   format_bytes 14/15 KiB human (helpers_format_bytes_14_kib_human_*), warn/crit+col-pct (cli_apply_warn_crit_col_pct_*),
+#   warn/crit+col-bar-end (cli_apply_warn_crit_col_bar_end_*), sort name+reverse (cli_apply_sort_name_reverse_*),
+#   palette sunset/toxic-waste (ui_palette_sunset_toxic_waste_distinct_*), binary chrome-heart/night-city (cli_binary_chrome_heart_night_city_*),
+#   binary quantum-flux/bio-hazard (cli_binary_quantum_flux_bio_hazard_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
