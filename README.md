@@ -535,6 +535,12 @@ cargo test
 #   dedup all same total (dedup_disk_totals_all_same_total_*), scan file+subdir (scan_directory_file_and_subdir_*),
 #   Unicode name sort (app_sort_name_unicode_*), palette named modes (ui_palette_named_modes_*),
 #   theme/color/export flags (cli_theme_color_export_flags_*),
+#   palette active theme hit (ui_palette_active_theme_hit_*), human MeBi boundary (helpers_human_mega_boundary_*),
+#   format_rate GiB boundary (helpers_format_rate_gib_boundary_*), CLI bar+color (cli_apply_bar_color_combo_*),
+#   binary bar/color/units (cli_binary_bar_color_units_*), dedup zero skipped (dedup_disk_totals_zero_skipped_positive_*),
+#   scan four files (scan_directory_four_files_*), CLI refresh+thresh (cli_apply_refresh_warn_crit_*),
+#   narrow mount column (columns_mount_narrow_terminal_*), prefs show_all false (prefs_toml_show_all_false_*),
+#   prefs single bookmark (prefs_toml_single_bookmark_*), binary no chrome (cli_binary_no_chrome_flags_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
