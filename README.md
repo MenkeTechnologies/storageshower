@@ -898,6 +898,13 @@ cargo test
 #   CLI no-local triplets: no-virtual+no-used, no-border+no-virtual, no-compact+no-used, no-bars+no-virtual, no-header+no-virtual, no-border+no-compact (cli_apply_no_*_no_local_*),
 #   palettes chrome-heart/toxic-waste, red/sunset, laser-grid/neon-noir, deep-net/chrome-heart, holo-shift/dark-signal (ui_palette_*_distinct_*),
 #   binary blue/purple, neon-noir/chrome-heart, sakura/matrix, default/green, glitch-pop/dark-signal, amber/sunset, red/cyan, laser-grid/steel-nerve (cli_binary_*_*),
+#   scan one-hundred-thirty-one→one-hundred-forty-two files (scan_directory_one_hundred_thirty_one_files_* … scan_directory_one_hundred_forty_two_files_*),
+#   bookmarks fifty-eight/fifty-nine paths (prefs_toml_bookmarks_fifty_eight_entries_*, prefs_toml_bookmarks_fifty_nine_entries_*),
+#   dedup fifty-nine/sixty uniques (dedup_disk_totals_fifty_nine_unique_totals_*, dedup_disk_totals_sixty_unique_totals_*),
+#   format_bytes 90–97 KiB human (helpers_format_bytes_90_kib_human_* … helpers_format_bytes_96_kib_human_*),
+#   CLI no-local: reverse+no-virtual, reverse+no-compact, tooltips+no-virtual, border+no-tooltips, bars+no-compact, full-mount+no-virtual (cli_apply_*_no_local_*),
+#   palettes cyan/matrix, purple/amber, matrix/sunset, steel-nerve/overlock, void-walker/cyber-frost (ui_palette_*_distinct_*),
+#   binary purple/amber, cyan/matrix, default/matrix, blue/red, green/cyan, neon-noir/toxic-waste, chrome-heart/blade-runner, zaibatsu/megacorp (cli_binary_*_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l

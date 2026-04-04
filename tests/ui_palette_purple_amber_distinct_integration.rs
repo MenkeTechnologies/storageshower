@@ -6,10 +6,12 @@ use storageshower::types::ColorMode;
 use storageshower::ui::palette;
 
 #[test]
-fn purple_six_indexed() {
-    let p = palette(ColorMode::Purple);
-    for c in [p.0, p.1, p.2, p.3, p.4, p.5] {
-        assert!(matches!(c, Color::Indexed(_)));
+fn purple_amber_both_six_indexed() {
+    for mode in [ColorMode::Purple, ColorMode::Amber] {
+        let p = palette(mode);
+        for c in [p.0, p.1, p.2, p.3, p.4, p.5] {
+            assert!(matches!(c, Color::Indexed(_)));
+        }
     }
 }
 
