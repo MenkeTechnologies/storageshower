@@ -514,6 +514,12 @@ cargo test
 #   network FS case (is_network_fs_case_*), get_local_ip (system_get_local_ip_*), multi-G/s format_rate (helpers_format_rate_multi_gig_*),
 #   binary compact/reverse/sort (cli_binary_compact_reverse_sort_*), CLI --config parse (cli_config_flag_parsed_*),
 #   equal-total size sort stability (app_sort_equal_total_stable_*),
+#   UI unknown active_theme fallback (ui_palette_unknown_active_theme_fallback_*), get_username vs env (system_get_username_env_*),
+#   prefs TOML thresh edges (prefs_toml_thresh_edge_*), CLI apply warn/crit (cli_apply_warn_crit_*),
+#   scan progress both mutexes (scan_directory_progress_both_mutexes_*), binary warn/crit/export (cli_binary_warn_crit_export_theme_*),
+#   dedup mixed mounts (dedup_disk_totals_mixed_mounts_*), human K boundary (helpers_human_kilo_boundary_*),
+#   pct sort rev three mounts (app_sort_pct_three_mounts_*), prefs TOML empty bookmarks (prefs_toml_bookmarks_empty_*),
+#   CLI sort+refresh+bar (cli_apply_sort_refresh_bar_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
