@@ -560,6 +560,13 @@ cargo test
 #   get_battery smoke (system_get_battery_smoke_*), bars+border positive (cli_apply_bars_border_positive_*),
 #   tmpfs show_all (app_tmpfs_show_all_*), format_bytes u64::MAX (helpers_format_bytes_u64_max_no_panic_*),
 #   parse export-theme (cli_parse_export_theme_flags_*), binary cyber-frost/steel-nerve (cli_binary_cyber_frost_steel_nerve_*),
+#   compact+refresh (cli_apply_compact_refresh_*), header last wins (cli_apply_header_no_header_last_wins_*),
+#   binary laser-grid/quantum-flux (cli_binary_laser_grid_quantum_flux_*), scan eight files (scan_directory_eight_files_*),
+#   dedup adjacent duplicates (dedup_disk_totals_adjacent_duplicates_*), latency 1h in ms (helpers_format_latency_one_hour_ms_*),
+#   prefs show_tooltips true (prefs_toml_show_tooltips_true_*), palette bio/quantum (ui_palette_bio_hazard_quantum_flux_*),
+#   binary void-walker/neon-noir (cli_binary_void_walker_neon_noir_*), epoch negative deterministic (system_epoch_negative_deterministic_*),
+#   pct sort same total (app_sort_pct_same_total_*), 100 GiB/s rate (helpers_format_rate_100_gib_per_sec_*),
+#   binary glitch-pop/chrome-heart (cli_binary_glitch_pop_chrome_heart_*), sort pct+units (cli_apply_sort_pct_units_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
