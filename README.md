@@ -596,6 +596,12 @@ cargo test
 #   dedup six uniques (dedup_disk_totals_six_unique_totals_*), sort size+units+rev (cli_apply_sort_size_units_reverse_*),
 #   pct sort single bookmark (app_sort_pct_bookmark_one_*), latency 50ms branch (helpers_format_latency_50ms_branch_*),
 #   binary amber/blue (cli_binary_amber_blue_*),
+#   scan nineteen/twenty files (scan_directory_nineteen_files_*, scan_directory_twenty_files_*),
+#   binary list-colors+theme (cli_binary_list_colors_theme_*), theme+sort+refresh (cli_apply_theme_sort_name_refresh_*),
+#   bookmarks six paths (prefs_toml_bookmarks_six_entries_*), palette megacorp/zaibatsu (ui_palette_megacorp_zaibatsu_distinct_*),
+#   dedup seven uniques (dedup_disk_totals_seven_unique_totals_*), name sort bookmark (app_sort_name_bookmark_one_*),
+#   binary steel-nerve/chrome-heart (cli_binary_steel_nerve_chrome_heart_*), bar ascii+pct (cli_apply_bar_ascii_sort_pct_*),
+#   binary bio-hazard/megacorp (cli_binary_bio_hazard_megacorp_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
