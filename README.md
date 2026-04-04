@@ -641,6 +641,12 @@ cargo test
 #   palette purple/red (ui_palette_purple_red_distinct_*), binary holo-shift/glitch-pop (cli_binary_holo_shift_glitch_pop_*),
 #   theme+config+refresh (cli_apply_theme_config_refresh_*), size sort four bookmarks (app_sort_size_four_bookmarks_*),
 #   binary laser-grid/bio-hazard (cli_binary_laser_grid_bio_hazard_*),
+#   scan thirty-five/thirty-six files (scan_directory_thirty_five_files_*, scan_directory_thirty_six_files_*),
+#   bookmarks fourteen paths (prefs_toml_bookmarks_fourteen_entries_*), dedup fifteen uniques (dedup_disk_totals_fifteen_unique_totals_*),
+#   format_rate 4 KiB/s (helpers_format_rate_4_k_per_sec_*), sort size+rev+compact (cli_apply_sort_size_reverse_compact_*),
+#   palette default/sunset (ui_palette_default_sunset_distinct_*), binary megacorp/neon-noir (cli_binary_megacorp_neon_noir_*),
+#   warn/crit+sort size (cli_apply_warn_crit_sort_size_*), pct sort four bookmarks (app_sort_pct_four_bookmarks_*),
+#   binary night-city/blade-runner (cli_binary_night_city_blade_runner_*),
 #   network FS detection (is_network_fs_*), theme JSON (theme_colors_json_*), etc.
 # Test counts: `cargo test --locked` prints `running N tests` per target; sum those lines, or run
 #   cargo test --locked -- --list | wc -l
