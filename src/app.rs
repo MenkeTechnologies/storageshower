@@ -234,6 +234,8 @@ impl App {
     pub fn start_drill_scan(&mut self, path: &str) {
         self.drill.scanning = true;
         self.drill.entries.clear();
+        self.drill.selected = 0;
+        self.drill.scroll_offset = 0;
         *self.drill.scan_count.lock().unwrap() = 0;
         *self.drill.scan_total.lock().unwrap() = 0;
         let result = Arc::clone(&self.drill.scan_result);
@@ -1006,6 +1008,16 @@ mod tests {
     }
 
     // ── Drill scroll ────────────────────────────────────────
+
+    #[test]
+    fn start_drill_scan_resets_selection_and_scroll() {
+        let mut app = test_app();
+        app.drill.selected = 5;
+        app.drill.scroll_offset = 3;
+        app.start_drill_scan("/tmp");
+        assert_eq!(app.drill.selected, 0);
+        assert_eq!(app.drill.scroll_offset, 0);
+    }
 
     #[test]
     fn ensure_drill_visible_pulls_scroll_to_selected() {

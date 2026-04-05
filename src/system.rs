@@ -194,6 +194,9 @@ fn measure_mount_latency(mount: &str) -> Option<f64> {
 
 // ─── Directory scanning ───────────────────────────────────────────────────
 
+/// Sum file sizes under `path` (must be a real directory). Symlinks are not
+/// traversed: symlink size is counted once (path bytes on most platforms) so
+/// symlink cycles cannot recurse forever. Uses saturating add for totals.
 fn dir_size(path: &std::path::Path) -> u64 {
     let entries = match std::fs::read_dir(path) {
         Ok(e) => e,
@@ -201,14 +204,22 @@ fn dir_size(path: &std::path::Path) -> u64 {
     };
     let mut total = 0u64;
     for entry in entries.flatten() {
-        let meta = match entry.metadata() {
-            Ok(m) => m,
+        let ft = match entry.file_type() {
+            Ok(ft) => ft,
             Err(_) => continue,
         };
-        if meta.is_dir() {
-            total += dir_size(&entry.path());
-        } else {
-            total += meta.len();
+        if ft.is_symlink() {
+            if let Ok(m) = std::fs::symlink_metadata(entry.path()) {
+                total = total.saturating_add(m.len());
+            }
+            continue;
+        }
+        if ft.is_dir() {
+            total = total.saturating_add(dir_size(&entry.path()));
+            continue;
+        }
+        if let Ok(m) = entry.metadata() {
+            total = total.saturating_add(m.len());
         }
     }
     total
@@ -238,7 +249,9 @@ pub fn scan_directory_with_progress(
             if let Some(ref c) = count {
                 *c.lock().unwrap() = i + 1;
             }
-            let meta = entry.metadata().ok()?;
+            // Follow symlinks so a symlink-to-directory is shown as a directory
+            // with a tree size; `dir_size` itself does not recurse into symlinks.
+            let meta = std::fs::metadata(entry.path()).ok()?;
             let name = entry.file_name().to_string_lossy().to_string();
             let full_path = entry.path().to_string_lossy().to_string();
             let is_dir = meta.is_dir();
@@ -1360,5 +1373,24 @@ mod tests {
             assert!(!e.name.is_empty());
             assert!(!e.path.is_empty());
         }
+    }
+
+    /// Symlink `a/b/cycle -> ../a` would recurse forever with naive dir_size;
+    /// we must terminate and return finite sizes.
+    #[cfg(unix)]
+    #[test]
+    fn scan_directory_symlink_cycle_completes_with_finite_sizes() {
+        use std::os::unix::fs::symlink;
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        let a = root.join("a");
+        let b = a.join("b");
+        std::fs::create_dir_all(&b).expect("mkdir");
+        std::fs::write(b.join("leaf"), b"x").expect("write");
+        symlink(&a, b.join("cycle")).expect("symlink cycle");
+        let entries = scan_directory(a.to_str().expect("utf8 path"));
+        let sum: u64 = entries.iter().map(|e| e.size).sum();
+        assert!(sum < 1_000_000, "sum unexpectedly large: {sum}");
+        assert!(entries.iter().any(|e| e.name == "b"));
     }
 }
