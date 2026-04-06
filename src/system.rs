@@ -472,7 +472,7 @@ pub fn collect_sys_stats(sys: &System) -> SysStats {
         swap_used: sys.used_swap(),
         swap_total: sys.total_swap(),
         kernel: System::kernel_version().unwrap_or_default(),
-        arch: System::cpu_arch().unwrap_or_default(),
+        arch: System::cpu_arch(),
         uptime: System::uptime(),
         os_name: System::name().unwrap_or_default(),
         os_version: System::os_version().unwrap_or_default(),

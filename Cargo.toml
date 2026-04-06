@@ -10,20 +10,20 @@ keywords = ["tui", "disk", "cyberpunk", "terminal", "monitoring"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-ratatui = "0.29"
-crossterm = "0.28"
-sysinfo = "0.32"
-dirs = "5"
+ratatui = "0.30"
+crossterm = "0.29"
+sysinfo = "0.38"
+dirs = "6"
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
-toml = "0.8"
+toml = "1.1"
 libc = "0.2"
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 serde_json = "1"
 tempfile = "3"
-toml = "0.8"
+toml = "1.1"
 
 [[bench]]
 name = "bench"
