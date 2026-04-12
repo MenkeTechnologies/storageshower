@@ -515,4 +515,39 @@ mod tests {
         let r = truncate_mount("/very/long/mount/point", 40);
         assert!(r.starts_with('/'));
     }
+
+    /// Whole-KiB human labels stay on the `N.0K` form (guards float formatting).
+    #[test]
+    fn format_bytes_human_whole_kib_through_twenty() {
+        for k in 1u64..=20 {
+            assert_eq!(
+                format_bytes(k * 1024, UnitMode::Human),
+                format!("{k}.0K"),
+                "k={k}"
+            );
+        }
+    }
+
+    #[test]
+    fn format_bytes_human_whole_mib_through_twelve() {
+        let mib = 1_048_576u64;
+        for n in 1u64..=12 {
+            assert_eq!(
+                format_bytes(n * mib, UnitMode::Human),
+                format!("{n}.0M"),
+                "n={n}"
+            );
+        }
+    }
+
+    #[test]
+    fn format_bytes_human_fractional_kib_one_decimal() {
+        assert_eq!(format_bytes(1024 + 512, UnitMode::Human), "1.5K");
+        assert_eq!(format_bytes(10 * 1024 + 512, UnitMode::Human), "10.5K");
+    }
+
+    #[test]
+    fn format_latency_exactly_below_one_ms_boundary() {
+        assert_eq!(format_latency(0.999), "<1ms");
+    }
 }

@@ -813,6 +813,28 @@ mod tests {
         assert_eq!(epoch_to_local(e), epoch_to_local(e));
     }
 
+    /// Pure UTC calendar path used on non-Unix targets.
+    #[cfg(not(unix))]
+    #[test]
+    fn epoch_to_local_non_unix_epoch_zero_is_utc_midnight_1970() {
+        assert_eq!(epoch_to_local(0), (1970, 1, 1, 0, 0, 0));
+    }
+
+    #[cfg(not(unix))]
+    #[test]
+    fn epoch_to_local_non_unix_one_day_offset() {
+        assert_eq!(epoch_to_local(86_400), (1970, 1, 2, 0, 0, 0));
+    }
+
+    #[cfg(not(unix))]
+    #[test]
+    fn epoch_to_local_non_unix_leap_day_2016() {
+        // 2016-02-29 12:00:00 UTC
+        let epoch = 1_456_704_000i64;
+        let (y, mo, d, h, _, _) = epoch_to_local(epoch);
+        assert_eq!((y, mo, d, h), (2016, 2, 29, 12));
+    }
+
     #[test]
     fn get_username_returns_something() {
         // On CI/dev machines USER is almost always set
@@ -1373,6 +1395,54 @@ mod tests {
             assert!(!e.name.is_empty());
             assert!(!e.path.is_empty());
         }
+    }
+
+    #[test]
+    fn scan_directory_missing_path_returns_empty() {
+        assert!(scan_directory("/no/such/storageshower_dir_zzz").is_empty());
+    }
+
+    #[test]
+    fn dedup_disk_totals_triple_duplicate_total_counts_used_once() {
+        let disks = vec![
+            DiskEntry {
+                mount: "/a".into(),
+                used: 11,
+                total: 999,
+                pct: 1.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+            DiskEntry {
+                mount: "/b".into(),
+                used: 22,
+                total: 999,
+                pct: 2.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+            DiskEntry {
+                mount: "/c".into(),
+                used: 33,
+                total: 999,
+                pct: 3.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+        ];
+        assert_eq!(dedup_disk_totals(&disks), (999, 11));
     }
 
     /// Symlink `a/b/cycle -> ../a` would recurse forever with naive dir_size;

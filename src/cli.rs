@@ -456,7 +456,7 @@ impl Cli {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::Parser;
+    use clap::{Parser, ValueEnum};
 
     fn default_cli() -> Cli {
         Cli::parse_from(["storageshower"])
@@ -1485,5 +1485,50 @@ mod tests {
         assert!(!cli.help);
         assert!(!cli.list_colors);
         assert!(!cli.export_theme);
+    }
+
+    /// Every `ColorMode` must round-trip through clap's `--color` spelling.
+    #[test]
+    fn every_color_mode_parses_via_clap_flag() {
+        for &mode in ColorMode::ALL {
+            let pv = mode
+                .to_possible_value()
+                .unwrap_or_else(|| panic!("no PossibleValue for {mode:?}"));
+            let name = pv.get_name();
+            let cli = Cli::try_parse_from(["storageshower", "--color", name])
+                .unwrap_or_else(|e| panic!("parse --color {name:?} ({mode:?}): {e}"));
+            assert_eq!(cli.color_mode, Some(mode), "flag {name}");
+            let mut prefs = Prefs::default();
+            prefs.color_mode = ColorMode::Green;
+            cli.apply_to(&mut prefs);
+            assert_eq!(prefs.color_mode, mode);
+        }
+    }
+
+    /// BarStyle and SortMode ValueEnum names are accepted by the CLI.
+    #[test]
+    fn every_bar_style_and_sort_mode_parse_via_clap() {
+        for &style in BarStyle::value_variants() {
+            let pv = style.to_possible_value().expect("BarStyle possible value");
+            let name = pv.get_name();
+            let cli = Cli::try_parse_from(["storageshower", "-b", name]).unwrap_or_else(|e| {
+                panic!("parse -b {name:?} ({style:?}): {e}");
+            });
+            assert_eq!(cli.bar_style, Some(style));
+        }
+        for &sort in SortMode::value_variants() {
+            let pv = sort.to_possible_value().expect("SortMode possible value");
+            let name = pv.get_name();
+            let cli = Cli::try_parse_from(["storageshower", "-s", name])
+                .unwrap_or_else(|e| panic!("parse -s {name:?} ({sort:?}): {e}"));
+            assert_eq!(cli.sort_mode, Some(sort));
+        }
+        for &unit in UnitMode::value_variants() {
+            let pv = unit.to_possible_value().expect("UnitMode possible value");
+            let name = pv.get_name();
+            let cli = Cli::try_parse_from(["storageshower", "-u", name])
+                .unwrap_or_else(|e| panic!("parse -u {name:?} ({unit:?}): {e}"));
+            assert_eq!(cli.unit_mode, Some(unit));
+        }
     }
 }

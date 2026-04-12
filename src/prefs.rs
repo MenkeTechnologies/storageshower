@@ -582,4 +582,104 @@ full_mount = false
         let p: Prefs = toml::from_str(t).unwrap();
         assert_eq!(p.sort_mode, crate::types::SortMode::Size);
     }
+
+    #[test]
+    fn prefs_deserialize_unit_mode_mib_spelling() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+unit_mode = "MiB"
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert_eq!(p.unit_mode, crate::types::UnitMode::MiB);
+    }
+
+    #[test]
+    fn prefs_deserialize_unit_mode_bytes_spelling() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+unit_mode = "Bytes"
+"#;
+        let p: Prefs = toml::from_str(t).unwrap();
+        assert_eq!(p.unit_mode, crate::types::UnitMode::Bytes);
+    }
+
+    #[test]
+    fn prefs_deserialize_invalid_unit_mode_errors() {
+        let t = r#"
+sort_mode = "Name"
+sort_rev = false
+show_local = false
+refresh_rate = 1
+bar_style = "Gradient"
+color_mode = "Default"
+thresh_warn = 70
+thresh_crit = 90
+show_bars = true
+show_border = true
+show_header = true
+compact = false
+show_used = true
+full_mount = false
+unit_mode = "yottabytes"
+"#;
+        assert!(toml::from_str::<Prefs>(t).is_err());
+    }
+
+    #[test]
+    fn prefs_roundtrip_toml_two_custom_themes() {
+        let mut p = Prefs::default();
+        p.custom_themes.insert(
+            "a".into(),
+            ThemeColors {
+                blue: 1,
+                green: 2,
+                purple: 3,
+                light_purple: 4,
+                royal: 5,
+                dark_purple: 6,
+            },
+        );
+        p.custom_themes.insert(
+            "b".into(),
+            ThemeColors {
+                blue: 10,
+                green: 20,
+                purple: 30,
+                light_purple: 40,
+                royal: 50,
+                dark_purple: 60,
+            },
+        );
+        let s = toml::to_string_pretty(&p).unwrap();
+        let q: Prefs = toml::from_str(&s).unwrap();
+        assert_eq!(q.custom_themes.len(), 2);
+        assert_eq!(q.custom_themes.get("a").unwrap().blue, 1);
+        assert_eq!(q.custom_themes.get("b").unwrap().royal, 50);
+    }
 }

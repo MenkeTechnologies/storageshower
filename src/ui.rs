@@ -3772,6 +3772,16 @@ mod tests {
     }
 
     #[test]
+    fn palette_for_prefs_unknown_active_theme_falls_back_to_color_mode_palette() {
+        use crate::prefs::Prefs;
+
+        let mut prefs = Prefs::default();
+        prefs.active_theme = Some("not_in_map".into());
+        prefs.color_mode = ColorMode::Matrix;
+        assert_eq!(palette_for_prefs(&prefs), palette(ColorMode::Matrix));
+    }
+
+    #[test]
     fn gradient_color_at_out_of_range_frac_still_resolves() {
         let neg = gradient_color_at(-1.0, ColorMode::Green);
         let over = gradient_color_at(10.0, ColorMode::Purple);
