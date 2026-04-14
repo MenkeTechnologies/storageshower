@@ -1,4 +1,5 @@
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 use storageshower::app::{mount_col_width, right_col_width_static};
 use storageshower::helpers::{format_bytes, format_uptime, truncate_mount};
 use storageshower::prefs::Prefs;
