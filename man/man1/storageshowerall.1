@@ -1,0 +1,254 @@
+.\" storageshowerall(1) — comprehensive all-in-one man page for storageshower
+.\" Modeled after zshall(1): every reference section in one document.
+.\" Render with:  man -l man/man1/storageshowerall.1
+.\" Install:      cp man/man1/storageshowerall.1 /usr/local/share/man/man1/
+.TH STORAGESHOWERALL 1 "May 2026" "storageshower 0.28.5" "User Commands"
+.SH NAME
+storageshowerall \- the storageshower comprehensive reference (invocation,
+TUI keybinds, color themes, drill-down, configuration file, alerts)
+.SH OVERVIEW
+This is the all-in-one
+.B storageshower
+manual, modeled on
+.BR zshall (1).
+It concatenates the major sections of the storageshower reference into a
+single page so you can grep with `/`:
+.RS 2
+.PP
+.B 1.  INVOCATION
+.RB "\(em " "CLI flags, override precedence, config file path"
+.br
+.B 2.  TUI LAYOUT
+.RB "\(em " "header, disk rows, bars, status line, overlays"
+.br
+.B 3.  KEYBINDS
+.RB "\(em " "navigation, sort, filter, drill-down, theme editor, help"
+.br
+.B 4.  CONFIG FILE
+.RB "\(em " "~/.storageshower.conf TOML schema"
+.br
+.B 5.  COLOR THEMES
+.RB "\(em " "built-in palettes, custom themes, --export-theme workflow"
+.br
+.B 6.  DRILL-DOWN
+.RB "\(em " "per-directory scan, async progress, copy-path, sort modes"
+.br
+.B 7.  ALERTS
+.RB "\(em " "warn/crit thresholds, terminal bell, status line message"
+.br
+.B 8.  FILES & ENV
+.RB "\(em " "config path, env overrides"
+.br
+.B 9.  EXIT CODES & EXAMPLES
+.br
+.B 10. SEE ALSO
+.RE
+
+.SH 1. INVOCATION
+See
+.BR storageshower (1)
+for the per-flag table. All CLI options have a matching key in the
+config file (long-name → snake_case); CLI flags override the file.
+
+.SH 2. TUI LAYOUT
+.B storageshower
+renders three regions, top to bottom:
+.RS 2
+.IP \(bu 2
+.B Header
+\(em ASCII banner, version, current mode, refresh interval.
+.IP \(bu 2
+.B Disk rows
+\(em one row per mount: name (truncated to col width), bar (style configurable),
+used/total (units configurable), and color-coded percent.
+.IP \(bu 2
+.B Status line
+\(em filter prompt, last alert, paused indicator, sort indicator.
+.RE
+.PP
+The help overlay (\fB?\fR) and theme-editor overlay (\fBC\fR) modal-cover
+the disk rows while open.
+
+.SH 3. KEYBINDS
+.SS Navigation
+.TP
+\fBj\fR / \fBk\fR / \fB\(da\fR / \fB\(ua\fR
+Scroll the disk list one row.
+.TP
+\fBPgDn\fR / \fBPgUp\fR / \fBSpace\fR
+Page-scroll.
+.TP
+\fBHome\fR / \fBEnd\fR / \fBg\fR / \fBG\fR
+First / last row.
+
+.SS Sort + filter
+.TP
+\fBs\fR
+Cycle sort mode (name → pct → size → name …).
+.TP
+\fBr\fR
+Reverse current sort.
+.TP
+\fB/\fR
+Open filter prompt. Type to filter rows by mount name. \fBCtrl+W\fR deletes
+the previous word; \fBCtrl+H\fR backspaces. \fBEnter\fR commits, \fBEsc\fR
+cancels.
+
+.SS Display
+.TP
+\fBb\fR
+Cycle bar style (gradient → solid → thin → ascii).
+.TP
+\fBc\fR
+Cycle color palette.
+.TP
+\fBu\fR
+Toggle used/total display vs percent-only.
+.TP
+\fBa\fR
+Toggle all mounts vs local-only (HDD/SSD).
+.TP
+\fBm\fR
+Toggle compact mount names vs full paths.
+
+.SS Drill-down + actions
+.TP
+\fBEnter\fR
+Drill into the focused mount: spawn a background scan, populate a
+per-directory size view.
+.TP
+\fBBkspc\fR / \fBh\fR
+Drill up one level.
+.TP
+\fBy\fR
+Copy the focused mount path or drill path to the system clipboard
+(pbcopy / wl-copy / xclip / xsel).
+.TP
+\fBp\fR
+Pause auto-refresh.
+
+.SS Themes + help
+.TP
+\fBC\fR
+Open the theme editor: adjust 6 palette colors interactively, name it, and
+save into the config file. Press \fBEsc\fR to revert.
+.TP
+\fBT\fR
+Open the theme chooser (saved themes + built-ins).
+.TP
+\fB?\fR / \fBh\fR
+Open the help overlay.
+.TP
+\fBq\fR, \fBEsc\fR (top-level)
+Quit. The runtime restores the cooked terminal mode.
+
+.SH 4. CONFIG FILE
+.B ~/.storageshower.conf
+is TOML. Example:
+.RS 4
+.nf
+sort = "size"           # name | pct | size
+reverse = false
+local_only = false
+no_virtual = false
+bar_style = "gradient"  # gradient | solid | thin | ascii
+color = "default"
+units = "human"         # human | gib | mib | bytes
+compact_mount = false
+warn_pct = 70
+crit_pct = 90
+refresh_secs = 1
+
+[[themes]]
+name = "neon"
+colors = ["#05d9e8", "#ff2a6d", "#d300c5", "#39ff14", "#ff073a", "#0d0d1a"]
+.fi
+.RE
+.PP
+CLI flags override config keys; per-key precedence is documented in
+.BR storageshower (1).
+
+.SH 5. COLOR THEMES
+.B storageshower
+ships with ~12 cyberpunk-tuned palettes. Run
+.B storageshower --list-colors
+to enumerate them. To make your own:
+.RS 4
+.IP \(bu 2
+Open the theme editor with \fBC\fR, tune 6 colors interactively, name it.
+.IP \(bu 2
+Or hand-edit a
+.B [[themes]]
+block in the config (see \fB4. CONFIG FILE\fR above).
+.IP \(bu 2
+Switch with
+.B --theme NAME
+or with the \fBT\fR overlay at runtime.
+.RE
+.PP
+.B --export-theme
+prints the current palette as a ready-to-paste TOML block.
+
+.SH 6. DRILL-DOWN
+Pressing \fBEnter\fR on a mount row launches a background thread that
+walks the mount, accumulating per-direct-child sizes. While scanning the
+status line shows the count + total so far; when the scan completes the
+view switches to the drill page with sortable
+.RB ( s )
+and reversible
+.RB ( r )
+entries. \fBEnter\fR drills deeper; \fBh\fR /
+.B Bkspc
+drills back up.
+
+.SH 7. ALERTS
+A mount crossing
+.B warn_pct
+flashes the status line + sets the row color; a mount crossing
+.B crit_pct
+additionally bells the terminal once per crossing. The bell is suppressed
+across rescans of the same mount until the percent drops back below warn
+and then re-crosses.
+
+.SH 8. FILES & ENV
+.TP
+.RB \(aq ~/.storageshower.conf \(aq
+Default config file. Use
+.B --config PATH
+to point at an alternate.
+.TP
+.B SS_NO_COLOR
+If set, suppress ANSI color in the TUI (degrade to monochrome).
+.TP
+.B CLIPBOARD_CMD
+Override the auto-detected clipboard tool.
+
+.SH 9. EXIT CODES & EXAMPLES
+.TP
+.B 0
+Clean quit via \fBq\fR / \fBEsc\fR.
+.TP
+.B 1
+Argument-parse error (bad
+.BR \-s ,
+.BR \-b ,
+or
+.B \-u
+value).
+.TP
+.B 2
+TTY can't be put into raw mode (typically: stdin not a terminal).
+.PP
+Example invocations are in
+.BR storageshower (1).
+
+.SH 10. SEE ALSO
+.BR storageshower (1),
+.BR ncdu (1),
+.BR du (1),
+.BR df (1),
+.BR sysinfo (5),
+.BR iftoprs (1),
+.BR iftoprsall (1),
+.BR lsofrs (1),
+.BR lsofrsall (1)

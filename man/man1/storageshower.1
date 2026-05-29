@@ -1,0 +1,222 @@
+.\" Manpage for storageshower.
+.\" Contact https://github.com/MenkeTechnologies/storageshower to correct errors or omissions.
+.TH STORAGESHOWER 1 "2026-05-29" "storageshower 0.28.5" "User Commands"
+.SH NAME
+storageshower \- cyberpunk disk usage TUI (ratatui + sysinfo, drill-down + theme editor)
+.SH SYNOPSIS
+.B storageshower
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.B storageshower
+is a real-time disk-usage TUI written in Rust. It enumerates mounted disks
+via
+.BR sysinfo (5),
+renders a colored bar per disk in a
+.BR ratatui (3rs)
+terminal UI, and supports drill-down per directory, live filtering, color
+themes (built-in + user-editable), and configurable warning / critical
+thresholds.
+.PP
+The UI updates at the
+.B --refresh
+interval (default 1 second) until you press
+.BR q .
+All CLI flags have a matching
+.B --no-flag
+inverse so a runtime config in
+.RB \(aq "~/.storageshower.conf" \(aq
+can be overridden per-invocation.
+.SH OPTIONS
+.SS SORTING
+.TP
+.BR \-s ", " \-\-sort " " \fIMODE\fR
+Sort disk entries.
+.I MODE
+is one of
+.BR name ,
+.BR pct ,
+or
+.BR size
+(default
+.BR size ).
+.TP
+.BR \-R ", " \-\-reverse
+Reverse the sort order.
+.TP
+.BR \-l ", " \-\-local-only
+Show only local disks (HDD / SSD), hiding network mounts.
+.TP
+.B \-\-no-virtual
+Hide virtual filesystems (tmpfs, devfs, devtmpfs, proc, sysfs, etc.).
+
+.SS DISPLAY
+.TP
+.BR \-b ", " \-\-bar-style " " \fISTYLE\fR
+Bar visualization style:
+.BR gradient ,
+.BR solid ,
+.BR thin ,
+or
+.BR ascii .
+.TP
+.B \-\-color " " \fIPALETTE\fR
+Color palette name (default, green, blue, purple, ...). See
+.B \-\-list-colors
+for the full set.
+.TP
+.B \-\-list-colors
+Print every built-in color scheme and exit.
+.TP
+.B \-\-export-theme
+Print the current palette as TOML and exit. Useful for saving + editing.
+.TP
+.B \-\-theme " " \fINAME\fR
+Activate a user-defined theme by name (loaded from the config file).
+.TP
+.BR \-u ", " \-\-units " " \fIMODE\fR
+Unit display:
+.BR human ,
+.BR gib ,
+.BR mib ,
+or
+.BR bytes .
+.TP
+.BR \-k ", " \-\-compact
+Compact mount names (trim long paths).
+.TP
+.BR \-f ", " \-\-full-mount
+Show full mount paths (overrides
+.BR \-\-compact ).
+.TP
+.B \-\-no-bars
+Hide the usage bars (text-only display).
+.TP
+.B \-\-no-border
+Hide border chrome.
+.TP
+.B \-\-no-header
+Hide column headers.
+.TP
+.B \-\-no-used
+Hide the used/total size display.
+
+.SS THRESHOLDS
+.TP
+.BR \-w ", " \-\-warn " " \fIPCT\fR
+Warning threshold in percent (default 70).
+.TP
+.BR \-C ", " \-\-crit " " \fIPCT\fR
+Critical threshold in percent (default 90). Mounts at or above this level
+also bell the terminal once.
+
+.SS COLUMNS
+.TP
+.B \-\-col-mount " " \fIWIDTH\fR
+Mount column width (0 = auto).
+.TP
+.B \-\-col-bar-end " " \fIWIDTH\fR
+Bar-end column width (0 = auto).
+.TP
+.B \-\-col-pct " " \fIWIDTH\fR
+Percentage column width (0 = auto).
+
+.SS SYSTEM
+.TP
+.BR \-r ", " \-\-refresh " " \fISECS\fR
+Data refresh interval in seconds (default 1).
+.TP
+.BR \-c ", " \-\-config " " \fIPATH\fR
+Alternate config file path (default
+.RB \(aq "~/.storageshower.conf" \(aq).
+.TP
+.BR \-h ", " \-\-help
+Show built-in help and exit.
+.TP
+.BR \-V ", " \-\-version
+Show version and exit.
+
+.SH KEYBINDS
+While the TUI is running:
+.RS 4
+.IP \(bu 2
+\fBq\fR, \fBEsc\fR \(em quit
+.IP \(bu 2
+\fBj\fR / \fBk\fR \(em scroll the list
+.IP \(bu 2
+\fBs\fR \(em cycle sort mode
+.IP \(bu 2
+\fBr\fR \(em reverse sort
+.IP \(bu 2
+\fBb\fR \(em cycle bar style
+.IP \(bu 2
+\fBc\fR \(em cycle color palette
+.IP \(bu 2
+\fBu\fR \(em toggle used/total display
+.IP \(bu 2
+\fBa\fR \(em toggle all/local mount view
+.IP \(bu 2
+\fBm\fR \(em toggle compact / full mount paths
+.IP \(bu 2
+\fB/\fR \(em enter filter prompt (Ctrl+W deletes word, Ctrl+H backspaces)
+.IP \(bu 2
+\fBp\fR \(em pause auto-refresh
+.IP \(bu 2
+\fB?\fR \(em open the help overlay
+.RE
+
+.SH EXAMPLES
+Purple palette with ASCII bars:
+.PP
+.RS 4
+.B storageshower --color purple -b ascii
+.RE
+.PP
+Sort by usage %, reversed:
+.PP
+.RS 4
+.B storageshower -s pct -R
+.RE
+.PP
+Local physical disks only, hide virtual:
+.PP
+.RS 4
+.B storageshower -l --no-virtual
+.RE
+.PP
+GiB units with stricter thresholds:
+.PP
+.RS 4
+.B storageshower -u gib -w 60 -C 85
+.RE
+.PP
+Use an alternate config:
+.PP
+.RS 4
+.B storageshower --config /tmp/ss.conf
+.RE
+
+.SH FILES
+.TP
+.RB \(aq ~/.storageshower.conf \(aq
+Default config file (TOML). All CLI flags have matching keys; CLI overrides.
+
+.SH EXIT STATUS
+.B storageshower
+exits 0 on a clean quit (\fBq\fR / \fBEsc\fR), 1 on argument-parse errors,
+and 2 if the TTY can't be put into raw mode.
+
+.SH SEE ALSO
+.BR storageshowerall (1),
+.BR ncdu (1),
+.BR du (1),
+.BR df (1),
+.BR sysinfo (5),
+.BR iftoprs (1),
+.BR lsofrs (1)
+
+.SH AUTHOR
+MenkeTechnologies <https://github.com/MenkeTechnologies>
+
+.SH BUGS
+Report at
+.RB \(aq https://github.com/MenkeTechnologies/storageshower/issues \(aq.
