@@ -23,25 +23,19 @@ impl App {
                     self.filter.cursor = 0;
                     return;
                 }
-                KeyCode::Backspace => {
-                    if self.filter.cursor > 0 {
-                        self.filter.cursor -= 1;
-                        self.filter.buf.remove(self.filter.cursor);
-                    }
+                KeyCode::Backspace if self.filter.cursor > 0 => {
+                    self.filter.cursor -= 1;
+                    self.filter.buf.remove(self.filter.cursor);
                 }
-                KeyCode::Delete => {
-                    if self.filter.cursor < self.filter.buf.len() {
-                        self.filter.buf.remove(self.filter.cursor);
-                    }
+                KeyCode::Delete if self.filter.cursor < self.filter.buf.len() => {
+                    self.filter.buf.remove(self.filter.cursor);
                 }
-                KeyCode::Char('w') if ctrl => {
-                    if self.filter.cursor > 0 {
-                        let before = &self.filter.buf[..self.filter.cursor];
-                        let trimmed = before.trim_end();
-                        let word_start = trimmed.rfind(' ').map(|i| i + 1).unwrap_or(0);
-                        self.filter.buf.drain(word_start..self.filter.cursor);
-                        self.filter.cursor = word_start;
-                    }
+                KeyCode::Char('w') if ctrl && self.filter.cursor > 0 => {
+                    let before = &self.filter.buf[..self.filter.cursor];
+                    let trimmed = before.trim_end();
+                    let word_start = trimmed.rfind(' ').map(|i| i + 1).unwrap_or(0);
+                    self.filter.buf.drain(word_start..self.filter.cursor);
+                    self.filter.cursor = word_start;
                 }
                 KeyCode::Char('u') if ctrl => {
                     self.filter.buf.drain(..self.filter.cursor);
@@ -74,11 +68,9 @@ impl App {
                 KeyCode::Right => {
                     self.filter.cursor = (self.filter.cursor + 1).min(self.filter.buf.len());
                 }
-                KeyCode::Char('h') if ctrl => {
-                    if self.filter.cursor > 0 {
-                        self.filter.cursor -= 1;
-                        self.filter.buf.remove(self.filter.cursor);
-                    }
+                KeyCode::Char('h') if ctrl && self.filter.cursor > 0 => {
+                    self.filter.cursor -= 1;
+                    self.filter.buf.remove(self.filter.cursor);
                 }
                 KeyCode::Char(c) => {
                     self.filter.buf.insert(self.filter.cursor, c);
@@ -185,11 +177,9 @@ impl App {
                         self.theme_edit.name.clear();
                         self.theme_edit.cursor = 0;
                     }
-                    KeyCode::Backspace => {
-                        if self.theme_edit.cursor > 0 {
-                            self.theme_edit.cursor -= 1;
-                            self.theme_edit.name.remove(self.theme_edit.cursor);
-                        }
+                    KeyCode::Backspace if self.theme_edit.cursor > 0 => {
+                        self.theme_edit.cursor -= 1;
+                        self.theme_edit.name.remove(self.theme_edit.cursor);
                     }
                     KeyCode::Left => {
                         self.theme_edit.cursor = self.theme_edit.cursor.saturating_sub(1);
@@ -198,11 +188,9 @@ impl App {
                         self.theme_edit.cursor =
                             (self.theme_edit.cursor + 1).min(self.theme_edit.name.len());
                     }
-                    KeyCode::Char(c) if !ctrl => {
-                        if self.theme_edit.name.len() < 20 {
-                            self.theme_edit.name.insert(self.theme_edit.cursor, c);
-                            self.theme_edit.cursor += 1;
-                        }
+                    KeyCode::Char(c) if !ctrl && self.theme_edit.name.len() < 20 => {
+                        self.theme_edit.name.insert(self.theme_edit.cursor, c);
+                        self.theme_edit.cursor += 1;
                     }
                     _ => {}
                 }
@@ -268,11 +256,9 @@ impl App {
                         self.start_drill_scan(&path);
                     }
                 }
-                KeyCode::Char('j') | KeyCode::Down => {
-                    if !self.drill.entries.is_empty() {
-                        self.drill.selected =
-                            (self.drill.selected + 1).min(self.drill.entries.len() - 1);
-                    }
+                KeyCode::Char('j') | KeyCode::Down if !self.drill.entries.is_empty() => {
+                    self.drill.selected =
+                        (self.drill.selected + 1).min(self.drill.entries.len() - 1);
                 }
                 KeyCode::Char('k') | KeyCode::Up => {
                     self.drill.selected = self.drill.selected.saturating_sub(1);
@@ -280,10 +266,8 @@ impl App {
                 KeyCode::Home | KeyCode::Char('g') => {
                     self.drill.selected = 0;
                 }
-                KeyCode::End | KeyCode::Char('G') => {
-                    if !self.drill.entries.is_empty() {
-                        self.drill.selected = self.drill.entries.len() - 1;
-                    }
+                KeyCode::End | KeyCode::Char('G') if !self.drill.entries.is_empty() => {
+                    self.drill.selected = self.drill.entries.len() - 1;
                 }
                 KeyCode::Char('s') | KeyCode::Char('S') => {
                     if self.drill.sort == DrillSortMode::Size {

@@ -268,7 +268,7 @@ pub fn scan_directory_with_progress(
             })
         })
         .collect();
-    results.sort_by(|a, b| b.size.cmp(&a.size));
+    results.sort_by_key(|a| std::cmp::Reverse(a.size));
     results
 }
 

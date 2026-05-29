@@ -342,13 +342,13 @@ fn set_cell(buf: &mut Buffer, x: u16, y: u16, ch: &str, style: Style) {
 }
 
 fn set_str(buf: &mut Buffer, x: u16, y: u16, s: &str, style: Style, max_w: u16) {
-    let mut cx = x;
-    for ch in s.chars() {
-        if cx >= x.saturating_add(max_w) {
+    let limit = x.saturating_add(max_w);
+    for (offset, ch) in s.chars().enumerate() {
+        let cx = x.saturating_add(offset as u16);
+        if cx >= limit {
             break;
         }
         set_cell(buf, cx, y, &ch.to_string(), style);
-        cx += 1;
     }
 }
 

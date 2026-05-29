@@ -176,22 +176,21 @@ impl App {
                     }
                 }
             }
-            MouseEventKind::Up(MouseButton::Left) => {
-                if self.drag.is_some() {
+            MouseEventKind::Up(MouseButton::Left)
+                if self.drag.is_some() => {
                     self.drag = None;
                     self.save();
                 }
-            }
             MouseEventKind::Down(MouseButton::Right) => {
                 // Right-click triggers instant hover tooltip at click position
                 self.hover.pos = Some((event.column, event.row));
                 self.hover.since = Some(Instant::now() - std::time::Duration::from_secs(2));
                 self.hover.right_click = true;
             }
-            MouseEventKind::Moved => {
+            MouseEventKind::Moved
                 // Pos/flags already updated at top of handle_mouse.
                 // Re-enable timer only when position landed in a valid hover zone.
-                if hover_moved {
+                if hover_moved => {
                     if self.drill.mode == ViewMode::DrillDown {
                         if self.hovered_drill_index().is_some() {
                             self.hover.since = Some(Instant::now());
@@ -200,7 +199,6 @@ impl App {
                         self.hover.since = Some(Instant::now());
                     }
                 }
-            }
             MouseEventKind::ScrollDown => {
                 if self.drill.mode == ViewMode::DrillDown {
                     if !self.drill.entries.is_empty() {

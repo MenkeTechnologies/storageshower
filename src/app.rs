@@ -358,11 +358,11 @@ impl App {
 
     pub fn sort_drill_entries(&mut self) {
         match self.drill.sort {
-            DrillSortMode::Size => self.drill.entries.sort_by(|a, b| b.size.cmp(&a.size)),
-            DrillSortMode::Name => self
+            DrillSortMode::Size => self
                 .drill
                 .entries
-                .sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
+                .sort_by_key(|a| std::cmp::Reverse(a.size)),
+            DrillSortMode::Name => self.drill.entries.sort_by_key(|a| a.name.to_lowercase()),
         }
         if self.drill.sort_rev {
             self.drill.entries.reverse();
@@ -426,7 +426,7 @@ impl App {
                     .partial_cmp(&b.pct)
                     .unwrap_or(std::cmp::Ordering::Equal)
             }),
-            SortMode::Size => ds.sort_by(|a, b| a.total.cmp(&b.total)),
+            SortMode::Size => ds.sort_by_key(|a| a.total),
         }
         if self.prefs.sort_rev {
             ds.reverse();

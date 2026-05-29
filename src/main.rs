@@ -85,12 +85,10 @@ fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<()> {
 
         if event::poll(Duration::from_millis(200))? {
             match event::read()? {
-                Event::Key(key) => {
-                    if key.kind == crossterm::event::KeyEventKind::Press {
-                        app.handle_key(key);
-                        if app.quit {
-                            return Ok(());
-                        }
+                Event::Key(key) if key.kind == crossterm::event::KeyEventKind::Press => {
+                    app.handle_key(key);
+                    if app.quit {
+                        return Ok(());
                     }
                 }
                 Event::Mouse(mouse) => {

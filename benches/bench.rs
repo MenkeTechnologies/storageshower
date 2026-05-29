@@ -259,7 +259,7 @@ fn bench_sort_disks(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("by_size", count), &disks, |b, ds| {
             b.iter(|| {
                 let mut v = ds.clone();
-                v.sort_by(|a, b| a.total.cmp(&b.total));
+                v.sort_by_key(|a| a.total);
                 black_box(v);
             })
         });
