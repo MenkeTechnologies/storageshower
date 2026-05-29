@@ -608,4 +608,76 @@ mod tests {
     fn format_uptime_exactly_one_day_renders_days_hours_minutes() {
         assert_eq!(format_uptime(86_400), "1d0h0m");
     }
+
+    // ─── format_rate boundary pins ───────────────────────────────────
+    //
+    // The bytes/sec → human formatter uses 1024-based thresholds for
+    // K/M/G, so the unit-switch boundaries are exact powers of 1024.
+    // A drift here misclassifies every line in the throughput column.
+
+    #[test]
+    fn format_rate_under_one_byte_renders_as_zero() {
+        assert_eq!(format_rate(0.0), "0B/s");
+        assert_eq!(format_rate(0.5), "0B/s");
+    }
+
+    #[test]
+    fn format_rate_one_kib_promotes_to_k_per_sec() {
+        // 1024 B/s is the exact threshold.
+        assert_eq!(format_rate(1024.0), "1.0K/s");
+    }
+
+    #[test]
+    fn format_rate_1023_bytes_stays_in_b_per_sec() {
+        assert_eq!(format_rate(1023.0), "1023B/s");
+    }
+
+    #[test]
+    fn format_rate_one_mib_promotes_to_m() {
+        assert_eq!(format_rate(1_048_576.0), "1.0M/s");
+    }
+
+    #[test]
+    fn format_rate_one_gib_promotes_to_g() {
+        assert_eq!(format_rate(1_073_741_824.0), "1.0G/s");
+    }
+
+    // ─── format_latency boundary pins ────────────────────────────────
+
+    #[test]
+    fn format_latency_zero_is_sub_millisecond_marker() {
+        assert_eq!(format_latency(0.0), "<1ms");
+    }
+
+    #[test]
+    fn format_latency_one_ms_promotes_to_ms_units() {
+        assert_eq!(format_latency(1.0), "1ms");
+    }
+
+    #[test]
+    fn format_latency_999ms_stays_in_ms() {
+        assert_eq!(format_latency(999.0), "999ms");
+    }
+
+    #[test]
+    fn format_latency_1000ms_promotes_to_seconds_format() {
+        assert_eq!(format_latency(1000.0), "1.0s");
+    }
+
+    // ─── truncate_mount width-bound pins ─────────────────────────────
+
+    #[test]
+    fn truncate_mount_exact_width_pads_with_spaces() {
+        // String exactly equals width → padded out (left-aligned)
+        // to the column.
+        let out = truncate_mount("abc", 5);
+        assert_eq!(out.chars().count(), 5);
+        assert!(out.starts_with("abc"));
+    }
+
+    #[test]
+    fn truncate_mount_short_string_pads_to_width() {
+        let out = truncate_mount("a", 4);
+        assert_eq!(out.chars().count(), 4);
+    }
 }
