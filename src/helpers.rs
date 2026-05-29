@@ -550,4 +550,62 @@ mod tests {
     fn format_latency_exactly_below_one_ms_boundary() {
         assert_eq!(format_latency(0.999), "<1ms");
     }
+
+    // ─── format_bytes boundary pins ──────────────────────────────────
+    //
+    // The human-mode unit thresholds are exact IEC binary powers; an
+    // off-by-one drift here re-classifies every line in the storage
+    // dashboard. Pin both sides of each boundary.
+
+    #[test]
+    fn format_bytes_human_exactly_1024_promotes_to_kib() {
+        assert_eq!(format_bytes(1024, UnitMode::Human), "1.0K");
+    }
+
+    #[test]
+    fn format_bytes_human_1023_stays_in_bytes() {
+        assert_eq!(format_bytes(1023, UnitMode::Human), "1023B");
+    }
+
+    #[test]
+    fn format_bytes_human_exactly_1mib_promotes_to_m() {
+        assert_eq!(format_bytes(1_048_576, UnitMode::Human), "1.0M");
+    }
+
+    #[test]
+    fn format_bytes_human_exactly_1gib_promotes_to_g() {
+        assert_eq!(format_bytes(1_073_741_824, UnitMode::Human), "1.0G");
+    }
+
+    #[test]
+    fn format_bytes_human_exactly_1tib_promotes_to_t() {
+        assert_eq!(format_bytes(1_099_511_627_776, UnitMode::Human), "1.0T");
+    }
+
+    #[test]
+    fn format_bytes_zero_renders_zero_in_every_mode() {
+        // Empty filesystems / unused slots show 0 — must stringify
+        // identically across modes so column widths stay aligned.
+        assert_eq!(format_bytes(0, UnitMode::Human), "0B");
+        assert_eq!(format_bytes(0, UnitMode::Bytes), "0B");
+        assert_eq!(format_bytes(0, UnitMode::MiB), "0.0M");
+        assert_eq!(format_bytes(0, UnitMode::GiB), "0.0G");
+    }
+
+    // ─── format_uptime branch pins ───────────────────────────────────
+
+    #[test]
+    fn format_uptime_under_one_minute_renders_as_zero_minutes() {
+        assert_eq!(format_uptime(30), "0m");
+    }
+
+    #[test]
+    fn format_uptime_exactly_one_hour_drops_days_keeps_hour_minute() {
+        assert_eq!(format_uptime(3600), "1h0m");
+    }
+
+    #[test]
+    fn format_uptime_exactly_one_day_renders_days_hours_minutes() {
+        assert_eq!(format_uptime(86_400), "1d0h0m");
+    }
 }
