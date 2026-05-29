@@ -72,7 +72,7 @@ impl App {
                     self.filter.cursor -= 1;
                     self.filter.buf.remove(self.filter.cursor);
                 }
-                KeyCode::Char(c) => {
+                KeyCode::Char(c) if !ctrl => {
                     self.filter.buf.insert(self.filter.cursor, c);
                     self.filter.cursor += 1;
                 }
