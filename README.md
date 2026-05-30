@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <code>[ SYSTEM://DISK_MATRIX v28.3 ]</code><br>
+  <code>[ SYSTEM://DISK_MATRIX ]</code><br>
   <code>⟦ JACKING INTO YOUR FILESYSTEM ⟧</code><br><br>
   <strong>A neon-drenched terminal UI for monitoring disk usage</strong><br>
   <em>Built in Rust with <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a></em><br><br>
@@ -157,14 +157,14 @@ TARGET_OS     == macOS || Linux
 
 | `IMPLANT` | `PURPOSE` |
 |:---:|:---|
-| `ratatui` 0.29 | TUI rendering framework |
-| `crossterm` 0.28 | Terminal events + manipulation |
-| `sysinfo` 0.32 | Disk / memory / CPU / proc intel |
-| `clap` 4 | CLI argument parsing |
-| `dirs` 5 | Home directory detection |
-| `serde` 1 | Config serialization |
-| `toml` 0.8 | Config file format |
-| `libc` 0.2 | Unix syscalls (time, TTY) |
+| `ratatui` | TUI rendering framework |
+| `crossterm` | Terminal events + manipulation |
+| `sysinfo` | Disk / memory / CPU / proc intel |
+| `clap` | CLI argument parsing |
+| `dirs` | Home directory detection |
+| `serde` | Config serialization |
+| `toml` | Config file format |
+| `libc` | Unix syscalls (time, TTY) |
 
 ---
 
