@@ -68,9 +68,11 @@ fn next_is_a_bijection_over_all() {
     }
     for (idx, &count) in succ_counts.iter().enumerate() {
         assert_eq!(
-            count, 1,
+            count,
+            1,
             "variant {:?} has {} predecessors (expected exactly 1)",
-            ColorMode::ALL[idx], count
+            ColorMode::ALL[idx],
+            count
         );
     }
 }
@@ -108,6 +110,11 @@ fn name_is_stable_across_invocations() {
     for &mode in ColorMode::ALL {
         let a = mode.name();
         let b = mode.name();
-        assert_eq!(a.as_ptr(), b.as_ptr(), "name pointer drifted for {:?}", mode);
+        assert_eq!(
+            a.as_ptr(),
+            b.as_ptr(),
+            "name pointer drifted for {:?}",
+            mode
+        );
     }
 }
