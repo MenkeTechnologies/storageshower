@@ -7,6 +7,7 @@ description = "Cyberpunk disk usage TUI"
 license = "MIT"
 repository = "https://github.com/MenkeTechnologies/storageshower"
 homepage = "https://github.com/MenkeTechnologies/storageshower"
+documentation = "https://docs.rs/storageshower"
 keywords = ["tui", "disk", "cyberpunk", "terminal", "monitoring"]
 categories = ["command-line-utilities"]
 
