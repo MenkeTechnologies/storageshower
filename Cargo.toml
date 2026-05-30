@@ -2,6 +2,7 @@
 name = "storageshower"
 version = "0.28.5"
 edition = "2024"
+authors = ["MenkeTechnologies"]
 description = "Cyberpunk disk usage TUI"
 license = "MIT"
 repository = "https://github.com/MenkeTechnologies/storageshower"
