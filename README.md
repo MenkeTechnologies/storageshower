@@ -35,7 +35,10 @@
 
 
 ```bash
-cargo install storageshower
+brew tap MenkeTechnologies/menketech    # one-time
+brew install storageshower              # via Homebrew tap (recommended)
+
+cargo install storageshower             # via crates.io
 ```
 
 ---
