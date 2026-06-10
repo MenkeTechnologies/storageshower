@@ -451,8 +451,14 @@ pub fn dedup_disk_totals(disks: &[DiskEntry]) -> (u64, u64) {
     let mut total_used: u64 = 0;
     for d in disks {
         if d.total > 0 && seen_totals.insert(d.total) {
-            total_storage += d.total;
-            total_used += d.used;
+            // saturating_add prevents debug-mode arithmetic panic + silent
+            // release-mode wrap when two disks each report > u64::MAX/2 —
+            // pathological for real disks but trivial for tests / fuzzers
+            // and the sum is shown to humans (TUI), so saturating at
+            // u64::MAX displays a sane "max" instead of wrapping to a
+            // tiny number.
+            total_storage = total_storage.saturating_add(d.total);
+            total_used = total_used.saturating_add(d.used);
         }
     }
     (total_storage, total_used)
@@ -997,6 +1003,45 @@ mod tests {
             },
         ];
         assert_eq!(dedup_disk_totals(&disks), (300, 60));
+    }
+
+    /// Pre-fix `dedup_disk_totals` used `+=` on u64 — two disks each with
+    /// `total > u64::MAX/2` panicked in debug builds and silently wrapped
+    /// in release. Now `saturating_add` clamps at u64::MAX. Pin both the
+    /// no-panic invariant AND the saturating-clamp output so a future
+    /// refactor back to `+=` re-introduces the bug class.
+    #[test]
+    fn dedup_disk_totals_saturates_instead_of_overflowing_on_giant_disks() {
+        let huge = u64::MAX / 2 + 1;
+        let disks = vec![
+            DiskEntry {
+                mount: "/a".into(),
+                used: 1,
+                total: huge,
+                pct: 0.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+            DiskEntry {
+                mount: "/b".into(),
+                used: 2,
+                total: huge + 1, // distinct total so dedup doesn't skip it
+                pct: 0.0,
+                kind: DiskKind::SSD,
+                fs: "ext4".into(),
+                latency_ms: None,
+                io_read_rate: None,
+                io_write_rate: None,
+                smart_status: None,
+            },
+        ];
+        let (storage, used) = dedup_disk_totals(&disks);
+        assert_eq!(storage, u64::MAX, "must saturate, not wrap or panic");
+        assert_eq!(used, 3, "used field sums normally (no overflow risk)");
     }
 
     #[test]
