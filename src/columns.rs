@@ -34,7 +34,11 @@ pub fn right_col_width(app: &App) -> u16 {
 
 pub fn mount_col_width(inner_w: u16, prefs: &Prefs) -> usize {
     if prefs.col_mount_w > 0 {
-        return (prefs.col_mount_w as usize).clamp(8, (inner_w as usize).saturating_sub(20));
+        // Cap at inner_w-20 to leave room for the other columns, floor at 8 —
+        // but in a sub-28-column pane the cap drops below 8, so the floor
+        // must not exceed the cap (clamp panics on min > max).
+        let upper = (inner_w as usize).saturating_sub(20);
+        return (prefs.col_mount_w as usize).clamp(upper.min(8), upper);
     }
     if prefs.compact {
         16
