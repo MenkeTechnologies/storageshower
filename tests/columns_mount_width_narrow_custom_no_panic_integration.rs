@@ -13,8 +13,11 @@ use storageshower::prefs::Prefs;
 
 #[test]
 fn mount_col_width_narrow_inner_with_custom_does_not_panic() {
-    let mut p = Prefs::default();
-    p.col_mount_w = 25; // custom width configured
+    // custom width configured
+    let p = Prefs {
+        col_mount_w: 25,
+        ..Default::default()
+    };
 
     // inner_w = 27 -> saturating_sub(20) = 7 -> clamp(8, 7) -> min > max panic.
     let w = storageshower::columns::mount_col_width(27, &p);
@@ -29,8 +32,10 @@ fn mount_col_width_narrow_inner_with_custom_does_not_panic() {
 
 #[test]
 fn mount_col_width_one_column_inner_with_custom_does_not_panic() {
-    let mut p = Prefs::default();
-    p.col_mount_w = 30;
+    let p = Prefs {
+        col_mount_w: 30,
+        ..Default::default()
+    };
 
     // inner_w = 1 -> saturating_sub(20) = 0 -> clamp(8, 0) -> min > max panic.
     let w = storageshower::columns::mount_col_width(1, &p);
