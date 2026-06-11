@@ -94,7 +94,7 @@ cargo install storageshower             # via crates.io
   ├── Network filesystem latency ─── NFS/SMB/CIFS/SSHFS
   │   ├── timed read_dir with 2s timeout (no root needed)
   │   ├── color-coded badge: green(<50ms) / warn / red
-  │   └── detects: nfs, nfs4, cifs, smbfs, afp, sshfs, s3fs, 9p
+  │   └── detects: nfs, nfs4, cifs, smbfs, afp, ncp, sshfs, rclone, s3fs, 9p, afs
   │
 [DISK_IO]
   ├── Live disk I/O throughput ─── per-mount read/write rates
@@ -210,7 +210,7 @@ to force-override in either direction.
 | `FLAG` | `DESCRIPTION` |
 |:---|:---|
 | `-b, --bar-style STYLE` | Bar visualization — `gradient`, `solid`, `thin`, `ascii` |
-| `-c, --color PALETTE` | Color palette — 30 builtins: `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset`, `neonnoir`, `chromeheart`, `bladerunner`, `voidwalker`, `toxicwaste`, `cyberfrost`, `plasmacore`, `steelnerve`, `darksignal`, `glitchpop`, `holoshift`, `nightcity`, `deepnet`, `lasergrid`, `quantumflux`, `biohazard`, `darkwave`, `overlock`, `megacorp`, `zaibatsu` |
+| `-c, --color PALETTE` | Color palette — 30 builtins: `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset`, `neon-noir`, `chrome-heart`, `blade-runner`, `void-walker`, `toxic-waste`, `cyber-frost`, `plasma-core`, `steel-nerve`, `dark-signal`, `glitch-pop`, `holo-shift`, `night-city`, `deep-net`, `laser-grid`, `quantum-flux`, `bio-hazard`, `darkwave`, `overlock`, `megacorp`, `zaibatsu` |
 | `--theme NAME` | Activate a custom theme by name (defined in config) |
 | `--list-colors` | List all builtin color schemes with preview |
 | `--export-theme` | Export current palette as TOML (combine with `-c` or `--theme`) |
@@ -562,7 +562,7 @@ active_theme = "neonpink"
 
 Or use the **in-app theme editor** (`C` key) to tweak colors live and save.
 
-See `themes/` for all builtin palettes as ready-to-copy TOML files.
+See `themes/` for the first 10 builtin palettes as ready-to-copy TOML files.
 
 ---
 
