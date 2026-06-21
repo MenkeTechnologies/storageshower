@@ -493,12 +493,13 @@ cargo bench
 | **Test** | `cargo test --locked --lib`, then `--tests` (one integration binary per `tests/*.rs`), then `--doc` on Ubuntu and macOS |
 | **Format** | `cargo fmt --all --check` on Ubuntu |
 | **Clippy** | `cargo clippy --locked --all-targets -- -D warnings` on Ubuntu |
+| **Doc** | `cargo doc --locked --no-deps` with `RUSTDOCFLAGS=-D warnings` on Ubuntu |
 
 The `--locked` flag fails the job if `Cargo.lock` is out of sync with `Cargo.toml`, so CI always resolves the same dependency graph as a fresh clone with a committed lockfile. The lockfile is checked into this repository; if your machine’s global gitignore ignores `Cargo.lock`, run `git add -f Cargo.lock` after changing dependencies so updates are not missed.
 
 Concurrent runs for the same branch are cancelled when a newer commit is pushed (`concurrency.cancel-in-progress`). The workflow uses least-privilege `contents: read` permissions.
 
-Matrix jobs (**Check**, **Test**) use `fail-fast: false` so a failure on one OS still runs the other. Each job has a wall-clock **timeout** (30 minutes for build/test/clippy, 10 minutes for format) so hung runners cannot burn minutes indefinitely.
+Matrix jobs (**Check**, **Test**) use `fail-fast: false` so a failure on one OS still runs the other. Each job has a wall-clock **timeout** (30 minutes for build/test/clippy, 10 minutes for format and doc) so hung runners cannot burn minutes indefinitely.
 
 The **Test** job sets `RUST_BACKTRACE=1` so panics print a full stack trace in the Actions log (useful when a test fails only on one OS).
 
