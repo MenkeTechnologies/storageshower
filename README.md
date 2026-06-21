@@ -210,10 +210,10 @@ to force-override in either direction.
 | `FLAG` | `DESCRIPTION` |
 |:---|:---|
 | `-b, --bar-style STYLE` | Bar visualization — `gradient`, `solid`, `thin`, `ascii` |
-| `-c, --color PALETTE` | Color palette — 30 builtins: `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset`, `neon-noir`, `chrome-heart`, `blade-runner`, `void-walker`, `toxic-waste`, `cyber-frost`, `plasma-core`, `steel-nerve`, `dark-signal`, `glitch-pop`, `holo-shift`, `night-city`, `deep-net`, `laser-grid`, `quantum-flux`, `bio-hazard`, `darkwave`, `overlock`, `megacorp`, `zaibatsu` |
+| `--color PALETTE` | Color palette — 30 builtins: `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset`, `neon-noir`, `chrome-heart`, `blade-runner`, `void-walker`, `toxic-waste`, `cyber-frost`, `plasma-core`, `steel-nerve`, `dark-signal`, `glitch-pop`, `holo-shift`, `night-city`, `deep-net`, `laser-grid`, `quantum-flux`, `bio-hazard`, `darkwave`, `overlock`, `megacorp`, `zaibatsu` |
 | `--theme NAME` | Activate a custom theme by name (defined in config) |
 | `--list-colors` | List all builtin color schemes with preview |
-| `--export-theme` | Export current palette as TOML (combine with `-c` or `--theme`) |
+| `--export-theme` | Export current palette as TOML (combine with `--color` or `--theme`) |
 | `-u, --units MODE` | Unit display — `human`, `gib`, `mib`, `bytes` |
 | `-k, --compact` / `--no-compact` | Compact mount names |
 | `-f, --full-mount` / `--no-full-mount` | Show full mount paths |
@@ -243,20 +243,20 @@ to force-override in either direction.
 | `FLAG` | `DESCRIPTION` |
 |:---|:---|
 | `-r, --refresh SECS` | Data refresh interval (default: 1s) |
-| `--config PATH` | Config file path (default: `~/.storageshower.conf`) |
+| `-c, --config PATH` | Config file path (default: `~/.storageshower.conf`) |
 | `-h, --help` | Display help transmission |
 | `-V, --version` | Display version information |
 
 #### `// EXAMPLES`
 
 ```bash
-storageshower -c purple -b ascii     # purple palette with ascii bars
+storageshower --color purple -b ascii # purple palette with ascii bars
 storageshower -s pct -R              # sort by usage%, reversed
 storageshower -l --no-virtual        # local physical disks only
 storageshower -u gib -w 60 -C 85    # GiB units, custom thresholds
 storageshower --theme neonpink       # activate custom theme
 storageshower --list-colors          # preview all builtin palettes
-storageshower --export-theme -c blue # export blue palette as TOML
+storageshower --export-theme --color blue # export blue palette as TOML
 storageshower --config /tmp/ss.conf  # use alternate config
 ```
 
