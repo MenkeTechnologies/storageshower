@@ -93,7 +93,7 @@
       <!-- SECTION 1: EXECUTIVE SUMMARY           -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">&gt;_</span>EXECUTIVE SUMMARY</h2>
-      <p class="tutorial-subtitle">storageshower is a single-binary TUI for disk usage monitoring written in Rust on top of <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a>. It paints per-mount usage bars in four styles across 30 builtin cyberpunk palettes, refreshes telemetry (load avg, memory, CPU, swap, processes, uptime, network, battery) on a background thread behind an <code>Arc&lt;Mutex&lt;&gt;&gt;</code>, probes per-device SMART status and per-mount disk I/O throughput against IOKit on macOS and <code>/proc/diskstats</code> on Linux, samples network-filesystem latency with a timed <code>read_dir</code>, drills into mounts with a recursive directory explorer, and ships a live per-channel theme editor that round-trips to a TOML config. <strong>13,625 Rust source lines + 49,922 integration test lines across 1,336 test files; 3,692 test functions total; 8 production + 4 dev direct dependencies (269 in the resolved tree); 242 commits since 2026-03-26.</strong></p>
+      <p class="tutorial-subtitle">storageshower is a single-binary TUI for disk usage monitoring written in Rust on top of <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a>. It paints per-mount usage bars in four styles across 30 builtin cyberpunk palettes, refreshes telemetry (load avg, memory, CPU, swap, processes, uptime, network, battery) on a background thread behind an <code>Arc&lt;Mutex&lt;&gt;&gt;</code>, probes per-device SMART status and per-mount disk I/O throughput against IOKit on macOS and <code>/proc/diskstats</code> on Linux, samples network-filesystem latency with a timed <code>read_dir</code>, drills into mounts with a recursive directory explorer, and ships a live per-channel theme editor that round-trips to a TOML config. <strong>13,625 Rust source lines + 49,922 integration test lines across 1,336 test files; 3,692 test functions total; 8 production + 4 dev direct dependencies (269 in the resolved tree); 245 commits since 2026-03-26.</strong></p>
 
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-val">13,625</div><div class="stat-label">Rust Src Lines</div></div>
@@ -104,7 +104,7 @@
         <div class="stat-card"><div class="stat-val">13</div><div class="stat-label">Source Files</div></div>
         <div class="stat-card"><div class="stat-val">8</div><div class="stat-label">Direct Deps</div></div>
         <div class="stat-card"><div class="stat-val">269</div><div class="stat-label">Resolved Crates</div></div>
-        <div class="stat-card"><div class="stat-val">242</div><div class="stat-label">Git Commits</div></div>
+        <div class="stat-card"><div class="stat-val">245</div><div class="stat-label">Git Commits</div></div>
         <div class="stat-card"><div class="stat-val">v0.28.7</div><div class="stat-label">Current Release</div></div>
       </div>
 
@@ -230,7 +230,7 @@ tests/scan_directory_two_hundred_sixty_nine_files_integration.rs
         </div>
         <div class="feature-card">
           <h4>Live disk I/O</h4>
-          <p>Per-tick delta of byte counters &rarr; <code>(read_rate, write_rate)</code> overlaid on each row as <code>&#9650;1.2M/s &#9660;500K/s</code>. macOS: IOKit <code>IOBlockStorageDriver</code> via <code>IOServiceMatching</code>, mounts mapped via <code>getmntinfo</code>. Linux: <code>/proc/diskstats</code> sector counters scaled by sector size, mapped via <code>/proc/mounts</code>.</p>
+          <p>Per-tick delta of byte counters &rarr; <code>(read_rate, write_rate)</code> overlaid on each row as <code>&#9650;1.2M/s &#9660;500K/s</code>. macOS: IOKit <code>IOBlockStorageDriver</code> via <code>IOServiceMatching</code>, mounts mapped via <code>getmntinfo</code>. Linux: <code>/proc/diskstats</code> sector counters (&times; 512 bytes), mapped via <code>/proc/mounts</code>.</p>
         </div>
         <div class="feature-card">
           <h4>SMART health</h4>
@@ -238,7 +238,7 @@ tests/scan_directory_two_hundred_sixty_nine_files_integration.rs
         </div>
         <div class="feature-card">
           <h4>Network FS latency</h4>
-          <p>Detects mount types: <code>nfs</code>, <code>nfs4</code>, <code>cifs</code>, <code>smbfs</code>, <code>afp</code>, <code>sshfs</code>, <code>s3fs</code>, <code>9p</code>. Probes with a 2 s deadlined <code>read_dir</code>. Color-coded badge: green &lt; 50 ms, yellow 50&ndash;200 ms, red &gt; 200 ms or timeout. Cached per mount so the probe never re-runs more than once per refresh interval.</p>
+          <p>Detects mount types: <code>nfs</code>, <code>nfs4</code>, <code>cifs</code>, <code>smbfs</code>, <code>afp</code>, <code>ncp</code>, <code>fuse.sshfs</code>, <code>fuse.rclone</code>, <code>fuse.s3fs</code>, <code>9p</code>, <code>afs</code>. Probes with a 2 s deadlined <code>read_dir</code>. Color-coded badge: green &lt; 50 ms, yellow 50&ndash;200 ms, red &gt; 200 ms or timeout. Cached per mount so the probe never re-runs more than once per refresh interval.</p>
         </div>
         <div class="feature-card">
           <h4>Filter mode</h4>
@@ -254,7 +254,7 @@ tests/scan_directory_two_hundred_sixty_nine_files_integration.rs
         </div>
         <div class="feature-card">
           <h4>Bookmark / export</h4>
-          <p><code>B</code> toggles bookmark on the selected mount (kept in an <code>App</code>-owned <code>HashSet</code>, sorted ahead of everything else). <code>e</code>/<code>E</code> exports the current disk matrix to a timestamped file. <code>o</code>/<code>O</code> opens the mount in the system file manager. <code>y</code>/<code>Y</code> copies the path.</p>
+          <p><code>B</code> toggles bookmark on the selected mount (persisted in the <code>bookmarks</code> config array, sorted ahead of everything else). <code>e</code>/<code>E</code> exports the current disk matrix (mount, percent, used, total) to <code>~/.storageshower.export.txt</code>. <code>o</code>/<code>O</code> opens the mount in the system file manager. <code>y</code>/<code>Y</code> copies the path.</p>
         </div>
       </div>
 
@@ -264,7 +264,7 @@ tests/scan_directory_two_hundred_sixty_nine_files_integration.rs
       <!-- SECTION 5: THEME SYSTEM                -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">%</span>THEME SYSTEM</h2>
-      <p class="tutorial-subtitle">30 builtin palettes defined as <code>ColorMode</code> variants in <code>src/types.rs</code>. Each maps to a six-channel <code>ThemeColors</code> (<code>blue</code>, <code>green</code>, <code>purple</code>, <code>light_purple</code>, <code>royal</code>, <code>dark_purple</code>) consumed by <code>ui::palette()</code> and <code>ui::palette_for_prefs()</code>. User themes ship as <code>themes/*.toml</code> and merge into the user's <code>~/.storageshower.conf</code> as <code>[theme.&lt;name&gt;]</code> blocks.</p>
+      <p class="tutorial-subtitle">30 builtin palettes defined as <code>ColorMode</code> variants in <code>src/types.rs</code>. Each maps to a six-channel <code>ThemeColors</code> (<code>blue</code>, <code>green</code>, <code>purple</code>, <code>light_purple</code>, <code>royal</code>, <code>dark_purple</code>) consumed by <code>ui::palette()</code> and <code>ui::palette_for_prefs()</code>. User themes ship as <code>themes/*.toml</code> and merge into the user's <code>~/.storageshower.conf</code> as <code>[custom_themes.&lt;name&gt;]</code> blocks, activated via <code>active_theme</code> or <code>--theme</code>.</p>
 
       <table class="file-table">
         <thead><tr><th>CLI key</th><th>Display name</th><th>CLI key</th><th>Display name</th></tr></thead>
@@ -303,7 +303,7 @@ tests/scan_directory_two_hundred_sixty_nine_files_integration.rs
         </div>
         <div class="mapping-card">
           <h4>Disk I/O byte counters</h4>
-          <p>macOS: IOKit <code>IOServiceMatching("IOBlockStorageDriver")</code> &rarr; <code>Statistics</code> dict &rarr; <code>Bytes (Read)</code> / <code>Bytes (Write)</code>. Delta vs last tick &divide; elapsed = rate.<br>Linux: fields 6 + 10 from <code>/proc/diskstats</code> (sectors read / written) &times; sector size.</p>
+          <p>macOS: IOKit <code>IOServiceMatching("IOBlockStorageDriver")</code> &rarr; <code>Statistics</code> dict &rarr; <code>Bytes (Read)</code> / <code>Bytes (Write)</code>. Delta vs last tick &divide; elapsed = rate.<br>Linux: fields 6 + 10 from <code>/proc/diskstats</code> (sectors read / written) &times; 512 bytes.</p>
         </div>
         <div class="mapping-card">
           <h4>SMART status</h4>
@@ -311,7 +311,7 @@ tests/scan_directory_two_hundred_sixty_nine_files_integration.rs
         </div>
         <div class="mapping-card">
           <h4>Network FS latency</h4>
-          <p>Detect mount type from the filesystem string (<code>nfs</code>, <code>nfs4</code>, <code>cifs</code>, <code>smbfs</code>, <code>afp</code>, <code>sshfs</code>, <code>s3fs</code>, <code>9p</code>). Spawn a worker thread, <code>read_dir</code> the mount, time to first entry. 2 s deadline; on timeout, return <code>None</code> &mdash; UI renders no badge.</p>
+          <p>Detect mount type from the filesystem string (<code>nfs</code>, <code>nfs4</code>, <code>cifs</code>, <code>smbfs</code>, <code>afp</code>, <code>ncp</code>, <code>fuse.sshfs</code>, <code>fuse.rclone</code>, <code>fuse.s3fs</code>, <code>9p</code>, <code>afs</code>). Spawn a worker thread, <code>read_dir</code> the mount, time to first entry. 2 s deadline; on timeout, return <code>None</code> &mdash; UI renders no badge.</p>
         </div>
         <div class="mapping-card">
           <h4>Sysinfo wrapper</h4>
@@ -422,7 +422,58 @@ tests/scan_directory_two_hundred_sixty_nine_files_integration.rs
       <hr class="section-rule">
 
       <!-- ═══════════════════════════════════════ -->
-      <!-- SECTION 10: REPOSITORY                 -->
+      <!-- SECTION 10: BENCHMARK SUITE            -->
+      <!-- ═══════════════════════════════════════ -->
+      <h2 class="tutorial-title"><span class="step-hash">~</span>BENCHMARK SUITE</h2>
+      <p class="tutorial-subtitle"><code>benches/bench.rs</code> (344 lines, <code>harness = false</code>) drives a <a href="https://github.com/bheisler/criterion.rs">Criterion</a> suite over the hot paths: byte formatting, uptime formatting, mount-name truncation, column-width math, palette resolve, gradient interpolation, time conversion, disk / sys-stat collection, config serde, and the sort / filter / render pipelines at 10 / 50 / 200 disks. Run with <code>cargo bench</code>; HTML reports land in <code>target/criterion/</code>.</p>
+
+      <table class="file-table">
+        <thead><tr><th>Benchmark group</th><th>Covers</th><th>Representative time</th></tr></thead>
+        <tbody>
+          <tr><td><code>format_bytes</code></td><td>Human / GiB / MiB / Bytes pretty-printing</td><td class="num">~20&ndash;69 ns</td></tr>
+          <tr><td><code>format_uptime</code></td><td>Duration-to-string (minutes &hellip; days)</td><td class="num">~21&ndash;39 ns</td></tr>
+          <tr><td><code>truncate_mount</code></td><td>Mount-name compaction at widths 8 / 32</td><td class="num">~27&ndash;97 ns</td></tr>
+          <tr><td><code>mount_col_width</code> / <code>right_col_width_static</code></td><td>Column-width layout math</td><td class="num">~540&ndash;590 ps</td></tr>
+          <tr><td><code>palette</code> / <code>gradient_color_at</code></td><td>Theme channel resolve + gradient lerp</td><td class="num">~0.7&ndash;2.4 ns</td></tr>
+          <tr><td><code>epoch_to_local</code> / <code>chrono_now</code></td><td>Epoch-to-local clock conversion</td><td class="num">~300&ndash;427 ns</td></tr>
+          <tr><td><code>collect</code></td><td><code>collect_disk_entries</code> / <code>collect_sys_stats</code></td><td class="num">~3.2&ndash;3.8 &micro;s</td></tr>
+          <tr><td><code>prefs_serde</code></td><td>TOML serialize / deserialize of <code>Prefs</code></td><td class="num">~4.6&ndash;5.3 &micro;s</td></tr>
+          <tr><td><code>sort_disks</code></td><td><code>by_name</code> / <code>by_pct</code> / <code>by_size</code> at 10 / 50 / 200</td><td class="num">~242 ns&ndash;7.9 &micro;s</td></tr>
+          <tr><td><code>filter_disks</code></td><td>Substring match / no-match at 10 / 50 / 200</td><td class="num">~151 ns&ndash;5.9 &micro;s</td></tr>
+          <tr><td><code>format_all_disks</code></td><td>Full render pass at 10 / 50 / 200</td><td class="num">~1.5&ndash;15.7 &micro;s</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:10.5px;color:var(--text-muted);margin-top:6px;">Times are Criterion-measured on Apple Silicon (M-series) and reproduced verbatim from the README; absolute figures vary by hardware. The point is the shape: every per-frame path is sub-microsecond, every per-tick path is single-digit microseconds, so the render loop is never the bottleneck.</p>
+
+      <hr class="section-rule">
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- SECTION 11: CI & RELEASE               -->
+      <!-- ═══════════════════════════════════════ -->
+      <h2 class="tutorial-title"><span class="step-hash">=</span>CI &amp; RELEASE</h2>
+      <p class="tutorial-subtitle"><a href="https://github.com/MenkeTechnologies/storageshower/blob/main/.github/workflows/ci.yml">GitHub Actions</a> gates every push, pull request, and merge-queue batch to <code>main</code>. All jobs run <code>--locked</code> so CI resolves the exact dependency graph committed in <code>Cargo.lock</code>; concurrent runs for a branch are cancelled when a newer commit lands.</p>
+
+      <table class="file-table">
+        <thead><tr><th>Job</th><th>Command</th><th>Runners</th></tr></thead>
+        <tbody>
+          <tr><td><code>Check</code></td><td><code>cargo check --locked --all-targets</code></td><td>ubuntu + macos</td></tr>
+          <tr><td><code>Test</code></td><td><code>cargo test --locked --lib</code>, <code>--tests</code>, <code>--doc</code></td><td>ubuntu + macos</td></tr>
+          <tr><td><code>Format</code></td><td><code>cargo fmt --all --check</code></td><td>ubuntu</td></tr>
+          <tr><td><code>Clippy</code></td><td><code>cargo clippy --locked --all-targets -- -D warnings</code></td><td>ubuntu</td></tr>
+          <tr><td><code>Doc</code></td><td><code>cargo doc --locked --no-deps</code> (<code>RUSTDOCFLAGS=-D warnings</code>)</td><td>ubuntu</td></tr>
+        </tbody>
+      </table>
+      <p>The release workflow builds on tag push for six targets &mdash; <code>aarch64-apple-darwin</code>, <code>x86_64-apple-darwin</code>, <code>x86_64-unknown-linux-gnu</code>, <code>aarch64-unknown-linux-gnu</code> (cross-compiled), and static <code>x86_64</code> / <code>aarch64</code> musl variants &mdash; then publishes a GitHub release and regenerates the Homebrew formula in <code>MenkeTechnologies/homebrew-menketech</code>. To match CI locally before pushing:</p>
+<pre>cargo fmt --all --check \
+  &amp;&amp; cargo clippy --locked --all-targets -- -D warnings \
+  &amp;&amp; cargo test --locked --lib \
+  &amp;&amp; cargo test --locked --tests \
+  &amp;&amp; cargo test --locked --doc</pre>
+
+      <hr class="section-rule">
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- SECTION 12: REPOSITORY                 -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">.</span>REPOSITORY</h2>
       <ul>

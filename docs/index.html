@@ -207,15 +207,16 @@ cd storageshower &amp;&amp; cargo build --release
 
       <section class="tutorial-section">
         <h2>Quick tour</h2>
-<pre>storageshower                          # default palette, all filesystems
-storageshower -c purple -b ascii       # purple palette + ascii bars
-storageshower -s pct -R                # sort by usage%, descending
-storageshower -l --no-virtual          # local physical disks only
-storageshower -u gib -w 60 -C 85       # GiB units, warn 60%, crit 85%
-storageshower --theme neon_sprawl      # activate a user theme
-storageshower --list-colors            # preview every builtin palette
-storageshower --export-theme -c blue   # dump a builtin palette as TOML</pre>
-        <p>CLI flags override config. Every <code>--flag</code> has a paired <code>--no-flag</code> inverse so either direction can be forced from the command line. Config lives at <code>~/.storageshower.conf</code> (TOML).</p>
+<pre>storageshower                            # default palette, all filesystems
+storageshower --color purple -b ascii    # purple palette + ascii bars
+storageshower -s pct -R                  # sort by usage%, descending
+storageshower -l --no-virtual            # local physical disks only
+storageshower -u gib -w 60 -C 85         # GiB units, warn 60%, crit 85%
+storageshower --theme neonpink           # activate a custom theme from config
+storageshower --list-colors              # preview every builtin palette
+storageshower --export-theme --color blue # dump a builtin palette as TOML
+storageshower --config /tmp/ss.conf      # use an alternate config file</pre>
+        <p>CLI flags override config. Every <code>--flag</code> has a paired <code>--no-flag</code> inverse so either direction can be forced from the command line. Config lives at <code>~/.storageshower.conf</code> (TOML). Note: <code>--color</code> has no short alias &mdash; <code>-c</code> is reserved for <code>--config</code>.</p>
       </section>
 
       <section class="tutorial-section">
@@ -247,7 +248,7 @@ storageshower --export-theme -c blue   # dump a builtin palette as TOML</pre>
           </div>
           <div class="feat-card">
             <h4>Network FS latency</h4>
-            <p>Detects <code>nfs</code>, <code>nfs4</code>, <code>cifs</code>, <code>smbfs</code>, <code>afp</code>, <code>sshfs</code>, <code>s3fs</code>, <code>9p</code>. Timed <code>read_dir</code> probe with a 2 s timeout (no root required). Color-coded badge: green &lt; 50 ms, warn 50&ndash;200 ms, red &gt; 200 ms / timeout.</p>
+            <p>Detects <code>nfs</code>, <code>nfs4</code>, <code>cifs</code>, <code>smbfs</code>, <code>afp</code>, <code>ncp</code>, <code>fuse.sshfs</code>, <code>fuse.rclone</code>, <code>fuse.s3fs</code>, <code>9p</code>, <code>afs</code>. Timed <code>read_dir</code> probe with a 2 s timeout (no root required). Color-coded badge: green &lt; 50 ms, warn 50&ndash;200 ms, red &gt; 200 ms / timeout.</p>
           </div>
           <div class="feat-card">
             <h4>Theme system</h4>
@@ -263,11 +264,11 @@ storageshower --export-theme -c blue   # dump a builtin palette as TOML</pre>
           </div>
           <div class="feat-card">
             <h4>Persistent config</h4>
-            <p><code>~/.storageshower.conf</code> in TOML. Every CLI flag has a config-file equivalent. User themes are merged from <code>[theme.&lt;name&gt;]</code> blocks and selectable with <code>--theme NAME</code>. Touched on save from the theme editor.</p>
+            <p><code>~/.storageshower.conf</code> in TOML. Every CLI flag has a config-file equivalent. Custom palettes are merged from <code>[custom_themes.&lt;name&gt;]</code> blocks and selectable with <code>active_theme</code> or <code>--theme NAME</code>. Rewritten on save from the theme editor and theme chooser.</p>
           </div>
           <div class="feat-card">
             <h4>Bookmarks &amp; export</h4>
-            <p><code>B</code> pins the selected disk to the top. <code>e</code>/<code>E</code> exports the current disk matrix to a timestamped file. <code>o</code>/<code>O</code> opens the selected mount in the system file manager. <code>y</code>/<code>Y</code> copies the mount path to clipboard.</p>
+            <p><code>B</code> pins the selected disk to the top (persisted in the <code>bookmarks</code> config array). <code>e</code>/<code>E</code> exports the current disk matrix (mount, percent, used, total) to <code>~/.storageshower.export.txt</code>. <code>o</code>/<code>O</code> opens the selected mount in the system file manager. <code>y</code>/<code>Y</code> copies the mount path to clipboard.</p>
           </div>
         </div>
       </section>
@@ -307,7 +308,7 @@ storageshower --export-theme -c blue   # dump a builtin palette as TOML</pre>
           <div class="theme-chip"><span class="theme-key">megacorp</span><span class="theme-name">Megacorp</span></div>
           <div class="theme-chip"><span class="theme-key">zaibatsu</span><span class="theme-name">Zaibatsu</span></div>
         </div>
-        <p>Ten user-theme TOMLs also ship under <a href="https://github.com/MenkeTechnologies/storageshower/tree/main/themes"><code>themes/</code></a> as starting points: <code>acid_rain</code>, <code>data_stream</code>, <code>ghost_wire</code>, <code>ice_breaker</code>, <code>neon_sprawl</code>, <code>red_sector</code>, <code>rust_belt</code>, <code>sakura_den</code>, <code>solar_flare</code>, <code>synth_wave</code>. Copy any of them into the <code>[theme.&lt;name&gt;]</code> block of your config and select with <code>--theme</code>.</p>
+        <p>Ten ready-to-copy custom-theme TOMLs also ship under <a href="https://github.com/MenkeTechnologies/storageshower/tree/main/themes"><code>themes/</code></a> as starting points: <code>acid_rain</code>, <code>data_stream</code>, <code>ghost_wire</code>, <code>ice_breaker</code>, <code>neon_sprawl</code>, <code>red_sector</code>, <code>rust_belt</code>, <code>sakura_den</code>, <code>solar_flare</code>, <code>synth_wave</code>. Each file is a single <code>[custom_themes.&lt;name&gt;]</code> block &mdash; paste one into your config and select it with <code>active_theme</code> or <code>--theme &lt;name&gt;</code>.</p>
       </section>
 
       <section class="tutorial-section">
@@ -327,8 +328,8 @@ storageshower --export-theme -c blue   # dump a builtin palette as TOML</pre>
           <thead><tr><th>Flag</th><th>Description</th></tr></thead>
           <tbody>
             <tr><td>-b, --bar-style STYLE</td><td><code>gradient</code> &middot; <code>solid</code> &middot; <code>thin</code> &middot; <code>ascii</code></td></tr>
-            <tr><td>-c, --color PALETTE</td><td>One of the 30 builtin palettes</td></tr>
-            <tr><td>--theme NAME</td><td>Activate a user theme (from config <code>[theme.NAME]</code>)</td></tr>
+            <tr><td>--color PALETTE</td><td>One of the 30 builtin palettes (no short flag &mdash; <code>-c</code> is <code>--config</code>)</td></tr>
+            <tr><td>--theme NAME</td><td>Activate a custom theme (from config <code>[custom_themes.NAME]</code>)</td></tr>
             <tr><td>--list-colors</td><td>List every builtin palette with a preview</td></tr>
             <tr><td>--export-theme</td><td>Export the current palette as TOML (pair with <code>-c</code> or <code>--theme</code>)</td></tr>
             <tr><td>-u, --units MODE</td><td><code>human</code> &middot; <code>gib</code> &middot; <code>mib</code> &middot; <code>bytes</code></td></tr>
@@ -357,7 +358,7 @@ storageshower --export-theme -c blue   # dump a builtin palette as TOML</pre>
           <thead><tr><th>Flag</th><th>Description</th></tr></thead>
           <tbody>
             <tr><td>-r, --refresh SECS</td><td>Data refresh interval (default 1 s)</td></tr>
-            <tr><td>--config PATH</td><td>Config file path (default <code>~/.storageshower.conf</code>)</td></tr>
+            <tr><td>-c, --config PATH</td><td>Config file path (default <code>~/.storageshower.conf</code>)</td></tr>
             <tr><td>-h, --help</td><td>Display help transmission</td></tr>
             <tr><td>-V, --version</td><td>Display version information</td></tr>
           </tbody>
@@ -408,46 +409,104 @@ storageshower --export-theme -c blue   # dump a builtin palette as TOML</pre>
           <tr><td>t  /  z</td><td>Cycle warn / crit threshold</td></tr>
           <tr><td>T</td><td>Toggle hover tooltips</td></tr>
         </tbody></table>
-        <h3>Disk ops &amp; drill-down</h3>
+        <h3>Disk ops</h3>
         <table class="key-table"><tbody>
           <tr><td>Enter</td><td>Drill down into selected mount</td></tr>
           <tr><td>o  O</td><td>Open in file manager</td></tr>
           <tr><td>y  Y</td><td>Copy mount path to clipboard</td></tr>
-          <tr><td>e  E</td><td>Export disk matrix to file</td></tr>
-          <tr><td>B</td><td>Toggle bookmark (pin to top)</td></tr>
-          <tr><td>Backspace</td><td>(in drill-down) go up one level</td></tr>
-          <tr><td>Esc</td><td>(in drill-down) return to disk list</td></tr>
+          <tr><td>e  E</td><td>Export disk matrix to <code>~/.storageshower.export.txt</code></td></tr>
+          <tr><td>B</td><td>Toggle bookmark (pin to top, persisted)</td></tr>
+        </tbody></table>
+        <h3>Drill-down mode</h3>
+        <table class="key-table"><tbody>
+          <tr><td>j  k</td><td>Navigate entries</td></tr>
+          <tr><td>Enter</td><td>Drill into selected directory</td></tr>
+          <tr><td>Backspace</td><td>Go up one level</td></tr>
+          <tr><td>Esc</td><td>Return to disk list</td></tr>
+          <tr><td>s  S</td><td>Sort by size (again to reverse)</td></tr>
+          <tr><td>n  N</td><td>Sort by name (again to reverse)</td></tr>
+          <tr><td>r  R</td><td>Reverse sort direction</td></tr>
+          <tr><td>o  O</td><td>Open current directory in file manager</td></tr>
+          <tr><td>g  G</td><td>Jump to first / last entry</td></tr>
+        </tbody></table>
+        <h3>Filter edit mode (after <code>/</code>)</h3>
+        <table class="key-table"><tbody>
+          <tr><td>Enter</td><td>Confirm filter</td></tr>
+          <tr><td>Esc</td><td>Cancel (restore previous filter)</td></tr>
+          <tr><td>Backspace  Ctrl+h</td><td>Delete char before cursor</td></tr>
+          <tr><td>Delete</td><td>Delete char at cursor</td></tr>
+          <tr><td>Ctrl+w</td><td>Delete word backward</td></tr>
+          <tr><td>Ctrl+u</td><td>Clear line before cursor</td></tr>
+          <tr><td>Ctrl+k</td><td>Delete to end of line</td></tr>
+          <tr><td>Ctrl+a  Home</td><td>Cursor to start</td></tr>
+          <tr><td>Ctrl+e  End</td><td>Cursor to end</td></tr>
+          <tr><td>Ctrl+b  Left</td><td>Cursor left</td></tr>
+          <tr><td>Ctrl+f  Right</td><td>Cursor right</td></tr>
+        </tbody></table>
+        <h3>Theme editor (<code>C</code>)</h3>
+        <table class="key-table"><tbody>
+          <tr><td>j  k</td><td>Select color channel</td></tr>
+          <tr><td>h  l</td><td>Adjust value &plusmn;1</td></tr>
+          <tr><td>H  L</td><td>Adjust value &plusmn;10</td></tr>
+          <tr><td>Enter  s</td><td>Save (prompts for a name)</td></tr>
+          <tr><td>Esc  q</td><td>Cancel</td></tr>
         </tbody></table>
       </section>
 
       <section class="tutorial-section">
-        <h2>Config file</h2>
-        <p>The default config is written to <code>~/.storageshower.conf</code> on first save (theme editor, theme chooser apply). Every CLI flag maps to a top-level key; user themes are merged from <code>[theme.&lt;name&gt;]</code> blocks. Example:</p>
-<pre>color = "purple"
-bar_style = "gradient"
-sort = "pct"
-reverse = true
-units = "human"
-warn = 70
-crit = 90
-refresh = 1
-show_bars = true
-show_border = true
-show_header = true
-show_tooltips = true
-local_only = false
-hide_virtual = false
-compact_mount = false
-full_mount = false
+        <h2>Mouse input</h2>
+        <table class="key-table">
+          <thead><tr><th>Action</th><th>Effect</th></tr></thead>
+          <tbody>
+            <tr><td>Left-click disk row</td><td>Select disk</td></tr>
+            <tr><td>Left-click selected disk</td><td>Drill down into mount</td></tr>
+            <tr><td>Left-click column header</td><td>Cycle sort on that column</td></tr>
+            <tr><td>Left-click theme chooser row</td><td>Select and preview theme</td></tr>
+            <tr><td>Left-click outside theme popup</td><td>Cancel and revert theme</td></tr>
+            <tr><td>Left-drag column separator</td><td>Resize mount / pct / right columns</td></tr>
+            <tr><td>Right-click disk row</td><td>Verbose tooltip: capacity, rank, headroom, SMART, I/O</td></tr>
+            <tr><td>Right-click drill-down entry</td><td>Verbose tooltip: size, rank, share bar, depth, sort</td></tr>
+            <tr><td>Hover title / footer segment</td><td>Per-segment tooltip (auto-hides after 3 s)</td></tr>
+            <tr><td>Scroll wheel</td><td>Walk the disk list, drill-down list, or theme chooser</td></tr>
+          </tbody>
+        </table>
+      </section>
 
-[theme.neonpink]
-blue          = 240
-green         = 32
-purple        = 255
-light_purple  = 255
-royal         = 200
-dark_purple   = 120</pre>
-        <p>Inverse <code>--no-flag</code> CLI variants force-override the corresponding config field in either direction &mdash; useful for one-off invocations that diverge from the saved baseline. The shipped <code>storageshower.default.conf</code> in the repo root documents every key with comments.</p>
+      <section class="tutorial-section">
+        <h2>Config file</h2>
+        <p>The config lives at <code>~/.storageshower.conf</code> and is written from the default template (<code>storageshower.default.conf</code>) on first run if it does not yet exist. The theme editor and theme chooser save changes back to it on apply. Keys map directly to the serialized <code>Prefs</code> struct (TOML via <code>serde</code>); custom palettes are merged from <code>[custom_themes.&lt;name&gt;]</code> blocks and selected with <code>active_theme</code> or <code>--theme NAME</code>. Enum-valued keys are serialized in their TitleCase form. Example:</p>
+<pre>sort_mode     = "Pct"        # Name | Pct | Size
+sort_rev      = true
+show_local    = false        # only local disks (HDD/SSD)
+show_all      = true         # include virtual filesystems
+bar_style     = "Gradient"   # Gradient | Solid | Thin | Ascii
+color_mode    = "Purple"     # one of the 30 builtin palettes
+unit_mode     = "Human"      # Human | GiB | MiB | Bytes
+thresh_warn   = 70           # cycle: 50 -> 60 -> 70 -> 80
+thresh_crit   = 90           # cycle: 80 -> 85 -> 90 -> 95
+refresh_rate  = 1            # seconds; cycle: 1 -> 2 -> 5 -> 10
+show_bars     = true
+show_border   = true
+show_header   = true
+show_used     = true
+show_tooltips = true
+compact       = false
+full_mount    = false
+col_mount_w   = 0            # 0 = auto
+col_bar_end_w = 0            # 0 = auto
+col_pct_w     = 0            # 0 = auto
+active_theme  = "neonpink"
+bookmarks     = []
+
+[custom_themes.neonpink]
+blue          = 199
+green         = 46
+purple        = 201
+light_purple  = 213
+royal         = 196
+dark_purple   = 161</pre>
+        <p>A custom theme is six 256-color terminal indices: <code>blue</code>, <code>green</code>, <code>purple</code>, <code>light_purple</code>, <code>royal</code>, <code>dark_purple</code>. Set <code>active_theme</code> (or pass <code>--theme</code>) to a <code>[custom_themes.&lt;name&gt;]</code> key to activate it. Bookmarked mounts persist in the <code>bookmarks</code> array and pin to the top of the list across runs.</p>
+        <p>Inverse <code>--no-flag</code> CLI variants force-override the corresponding config field in either direction &mdash; useful for one-off invocations that diverge from the saved baseline (e.g. <code>--no-tooltips</code> defeats <code>show_tooltips = true</code> without rewriting the file). The shipped <code>storageshower.default.conf</code> in the repo root documents every key inline with comments and a full flag/keybinding reference.</p>
       </section>
 
       <section class="tutorial-section">
@@ -456,6 +515,37 @@ dark_purple   = 120</pre>
           <li><strong>macOS</strong> &mdash; disk I/O via IOKit <code>IOBlockStorageDriver</code> byte counters, device-to-mount mapping via <code>getmntinfo</code>. SMART via <code>diskutil info</code> (parses the <code>SMART Status:</code> line). Battery via IOKit, local IP from <code>getifaddrs</code>.</li>
           <li><strong>Linux</strong> &mdash; disk I/O via <code>/proc/diskstats</code> (sector counters, scaled by sector size), mount mapping via <code>/proc/mounts</code>. SMART status read from <code>/sys/block/&lt;dev&gt;/device/state</code>. Battery from <code>/sys/class/power_supply/</code>, local IP via <code>getifaddrs</code>.</li>
           <li><strong>No root required</strong> for any feature. Network FS latency is a userspace <code>read_dir</code> probe with a 2 s timeout.</li>
+        </ul>
+      </section>
+
+      <section class="tutorial-section">
+        <h2>Worked examples</h2>
+        <table class="key-table">
+          <thead><tr><th>Goal</th><th>Command</th></tr></thead>
+          <tbody>
+            <tr><td>Local physical disks, no virtual fs</td><td><code>storageshower -l --no-virtual</code></td></tr>
+            <tr><td>Sort by usage %, highest first</td><td><code>storageshower -s pct -R</code></td></tr>
+            <tr><td>Raw byte counts, ASCII bars</td><td><code>storageshower -u bytes -b ascii</code></td></tr>
+            <tr><td>Tighter alert thresholds in GiB</td><td><code>storageshower -u gib -w 60 -C 85</code></td></tr>
+            <tr><td>Minimal chrome (no border / header)</td><td><code>storageshower --no-border --no-header</code></td></tr>
+            <tr><td>Slower refresh for a remote session</td><td><code>storageshower -r 5</code></td></tr>
+            <tr><td>Preview every builtin palette</td><td><code>storageshower --list-colors</code></td></tr>
+            <tr><td>Dump a palette to TOML for editing</td><td><code>storageshower --export-theme --color blue</code></td></tr>
+            <tr><td>Run with an alternate config</td><td><code>storageshower -c /tmp/ss.conf</code></td></tr>
+          </tbody>
+        </table>
+        <p>Inverse forms (<code>--virtual</code>, <code>--no-reverse</code>, <code>--no-local</code>, <code>--bars</code>, <code>--header</code>, &hellip;) let a one-off invocation override a saved config field without rewriting the file.</p>
+      </section>
+
+      <section class="tutorial-section">
+        <h2>Troubleshooting</h2>
+        <ul>
+          <li><strong>No disk I/O numbers</strong> &mdash; throughput overlays (<code>&#9650;&#9660;</code>) appear only when a mount has measurable read/write delta between refresh ticks. An idle disk shows no overlay. On macOS the IOKit device map and on Linux <code>/proc/diskstats</code> must resolve the mount to a base device; loopback / overlay / pseudo devices may not map.</li>
+          <li><strong>No SMART badge</strong> &mdash; SMART is probed per base device. Network, virtual, and removable mounts that don't expose SMART (or report an unknown state) render no health glyph rather than a false one.</li>
+          <li><strong>Network mount latency badge missing</strong> &mdash; the probe times out after 2 s; an unreachable mount returns no badge instead of hanging the UI. Only the recognized network filesystem types are probed.</li>
+          <li><strong>Blank mount rows</strong> &mdash; disk enumeration omits entries with an empty mount path, so the TUI never paints a blank row even when the OS reports an odd mount-table entry.</li>
+          <li><strong>Config not loading</strong> &mdash; a malformed <code>~/.storageshower.conf</code> falls back to defaults silently rather than erroring out. Enum keys must use TitleCase values (e.g. <code>color_mode = "Purple"</code>, not <code>"purple"</code>); the on-CLI <code>--color purple</code> uses the kebab/lower form.</li>
+          <li><strong>No root required</strong> &mdash; every probe (I/O, SMART, network latency) is a userspace read; storageshower never needs elevated privileges.</li>
         </ul>
       </section>
 
