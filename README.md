@@ -41,6 +41,8 @@ brew install storageshower              # via Homebrew tap (recommended)
 cargo install storageshower             # via crates.io
 ```
 
+### [`Read the Docs`](https://menketechnologies.github.io/storageshower/) &middot; [`Engineering Report`](https://menketechnologies.github.io/storageshower/report.html)
+
 ---
 
 ```
