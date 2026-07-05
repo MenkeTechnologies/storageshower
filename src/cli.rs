@@ -169,8 +169,15 @@ const B_GREEN: &str = "\x1b[1;32m";
 const B_YELLOW: &str = "\x1b[1;33m";
 
 pub fn print_help() {
+    let ver = env!("CARGO_PKG_VERSION");
+    // Status box, padded at runtime so its right border never drifts as
+    // VERSION grows. BOX_W tracks the banner's display width (STORAGE row).
+    const BOX_W: usize = 58;
+    let status = format!(" STATUS: ONLINE  // SIGNAL: ████████░░ // v{ver}");
+    let space = " ".repeat(BOX_W.saturating_sub(status.chars().count()));
+    let rule = "─".repeat(BOX_W);
     println!(
-        r#"
+        "
 {CYAN}  ███████╗████████╗ ██████╗ ██████╗  █████╗  ██████╗ ███████╗{RST}
 {CYAN}  ██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝ ██╔════╝{RST}
 {MAGENTA}  ███████╗   ██║   ██║   ██║██████╔╝███████║██║  ███╗█████╗  {RST}
@@ -184,74 +191,77 @@ pub fn print_help() {
 {YELLOW}        ███████║██║  ██║╚██████╔╝╚███╔███╔╝███████╗██║  ██║{RST}
 {YELLOW}        ╚══════╝╚═╝  ╚═╝ ╚═════╝  ╚══╝╚══╝ ╚══════╝╚═╝  ╚═╝{RST}
 
-{B_CYAN}  >> NETRUNNER DISK MONITOR v{ver} << {RST}
+ {CYAN}┌{rule}┐{RST}
+ {CYAN}│{RST}{status}{space}{CYAN}│{RST}
+ {CYAN}└{rule}┘{RST}
+
+{B_MAGENTA}  >> NETRUNNER DISK MONITOR v{ver} <<{RST}
 {B_MAGENTA}  [ jack in to your chrome and monitor the datastream ]{RST}
 
 {B_YELLOW}  USAGE:{RST} storageshower [OPTIONS]
 
 {B_CYAN}  ── SORTING ───────────────────────────────────────{RST}
-{B_GREEN}   -s, --sort MODE       {RST}sort disk entries {B_MAGENTA}(name, pct, size){RST}
-{B_GREEN}   -R, --reverse         {RST}reverse sort order
-{B_GREEN}   -l, --local-only      {RST}show only local disks {B_MAGENTA}(HDD/SSD){RST}
-{B_GREEN}       --no-virtual      {RST}hide virtual filesystems {B_MAGENTA}(tmpfs, devfs, etc.){RST}
+  -s, --sort MODE          \x1b[32m//\x1b[0m sort disk entries {B_MAGENTA}(name, pct, size){RST}
+  -R, --reverse            \x1b[32m//\x1b[0m reverse sort order
+  -l, --local-only         \x1b[32m//\x1b[0m show only local disks {B_MAGENTA}(HDD/SSD){RST}
+      --no-virtual         \x1b[32m//\x1b[0m hide virtual filesystems {B_MAGENTA}(tmpfs, devfs, etc.){RST}
 
 {B_CYAN}  ── DISPLAY ───────────────────────────────────────{RST}
-{B_GREEN}   -b, --bar-style STYLE {RST}bar visualization {B_MAGENTA}(gradient, solid, thin, ascii){RST}
-{B_GREEN}       --color PALETTE   {RST}color palette {B_MAGENTA}(default, green, blue, purple, ...){RST}
-{B_GREEN}       --list-colors      {RST}list all builtin color schemes
-{B_GREEN}       --export-theme     {RST}export current palette as TOML
-{B_GREEN}       --theme NAME       {RST}activate a custom theme by name
-{B_GREEN}   -u, --units MODE      {RST}unit display {B_MAGENTA}(human, gib, mib, bytes){RST}
-{B_GREEN}   -k, --compact         {RST}compact mount names
-{B_GREEN}   -f, --full-mount      {RST}show full mount paths
-{B_GREEN}       --no-bars         {RST}hide usage bars
-{B_GREEN}       --no-border       {RST}hide border chrome
-{B_GREEN}       --no-header       {RST}hide column headers
-{B_GREEN}       --no-used         {RST}hide used/total size display
+  -b, --bar-style STYLE    \x1b[32m//\x1b[0m bar visualization {B_MAGENTA}(gradient, solid, thin, ascii){RST}
+      --color PALETTE      \x1b[32m//\x1b[0m color palette {B_MAGENTA}(default, green, blue, purple, ...){RST}
+      --list-colors        \x1b[32m//\x1b[0m list all builtin color schemes
+      --export-theme       \x1b[32m//\x1b[0m export current palette as TOML
+      --theme NAME         \x1b[32m//\x1b[0m activate a custom theme by name
+  -u, --units MODE         \x1b[32m//\x1b[0m unit display {B_MAGENTA}(human, gib, mib, bytes){RST}
+  -k, --compact            \x1b[32m//\x1b[0m compact mount names
+  -f, --full-mount         \x1b[32m//\x1b[0m show full mount paths
+      --no-bars            \x1b[32m//\x1b[0m hide usage bars
+      --no-border          \x1b[32m//\x1b[0m hide border chrome
+      --no-header          \x1b[32m//\x1b[0m hide column headers
+      --no-used            \x1b[32m//\x1b[0m hide used/total size display
 
 {B_CYAN}  ── THRESHOLDS ────────────────────────────────────{RST}
-{B_GREEN}   -w, --warn PCT        {RST}warning threshold {B_MAGENTA}(default: 70%){RST}
-{B_GREEN}   -C, --crit PCT        {RST}critical threshold {B_MAGENTA}(default: 90%){RST}
+  -w, --warn PCT           \x1b[32m//\x1b[0m warning threshold {B_MAGENTA}(default: 70%){RST}
+  -C, --crit PCT           \x1b[32m//\x1b[0m critical threshold {B_MAGENTA}(default: 90%){RST}
 
 {B_CYAN}  ── COLUMNS ───────────────────────────────────────{RST}
-{B_GREEN}       --col-mount WIDTH  {RST}mount column width {B_MAGENTA}(0 = auto){RST}
-{B_GREEN}       --col-bar-end WIDTH{RST} bar-end column width {B_MAGENTA}(0 = auto){RST}
-{B_GREEN}       --col-pct WIDTH    {RST}percentage column width {B_MAGENTA}(0 = auto){RST}
+      --col-mount WIDTH    \x1b[32m//\x1b[0m mount column width {B_MAGENTA}(0 = auto){RST}
+      --col-bar-end WIDTH  \x1b[32m//\x1b[0m bar-end column width {B_MAGENTA}(0 = auto){RST}
+      --col-pct WIDTH      \x1b[32m//\x1b[0m percentage column width {B_MAGENTA}(0 = auto){RST}
 
-{B_CYAN}  ── SYSTEM ────────────────────────────────────────{RST}
-{B_GREEN}   -r, --refresh SECS    {RST}data refresh interval {B_MAGENTA}(default: 1s){RST}
-{B_GREEN}   -c, --config PATH     {RST}config file path {B_MAGENTA}(default: ~/.storageshower.conf){RST}
-{B_GREEN}   -h, --help            {RST}display this transmission
-{B_GREEN}   -V, --version         {RST}display version information
+{B_CYAN}  ── GENERAL ───────────────────────────────────────{RST}
+  -r, --refresh SECS       \x1b[32m//\x1b[0m data refresh interval {B_MAGENTA}(default: 1s){RST}
+  -c, --config PATH        \x1b[32m//\x1b[0m config file path {B_MAGENTA}(default: ~/.storageshower.conf){RST}
+  -h, --help               \x1b[32m//\x1b[0m display this transmission
+  -V, --version            \x1b[32m//\x1b[0m display version information
 
 {B_CYAN}  ── KEYBINDS ──────────────────────────────────────{RST}
-{B_GREEN}   q, Esc                {RST}flatline {B_MAGENTA}(quit){RST}
-{B_GREEN}   j / k                 {RST}scroll the datastream
-{B_GREEN}   s                     {RST}cycle sort ICE
-{B_GREEN}   r                     {RST}reverse sort polarity
-{B_GREEN}   b                     {RST}swap bar firmware
-{B_GREEN}   c                     {RST}shift chroma palette
-{B_GREEN}   u                     {RST}toggle used/total
-{B_GREEN}   a                     {RST}toggle all/local netlinks
-{B_GREEN}   m                     {RST}toggle full mount path
-{B_GREEN}   /                     {RST}enter filter daemon
-{B_GREEN}   p                     {RST}pause data feed
-{B_GREEN}   ?                     {RST}open help overlay
+  q, Esc                   \x1b[32m//\x1b[0m flatline {B_MAGENTA}(quit){RST}
+  j / k                    \x1b[32m//\x1b[0m scroll the datastream
+  s                        \x1b[32m//\x1b[0m cycle sort ICE
+  r                        \x1b[32m//\x1b[0m reverse sort polarity
+  b                        \x1b[32m//\x1b[0m swap bar firmware
+  c                        \x1b[32m//\x1b[0m shift chroma palette
+  u                        \x1b[32m//\x1b[0m toggle used/total
+  a                        \x1b[32m//\x1b[0m toggle all/local netlinks
+  m                        \x1b[32m//\x1b[0m toggle full mount path
+  /                        \x1b[32m//\x1b[0m enter filter daemon
+  p                        \x1b[32m//\x1b[0m pause data feed
+  ?                        \x1b[32m//\x1b[0m open help overlay
 
 {B_CYAN}  ── EXAMPLES ──────────────────────────────────────{RST}
-{B_GREEN}   storageshower --color purple -b ascii{RST}purple palette with ascii bars
-{B_GREEN}   storageshower -s pct -R            {RST}sort by usage%, reversed
-{B_GREEN}   storageshower -l --no-virtual      {RST}local physical disks only
-{B_GREEN}   storageshower -u gib -w 60 -C 85  {RST}GiB units, custom thresholds
-{B_GREEN}   storageshower --config /tmp/ss.conf{RST} use alternate config
+  storageshower --color purple -b ascii \x1b[32m//\x1b[0m purple palette with ascii bars
+  storageshower -s pct -R               \x1b[32m//\x1b[0m sort by usage%, reversed
+  storageshower -l --no-virtual         \x1b[32m//\x1b[0m local physical disks only
+  storageshower -u gib -w 60 -C 85      \x1b[32m//\x1b[0m GiB units, custom thresholds
+  storageshower --config /tmp/ss.conf   \x1b[32m//\x1b[0m use alternate config
 
-{B_CYAN}  ── INFO ──────────────────────────────────────────{RST}
-{B_MAGENTA}  v{ver} {RST}// {B_YELLOW}cyberpunk disk usage TUI{RST}
-  Config synced to: ~/.storageshower.conf
-  CLI flags override config file. Every --flag has a --no-flag inverse.
-{B_MAGENTA}  Wake up, samurai. We have disks to monitor.{RST}
-"#,
-        ver = env!("CARGO_PKG_VERSION"),
+{B_CYAN}  ── SYSTEM ────────────────────────────────────────{RST}
+  {B_MAGENTA}v{ver} {RST}\x1b[32m//\x1b[0m {B_YELLOW}(c) Jacob Menke and contributors{RST}
+  {B_MAGENTA}Config synced to ~/.storageshower.conf — CLI flags override it.{RST}
+  {B_YELLOW}>>> WAKE UP, SAMURAI. WE HAVE DISKS TO MONITOR. <<<{RST}
+ {CYAN}░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░{RST}
+"
     );
 }
 
