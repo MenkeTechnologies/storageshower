@@ -257,7 +257,7 @@ pub fn print_help() {
   storageshower --config /tmp/ss.conf   \x1b[32m//\x1b[0m use alternate config
 
 {B_CYAN}  ── SYSTEM ────────────────────────────────────────{RST}
-  {B_MAGENTA}v{ver} {RST}\x1b[32m//\x1b[0m {B_YELLOW}(c) Jacob Menke and contributors{RST}
+  {B_MAGENTA}v{ver} {RST}\x1b[32m//\x1b[0m {B_YELLOW}(c) MenkeTechnologies{RST}
   {B_MAGENTA}Config synced to ~/.storageshower.conf — CLI flags override it.{RST}
   {B_YELLOW}>>> WAKE UP, SAMURAI. WE HAVE DISKS TO MONITOR. <<<{RST}
  {CYAN}░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░{RST}
