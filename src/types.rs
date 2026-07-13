@@ -200,6 +200,8 @@ pub struct DiskEntry {
 pub enum DrillSortMode {
     Size,
     Name,
+    /// Sort by estimated reclaimable bytes (RECLAIM_MAP overlay).
+    Reclaim,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -222,6 +224,12 @@ pub struct DirEntry {
     pub name: String,
     pub size: u64,
     pub is_dir: bool,
+    /// Estimated reclaimable bytes if this subtree were compressed, derived
+    /// from bounded-prefix sampling (RECLAIM_MAP). Zero when reclaim is off.
+    pub reclaimable: u64,
+    /// Estimated compression ratio (orig / compressed) for this subtree, from
+    /// the same sampling. Zero when reclaim is off; >= 1.0 once computed.
+    pub ratio: f32,
 }
 
 #[derive(Clone)]
@@ -493,11 +501,15 @@ mod tests {
             name: "b".into(),
             size: 99,
             is_dir: true,
+            reclaimable: 40,
+            ratio: 2.5,
         };
         let c = d.clone();
         assert_eq!(c.path, d.path);
         assert_eq!(c.size, 99);
         assert!(c.is_dir);
+        assert_eq!(c.reclaimable, 40);
+        assert!((c.ratio - 2.5).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -671,9 +683,13 @@ mod tests {
     fn drill_sort_mode_variants_are_unique() {
         use std::collections::BTreeSet;
         let mut seen = BTreeSet::new();
-        for m in [DrillSortMode::Size, DrillSortMode::Name] {
+        for m in [
+            DrillSortMode::Size,
+            DrillSortMode::Name,
+            DrillSortMode::Reclaim,
+        ] {
             assert!(seen.insert(format!("{m:?}")), "duplicate {m:?}");
         }
-        assert_eq!(seen.len(), 2);
+        assert_eq!(seen.len(), 3);
     }
 }

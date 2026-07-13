@@ -155,6 +155,12 @@ pub struct Cli {
     /// Export the current or named theme as TOML
     #[arg(long = "export-theme")]
     pub export_theme: bool,
+
+    /// RECLAIM_MAP: estimate reclaimable (compressible) space per subtree during
+    /// drill-down, via bounded-prefix sampling. Adds a reclaim overlay + sort.
+    #[cfg(feature = "reclaim")]
+    #[arg(long = "reclaim")]
+    pub reclaim: bool,
 }
 
 // ANSI color constants
@@ -263,6 +269,14 @@ pub fn print_help() {
  {CYAN}░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░{RST}
 "
     );
+    #[cfg(feature = "reclaim")]
+    println!(
+        "{B_CYAN}  ── RECLAIM_MAP ───────────────────────────────────{RST}
+      --reclaim            \x1b[32m//\x1b[0m estimate reclaimable (compressible) space per subtree
+                           \x1b[32m//\x1b[0m in drill-down; adds a reclaim overlay + sort
+  {B_MAGENTA}drill key{RST} c            \x1b[32m//\x1b[0m toggle the reclaim overlay / sort in drill-down
+"
+    );
 }
 
 pub fn print_version() {
@@ -366,6 +380,10 @@ pub fn print_export_theme(prefs: &Prefs) {
 impl Cli {
     /// Apply CLI overrides on top of loaded prefs. CLI flags take priority.
     pub fn apply_to(&self, prefs: &mut Prefs) {
+        #[cfg(feature = "reclaim")]
+        if self.reclaim {
+            prefs.reclaim = true;
+        }
         if let Some(v) = self.sort_mode {
             prefs.sort_mode = v;
         }

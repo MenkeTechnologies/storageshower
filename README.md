@@ -249,6 +249,31 @@ to force-override in either direction.
 | `-h, --help` | Display help transmission |
 | `-V, --version` | Display version information |
 
+#### `// RECLAIM_MAP` (build feature: `reclaim`)
+
+Estimated-reclaimable-space overlay for drill-down. During the scan, each file's
+first 64 KiB is sampled and run through a fast compressibility proxy (Shannon
+entropy plus a single lz4 block ratio); the estimate is aggregated up the
+directory tree in parallel. Every row then gains a second dimension — not just
+`40 GB`, but `~28 GB reclaimable (est. 3.3x)` — and a heat overlay ranks subtrees
+by recoverable bytes rather than raw size. Whole files are never compressed;
+sampling is bounded to the prefix. This is opt-in and pulls in zero extra
+dependencies unless built with `--features reclaim`.
+
+| `FLAG` | `DESCRIPTION` |
+|:---|:---|
+| `--reclaim` | Enable the RECLAIM_MAP overlay at startup (drill-down); in-app, toggle with `c` |
+
+Build/run with the feature:
+
+```bash
+cargo build --features reclaim
+cargo run --features reclaim -- --reclaim
+```
+
+In drill-down, press `c` to toggle the overlay live; when on, the `reclaim` sort
+mode ranks entries by estimated recoverable bytes (footer shows `sort:reclaim`).
+
 #### `// EXAMPLES`
 
 ```bash
@@ -366,6 +391,7 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `s` `S` | Sort by size (again to reverse) |
 | `n` `N` | Sort by name (again to reverse) |
 | `r` `R` | Reverse sort direction |
+| `c` `C` | Toggle RECLAIM_MAP overlay (est. reclaimable space + sort) — requires the `reclaim` build feature |
 | `o` `O` | Open current directory in file manager |
 | `g` `G` | Jump to first / last entry |
 

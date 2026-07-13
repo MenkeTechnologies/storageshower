@@ -242,7 +242,16 @@ impl App {
         let count = Arc::clone(&self.drill.scan_count);
         let total = Arc::clone(&self.drill.scan_total);
         let path = path.to_string();
+        #[cfg(feature = "reclaim")]
+        let reclaim_on = self.prefs.reclaim;
         std::thread::spawn(move || {
+            #[cfg(feature = "reclaim")]
+            let entries = if reclaim_on {
+                crate::system::scan_directory_reclaim(&path, Some(count), Some(total))
+            } else {
+                scan_directory_with_progress(&path, Some(count), Some(total))
+            };
+            #[cfg(not(feature = "reclaim"))]
             let entries = scan_directory_with_progress(&path, Some(count), Some(total));
             *result.lock().unwrap() = Some(entries);
         });
@@ -363,6 +372,10 @@ impl App {
                 .entries
                 .sort_by_key(|a| std::cmp::Reverse(a.size)),
             DrillSortMode::Name => self.drill.entries.sort_by_key(|a| a.name.to_lowercase()),
+            DrillSortMode::Reclaim => self
+                .drill
+                .entries
+                .sort_by_key(|a| std::cmp::Reverse(a.reclaimable)),
         }
         if self.drill.sort_rev {
             self.drill.entries.reverse();
@@ -1104,12 +1117,16 @@ mod tests {
                 name: "a".into(),
                 size: 1,
                 is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
             },
             DirEntry {
                 path: "/b".into(),
                 name: "b".into(),
                 size: 2,
                 is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
             },
         ];
         app.prefs.show_border = false;
@@ -1127,6 +1144,8 @@ mod tests {
             name: "x".into(),
             size: 1,
             is_dir: true,
+            reclaimable: 0,
+            ratio: 0.0,
         });
         app.prefs.show_border = false;
         app.hover.pos = Some((10, 2));
@@ -1153,12 +1172,16 @@ mod tests {
                 name: "Zebra".into(),
                 size: 100,
                 is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
             },
             DirEntry {
                 path: "/a".into(),
                 name: "alpha".into(),
                 size: 50,
                 is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
             },
         ];
         app.sort_drill_entries();
@@ -1180,12 +1203,16 @@ mod tests {
                 name: "small".into(),
                 size: 1,
                 is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
             },
             DirEntry {
                 path: "/l".into(),
                 name: "large".into(),
                 size: 999,
                 is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
             },
         ];
         app.sort_drill_entries();
@@ -1206,12 +1233,16 @@ mod tests {
                 name: "Zebra".into(),
                 size: 1,
                 is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
             },
             DirEntry {
                 path: "/a".into(),
                 name: "alpha".into(),
                 size: 1,
                 is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
             },
         ];
         app.sort_drill_entries();
@@ -1232,12 +1263,16 @@ mod tests {
                 name: "small".into(),
                 size: 1,
                 is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
             },
             DirEntry {
                 path: "/l".into(),
                 name: "large".into(),
                 size: 999,
                 is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
             },
         ];
         app.sort_drill_entries();

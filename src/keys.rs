@@ -291,6 +291,22 @@ impl App {
                     self.drill.sort_rev = !self.drill.sort_rev;
                     self.sort_drill_entries();
                 }
+                #[cfg(feature = "reclaim")]
+                KeyCode::Char('c') | KeyCode::Char('C') => {
+                    // Toggle the RECLAIM_MAP overlay. Enabling switches the sort
+                    // to reclaimable bytes and re-scans the current subtree so the
+                    // estimate is populated; disabling reverts to size sort.
+                    self.prefs.reclaim = !self.prefs.reclaim;
+                    if self.prefs.reclaim {
+                        self.drill.sort = DrillSortMode::Reclaim;
+                    } else if self.drill.sort == DrillSortMode::Reclaim {
+                        self.drill.sort = DrillSortMode::Size;
+                    }
+                    let path = self.drill_current_path();
+                    if !path.is_empty() {
+                        self.start_drill_scan(&path);
+                    }
+                }
                 KeyCode::Char('o') | KeyCode::Char('O') => {
                     let path = self.drill_current_path();
                     if !self.test_mode {

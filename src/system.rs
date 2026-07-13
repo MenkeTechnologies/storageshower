@@ -265,10 +265,156 @@ pub fn scan_directory_with_progress(
                 name,
                 size,
                 is_dir,
+                reclaimable: 0,
+                ratio: 0.0,
             })
         })
         .collect();
     results.sort_by_key(|a| std::cmp::Reverse(a.size));
+    results
+}
+
+// ─── RECLAIM_MAP: estimated reclaimable-space overlay ────────────────────────
+//
+// Opt-in (feature = "reclaim"). During a drill-down scan we sample each file's
+// bounded prefix (never the whole file), compute a fast compressibility proxy,
+// aggregate up the directory tree in parallel, and fill each `DirEntry`'s
+// `reclaimable` / `ratio` fields. This NEVER compresses whole files.
+#[cfg(feature = "reclaim")]
+pub mod reclaim {
+    use super::DirEntry;
+    use rayon::prelude::*;
+    use std::io::Read;
+    use std::path::Path;
+
+    /// Bounded prefix sampled per file. 64 KiB is enough for a stable
+    /// compressibility estimate while keeping the scan I/O light.
+    pub const SAMPLE_BYTES: usize = 64 * 1024;
+
+    /// Shannon entropy of a byte buffer, in bits/byte (0.0..=8.0).
+    /// Incompressible/random data approaches 8.0; repetitive data approaches 0.
+    pub fn shannon_entropy(buf: &[u8]) -> f64 {
+        if buf.is_empty() {
+            return 0.0;
+        }
+        let mut counts = [0u64; 256];
+        for &b in buf {
+            counts[b as usize] += 1;
+        }
+        let len = buf.len() as f64;
+        let mut h = 0.0;
+        for &c in counts.iter() {
+            if c == 0 {
+                continue;
+            }
+            let p = c as f64 / len;
+            h -= p * p.log2();
+        }
+        h
+    }
+
+    /// Estimated compression ratio (orig / compressed) for a sample, using a
+    /// single lz4 block on the bounded prefix. Always >= 1.0. An empty sample
+    /// is treated as fully reclaimable-neutral (ratio 1.0).
+    pub fn sample_ratio(buf: &[u8]) -> f32 {
+        if buf.is_empty() {
+            return 1.0;
+        }
+        let compressed = lz4_flex::compress(buf);
+        let clen = compressed.len().max(1);
+        (buf.len() as f32 / clen as f32).max(1.0)
+    }
+
+    /// Reclaimable bytes for a whole item of `size`, given a sampled `ratio`.
+    /// `size - size/ratio`. Zero when the sample is incompressible (ratio<=1).
+    pub fn est_reclaimable(size: u64, ratio: f32) -> u64 {
+        if ratio <= 1.0 || size == 0 {
+            return 0;
+        }
+        let compressed = (size as f64 / ratio as f64) as u64;
+        size.saturating_sub(compressed)
+    }
+
+    /// Read up to `SAMPLE_BYTES` from a file and compute its sampled ratio.
+    /// Unreadable files are treated as incompressible (ratio 1.0).
+    fn file_ratio(path: &Path) -> f32 {
+        let mut f = match std::fs::File::open(path) {
+            Ok(f) => f,
+            Err(_) => return 1.0,
+        };
+        let mut buf = vec![0u8; SAMPLE_BYTES];
+        let mut filled = 0usize;
+        // Loop because a single read() may return a short count.
+        while filled < buf.len() {
+            match f.read(&mut buf[filled..]) {
+                Ok(0) => break,
+                Ok(n) => filled += n,
+                Err(_) => break,
+            }
+        }
+        buf.truncate(filled);
+        sample_ratio(&buf)
+    }
+
+    /// Recursively accumulate `(total_size, reclaimable_bytes)` under `path`,
+    /// sampling each file's bounded prefix. Directories fan out over rayon.
+    /// Symlinks are not followed (mirrors the size scanner's recursion policy).
+    pub fn dir_reclaim(path: &Path) -> (u64, u64) {
+        let children: Vec<_> = match std::fs::read_dir(path) {
+            Ok(rd) => rd.flatten().collect(),
+            Err(_) => return (0, 0),
+        };
+        children
+            .par_iter()
+            .map(|entry| {
+                let ft = match entry.file_type() {
+                    Ok(ft) => ft,
+                    Err(_) => return (0, 0),
+                };
+                if ft.is_symlink() {
+                    return (0, 0);
+                }
+                if ft.is_dir() {
+                    return dir_reclaim(&entry.path());
+                }
+                let len = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                let ratio = file_ratio(&entry.path());
+                (len, est_reclaimable(len, ratio))
+            })
+            .reduce(|| (0, 0), |a, b| (a.0 + b.0, a.1 + b.1))
+    }
+
+    /// Fill the `reclaimable` / `ratio` fields on already-sized entries, in
+    /// parallel. Each entry's authoritative `size` is preserved; only the
+    /// reclaim estimate is derived from sampling.
+    pub fn annotate(entries: &mut [DirEntry]) {
+        entries.par_iter_mut().for_each(|e| {
+            let p = Path::new(&e.path);
+            let reclaimable = if e.is_dir {
+                dir_reclaim(p).1
+            } else {
+                est_reclaimable(e.size, file_ratio(p))
+            }
+            .min(e.size);
+            e.reclaimable = reclaimable;
+            let compressed = e.size.saturating_sub(reclaimable).max(1);
+            e.ratio = e.size as f32 / compressed as f32;
+        });
+    }
+}
+
+/// Drill-down scan that also computes the RECLAIM_MAP overlay.
+///
+/// Runs the standard sized scan, then samples each entry's subtree to fill the
+/// `reclaimable` / `ratio` fields. Bounded-prefix sampling only.
+#[cfg(feature = "reclaim")]
+pub fn scan_directory_reclaim(
+    path: &str,
+    count: Option<Arc<Mutex<usize>>>,
+    total: Option<Arc<Mutex<usize>>>,
+) -> Vec<DirEntry> {
+    let mut results = scan_directory_with_progress(path, count, total);
+    reclaim::annotate(&mut results);
     results
 }
 
@@ -774,6 +920,91 @@ pub fn spawn_bg_collector(shared: Arc<Mutex<(SysStats, Vec<DiskEntry>)>>) {
             }
         }
     });
+}
+
+#[cfg(all(test, feature = "reclaim"))]
+mod reclaim_tests {
+    use super::reclaim::*;
+    use crate::types::DirEntry;
+
+    #[test]
+    fn incompressible_buffer_ratio_near_one() {
+        // A byte-permutation of 0..=255 repeated: maximal entropy, ~8 bits/byte,
+        // and lz4 cannot shrink it, so ratio must be ~1.0.
+        let mut buf = Vec::with_capacity(64 * 1024);
+        let mut x: u32 = 0x1234_5678;
+        for _ in 0..(64 * 1024) {
+            // xorshift PRNG — high-entropy, effectively incompressible.
+            x ^= x << 13;
+            x ^= x >> 17;
+            x ^= x << 5;
+            buf.push((x & 0xff) as u8);
+        }
+        let h = shannon_entropy(&buf);
+        assert!(h > 7.5, "entropy of random bytes should approach 8.0, got {h}");
+        let r = sample_ratio(&buf);
+        assert!(r < 1.15, "random data must be ~incompressible, got ratio {r}");
+        assert_eq!(est_reclaimable(1_000_000, r), 0);
+    }
+
+    #[test]
+    fn compressible_buffer_high_ratio() {
+        // All-zero buffer: minimal entropy, lz4 collapses it hard.
+        let buf = vec![0u8; 64 * 1024];
+        let h = shannon_entropy(&buf);
+        assert!(h < 0.01, "constant data has ~0 entropy, got {h}");
+        let r = sample_ratio(&buf);
+        assert!(r > 10.0, "constant data must compress hugely, got ratio {r}");
+        let size = 1_000_000u64;
+        let rec = est_reclaimable(size, r);
+        assert!(rec > size / 2, "most of a zero-file is reclaimable, got {rec}");
+    }
+
+    #[test]
+    fn annotate_aggregates_children_and_clamps() {
+        // A directory tree written to disk; reclaim aggregation must sum the
+        // sampled reclaimable bytes of its children and never exceed size.
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        std::fs::write(root.join("zeros_a.bin"), vec![0u8; 128 * 1024]).unwrap();
+        std::fs::write(root.join("zeros_b.bin"), vec![0u8; 128 * 1024]).unwrap();
+        let mut entries = super::scan_directory(root.to_str().unwrap());
+        annotate(&mut entries);
+        assert!(!entries.is_empty());
+        for e in &entries {
+            assert!(e.reclaimable <= e.size, "reclaimable must be clamped to size");
+            assert!(e.ratio >= 1.0, "ratio must be >= 1.0 once computed");
+            // Highly-compressible zero files: most bytes are reclaimable.
+            assert!(e.reclaimable > e.size / 2, "zero files are mostly reclaimable");
+        }
+    }
+
+    #[test]
+    fn dir_reclaim_sums_two_subtrees() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path();
+        std::fs::create_dir(root.join("sub")).unwrap();
+        std::fs::write(root.join("sub/a.bin"), vec![0u8; 64 * 1024]).unwrap();
+        std::fs::write(root.join("b.bin"), vec![0u8; 64 * 1024]).unwrap();
+        let (size, reclaimable) = dir_reclaim(root);
+        assert_eq!(size, 128 * 1024, "total size sums both files");
+        assert!(reclaimable > 0 && reclaimable <= size);
+    }
+
+    #[test]
+    fn empty_sample_is_neutral() {
+        assert_eq!(sample_ratio(&[]), 1.0);
+        assert_eq!(shannon_entropy(&[]), 0.0);
+        assert_eq!(est_reclaimable(0, 5.0), 0);
+        let _ = DirEntry {
+            path: "/x".into(),
+            name: "x".into(),
+            size: 0,
+            is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
+        };
+    }
 }
 
 #[cfg(test)]

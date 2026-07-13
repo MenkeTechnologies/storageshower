@@ -1226,6 +1226,13 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     draw_separator(buf, row, w, show_border, border_s);
     row += 1;
 
+    // RECLAIM_MAP overlay state. When on, the size-bar column is replaced by an
+    // estimated-reclaimable dimension and a Reclaim sort becomes available.
+    #[cfg(feature = "reclaim")]
+    let reclaim_on = app.prefs.reclaim;
+    #[cfg(not(feature = "reclaim"))]
+    let reclaim_on = false;
+
     // ─── Column header ───
     {
         let hdr_s = Style::default()
@@ -1246,13 +1253,26 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
         } else {
             " "
         };
+        // Middle column label: RECLAIM when the overlay is on, else the bar.
+        let mid_label = if reclaim_on {
+            let rec_arrow = if app.drill.sort == DrillSortMode::Reclaim {
+                sort_arrow
+            } else {
+                " "
+            };
+            format!("RECLAIM{}", rec_arrow)
+        } else {
+            String::new()
+        };
         let hdr = format!(
-            "   {}{:<name_w$} {:>9}{}",
+            "   {}{:<name_w$}{:>mid_w$} {:>9}{}",
             name_arrow,
             "NAME",
+            mid_label,
             "SIZE",
             size_arrow,
-            name_w = (inner_w as usize).saturating_sub(16)
+            name_w = (inner_w as usize).saturating_sub(16 + mid_label.chars().count()),
+            mid_w = mid_label.chars().count(),
         );
         set_str(buf, lm, row, &hdr, hdr_s, inner_w);
         row += 1;
@@ -1313,6 +1333,16 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
         .unwrap_or(1)
         .max(1);
 
+    // `max_reclaim` scales the per-row RECLAIM_MAP heat by recoverable bytes.
+    let max_reclaim = app
+        .drill
+        .entries
+        .iter()
+        .map(|e| e.reclaimable)
+        .max()
+        .unwrap_or(1)
+        .max(1);
+
     for (i, entry) in app
         .drill
         .entries
@@ -1359,18 +1389,41 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
         };
         set_str(buf, lm + 5, row, &name_display, name_style, name_max as u16);
 
-        // Size bar
+        // Size bar / reclaim overlay
         let bar_start = lm + 5 + name_max as u16 + 1;
         let bar_w = bar_col_w as usize;
-        let frac = entry.size as f64 / max_size as f64;
-        let filled = (frac * bar_w as f64).round() as usize;
-        for j in 0..bar_w {
-            let x = bar_start + j as u16;
-            if j < filled {
-                let gc = gradient_color_at_prefs(j as f64 / bar_w as f64, &app.prefs);
-                set_cell(buf, x, row, "\u{2588}", Style::default().fg(gc));
+        if reclaim_on {
+            // Second dimension: estimated reclaimable bytes + compression ratio,
+            // heat-colored by recoverable bytes (brightest = most reclaimable).
+            let heat = entry.reclaimable as f64 / max_reclaim as f64;
+            let heat_c = gradient_color_at_prefs(heat, &app.prefs);
+            let heat_style = if is_selected {
+                Style::default().fg(heat_c).bg(Color::Indexed(237))
             } else {
-                set_cell(buf, x, row, "\u{00B7}", Style::default().fg(DIM_BORDER));
+                Style::default().fg(heat_c)
+            };
+            let rec_str = if entry.reclaimable == 0 {
+                "  \u{2014}".to_string()
+            } else {
+                format!(
+                    "~{} {:.1}x",
+                    format_bytes(entry.reclaimable, app.prefs.unit_mode),
+                    entry.ratio
+                )
+            };
+            let rec_display = format!("{:>bar_w$}", rec_str, bar_w = bar_w);
+            set_str(buf, bar_start, row, &rec_display, heat_style, bar_w as u16);
+        } else {
+            let frac = entry.size as f64 / max_size as f64;
+            let filled = (frac * bar_w as f64).round() as usize;
+            for j in 0..bar_w {
+                let x = bar_start + j as u16;
+                if j < filled {
+                    let gc = gradient_color_at_prefs(j as f64 / bar_w as f64, &app.prefs);
+                    set_cell(buf, x, row, "\u{2588}", Style::default().fg(gc));
+                } else {
+                    set_cell(buf, x, row, "\u{00B7}", Style::default().fg(DIM_BORDER));
+                }
             }
         }
 
@@ -1420,18 +1473,40 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
             let sort_name = match app.drill.sort {
                 DrillSortMode::Size => "size",
                 DrillSortMode::Name => "name",
+                DrillSortMode::Reclaim => "reclaim",
             };
             let sort_dir = if app.drill.sort_rev {
                 "\u{25BC}"
             } else {
                 "\u{25B2}"
             };
+            // RECLAIM_MAP: when the overlay is on, surface aggregate reclaimable
+            // bytes in the footer next to the raw total.
+            let total_reclaimable: u64 = if reclaim_on {
+                app.drill.entries.iter().map(|e| e.reclaimable).sum()
+            } else {
+                0
+            };
+            let reclaim_seg = if reclaim_on {
+                format!(
+                    " \u{2502} reclaim:~{}",
+                    format_bytes(total_reclaimable, app.prefs.unit_mode)
+                )
+            } else {
+                String::new()
+            };
+            #[cfg(feature = "reclaim")]
+            let reclaim_hint = " \u{2502} c:reclaim";
+            #[cfg(not(feature = "reclaim"))]
+            let reclaim_hint = "";
             let footer = format!(
-                " \u{27E6}drill\u{22B7}down\u{27E7} \u{25C0}\u{25C0}\u{25C0} items:{} \u{2502} total:{} \u{2502} sort:{}{} \u{2502} s:size \u{2502} n:name \u{2502} r:rev \u{2502} bksp:back",
+                " \u{27E6}drill\u{22B7}down\u{27E7} \u{25C0}\u{25C0}\u{25C0} items:{} \u{2502} total:{}{} \u{2502} sort:{}{} \u{2502} s:size \u{2502} n:name{} \u{2502} r:rev \u{2502} bksp:back",
                 entry_count,
                 format_bytes(total_size, app.prefs.unit_mode),
+                reclaim_seg,
                 sort_name,
                 sort_dir,
+                reclaim_hint,
             );
             let footer_display: String = footer.chars().take(inner_w as usize).collect();
             set_str(buf, lm, frow, &footer_display, footer_s, inner_w);
@@ -1477,6 +1552,17 @@ fn draw_hover_drill_tooltip(buf: &mut Buffer, w: u16, h: u16, app: &App, entry: 
         ));
     }
     lines.push(("  Path".into(), entry.path.clone()));
+    // RECLAIM_MAP: show the estimated reclaimable dimension when computed.
+    if entry.ratio >= 1.0 && entry.reclaimable > 0 {
+        lines.push((
+            "  Reclaimable".into(),
+            format!(
+                "~{} (est. {:.1}x)",
+                format_bytes(entry.reclaimable, app.prefs.unit_mode),
+                entry.ratio
+            ),
+        ));
+    }
     let parent_total: u64 = app.drill.entries.iter().map(|e| e.size).sum();
     if parent_total > 0 {
         let pct = (entry.size as f64 / parent_total as f64) * 100.0;

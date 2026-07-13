@@ -38,6 +38,10 @@ pub struct Prefs {
     pub show_tooltips: bool,
     #[serde(default)]
     pub bookmarks: Vec<String>,
+    /// RECLAIM_MAP: compute + show estimated-reclaimable-space overlay during
+    /// drill-down scans. Off by default; enabled via `--reclaim` or the `c` key.
+    #[serde(default)]
+    pub reclaim: bool,
 }
 
 fn default_true() -> bool {
@@ -70,6 +74,7 @@ impl Default for Prefs {
             active_theme: None,
             show_tooltips: true,
             bookmarks: Vec::new(),
+            reclaim: false,
         }
     }
 }

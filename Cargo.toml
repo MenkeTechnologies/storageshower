@@ -11,6 +11,11 @@ documentation = "https://docs.rs/storageshower"
 keywords = ["tui", "disk", "cyberpunk", "terminal", "monitoring"]
 categories = ["command-line-utilities"]
 
+[features]
+# RECLAIM_MAP: per-subtree estimated-reclaimable-space overlay. Opt-in so the
+# default build/behavior is unchanged and pulls in zero extra dependencies.
+reclaim = ["dep:rayon", "dep:lz4_flex"]
+
 [dependencies]
 ratatui = "0.30"
 crossterm = "0.29"
@@ -20,6 +25,8 @@ clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 toml = "1.1"
 libc = "0.2"
+rayon = { version = "1.12", optional = true }
+lz4_flex = { version = "0.13", optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.8", features = ["html_reports"] }
