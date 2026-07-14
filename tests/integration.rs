@@ -974,12 +974,16 @@ fn drill_down_navigation() {
             name: "a".into(),
             size: 100,
             is_dir: true,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/tmp/b".into(),
             name: "b".into(),
             size: 50,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
     ];
     app.drill.selected = 0;
@@ -1486,6 +1490,8 @@ fn dir_entry_clone_and_fields() {
         name: "test".into(),
         size: 1024,
         is_dir: true,
+        reclaimable: 0,
+        ratio: 0.0,
     };
     let c = e.clone();
     assert_eq!(c.path, "/tmp/test");
@@ -1516,18 +1522,24 @@ fn drill_sort_by_name() {
             name: "charlie".into(),
             size: 10,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/a".into(),
             name: "alpha".into(),
             size: 30,
             is_dir: true,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/b".into(),
             name: "bravo".into(),
             size: 20,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
     ];
     app.handle_key(make_key(KeyCode::Char('n')));
@@ -1548,18 +1560,24 @@ fn drill_sort_by_size() {
             name: "a".into(),
             size: 10,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/b".into(),
             name: "b".into(),
             size: 30,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/c".into(),
             name: "c".into(),
             size: 20,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
     ];
     // Default is size desc, switch to name then back to size
@@ -1581,12 +1599,16 @@ fn drill_sort_reverse() {
             name: "a".into(),
             size: 30,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/b".into(),
             name: "b".into(),
             size: 10,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
     ];
     // Default size desc: 30, 10
@@ -1609,6 +1631,8 @@ fn drill_sort_toggle_same_mode_reverses() {
         name: "a".into(),
         size: 10,
         is_dir: false,
+        reclaimable: 0,
+        ratio: 0.0,
     }];
     assert_eq!(app.drill.sort, DrillSortMode::Size);
     assert!(!app.drill.sort_rev);
@@ -1661,12 +1685,16 @@ fn drill_sort_resets_selection() {
             name: "a".into(),
             size: 10,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/b".into(),
             name: "b".into(),
             size: 20,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
     ];
     app.drill.selected = 1;
@@ -1944,12 +1972,16 @@ fn hovered_drill_index_resolves() {
             name: "a".into(),
             size: 10,
             is_dir: true,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/b".into(),
             name: "b".into(),
             size: 20,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
     ];
     // First entry at row 5 (border=1 + 4 chrome rows)
@@ -2008,6 +2040,8 @@ fn drill_hover_index_none_on_header() {
         name: "a".into(),
         size: 10,
         is_dir: true,
+        reclaimable: 0,
+        ratio: 0.0,
     }];
     // Row 3 is header area in drill-down (border + breadcrumb + sep + header)
     app.hover.pos = Some((10, 3));
@@ -3396,6 +3430,8 @@ fn drill_enter_on_file_does_not_navigate() {
         name: "file.txt".into(),
         size: 100,
         is_dir: false,
+        reclaimable: 0,
+        ratio: 0.0,
     }];
     app.drill.selected = 0;
     let path_len = app.drill.path.len();
@@ -3417,6 +3453,8 @@ fn drill_enter_on_dir_navigates() {
         name: "subdir".into(),
         size: 100,
         is_dir: true,
+        reclaimable: 0,
+        ratio: 0.0,
     }];
     app.drill.selected = 0;
     app.handle_key(make_key(KeyCode::Enter));
@@ -3448,12 +3486,16 @@ fn drill_j_clamps_at_end() {
             name: "a".into(),
             size: 10,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/b".into(),
             name: "b".into(),
             size: 20,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
     ];
     app.drill.selected = 0;
@@ -3473,6 +3515,8 @@ fn drill_k_clamps_at_zero() {
         name: "a".into(),
         size: 10,
         is_dir: false,
+        reclaimable: 0,
+        ratio: 0.0,
     }];
     app.drill.selected = 0;
     for _ in 0..5 {
@@ -4117,18 +4161,24 @@ fn sort_drill_entries_by_name_case_insensitive() {
             name: "Charlie".into(),
             size: 10,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/a".into(),
             name: "alpha".into(),
             size: 30,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/B".into(),
             name: "bravo".into(),
             size: 20,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
     ];
     app.drill.sort = DrillSortMode::Name;
@@ -4148,18 +4198,24 @@ fn sort_drill_entries_by_size_desc() {
             name: "a".into(),
             size: 10,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/b".into(),
             name: "b".into(),
             size: 30,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/c".into(),
             name: "c".into(),
             size: 20,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
     ];
     app.drill.sort = DrillSortMode::Size;
@@ -4179,12 +4235,16 @@ fn sort_drill_entries_reversed() {
             name: "a".into(),
             size: 30,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
         DirEntry {
             path: "/b".into(),
             name: "b".into(),
             size: 10,
             is_dir: false,
+            reclaimable: 0,
+            ratio: 0.0,
         },
     ];
     app.drill.sort = DrillSortMode::Size;
@@ -4201,6 +4261,8 @@ fn sort_drill_entries_resets_selection_and_scroll() {
         name: "a".into(),
         size: 10,
         is_dir: false,
+        reclaimable: 0,
+        ratio: 0.0,
     }];
     app.drill.selected = 5;
     app.drill.scroll_offset = 3;
@@ -4284,6 +4346,8 @@ fn dir_entry_is_dir_flag() {
         name: "d".into(),
         size: 0,
         is_dir: true,
+        reclaimable: 0,
+        ratio: 0.0,
     };
     assert!(d.is_dir);
     let f = DirEntry {
@@ -4291,6 +4355,8 @@ fn dir_entry_is_dir_flag() {
         name: "f".into(),
         size: 100,
         is_dir: false,
+        reclaimable: 0,
+        ratio: 0.0,
     };
     assert!(!f.is_dir);
 }

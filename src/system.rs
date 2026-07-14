@@ -941,9 +941,15 @@ mod reclaim_tests {
             buf.push((x & 0xff) as u8);
         }
         let h = shannon_entropy(&buf);
-        assert!(h > 7.5, "entropy of random bytes should approach 8.0, got {h}");
+        assert!(
+            h > 7.5,
+            "entropy of random bytes should approach 8.0, got {h}"
+        );
         let r = sample_ratio(&buf);
-        assert!(r < 1.15, "random data must be ~incompressible, got ratio {r}");
+        assert!(
+            r < 1.15,
+            "random data must be ~incompressible, got ratio {r}"
+        );
         assert_eq!(est_reclaimable(1_000_000, r), 0);
     }
 
@@ -954,10 +960,16 @@ mod reclaim_tests {
         let h = shannon_entropy(&buf);
         assert!(h < 0.01, "constant data has ~0 entropy, got {h}");
         let r = sample_ratio(&buf);
-        assert!(r > 10.0, "constant data must compress hugely, got ratio {r}");
+        assert!(
+            r > 10.0,
+            "constant data must compress hugely, got ratio {r}"
+        );
         let size = 1_000_000u64;
         let rec = est_reclaimable(size, r);
-        assert!(rec > size / 2, "most of a zero-file is reclaimable, got {rec}");
+        assert!(
+            rec > size / 2,
+            "most of a zero-file is reclaimable, got {rec}"
+        );
     }
 
     #[test]
@@ -972,10 +984,16 @@ mod reclaim_tests {
         annotate(&mut entries);
         assert!(!entries.is_empty());
         for e in &entries {
-            assert!(e.reclaimable <= e.size, "reclaimable must be clamped to size");
+            assert!(
+                e.reclaimable <= e.size,
+                "reclaimable must be clamped to size"
+            );
             assert!(e.ratio >= 1.0, "ratio must be >= 1.0 once computed");
             // Highly-compressible zero files: most bytes are reclaimable.
-            assert!(e.reclaimable > e.size / 2, "zero files are mostly reclaimable");
+            assert!(
+                e.reclaimable > e.size / 2,
+                "zero files are mostly reclaimable"
+            );
         }
     }
 

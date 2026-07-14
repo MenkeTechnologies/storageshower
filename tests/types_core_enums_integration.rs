@@ -74,6 +74,8 @@ fn dir_entry_clone_preserves_fields() {
         name: "y".into(),
         size: 999,
         is_dir: false,
+        reclaimable: 0,
+        ratio: 0.0,
     };
     let c = d.clone();
     assert_eq!(c.path, d.path);
