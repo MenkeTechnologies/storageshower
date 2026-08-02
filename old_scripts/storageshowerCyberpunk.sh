@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #{{{                    MARK:Header
 #**************************************************************
-##### Author: JACOBMENKE
+##### Author: MENKETECHNOLOGIES
 ##### Date: Mon Jan 1 19:50:15 EST 2018
 ##### Purpose: bash script to show disk usage with cyberpunk TUI
 ##### Notes:
