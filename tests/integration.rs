@@ -2932,6 +2932,8 @@ fn ctrl_d_half_page_down() {
         });
     }
     let mut app = make_app_with_disks(disks);
+    // 20 disks in an 8-row window: the jump follows the window, not the count.
+    app.viewport_rows = 8;
     app.selected = Some(0);
     app.handle_key(KeyEvent {
         code: KeyCode::Char('d'),
@@ -2939,7 +2941,7 @@ fn ctrl_d_half_page_down() {
         kind: KeyEventKind::Press,
         state: KeyEventState::NONE,
     });
-    assert_eq!(app.selected, Some(10)); // half of 20
+    assert_eq!(app.selected, Some(4)); // half of the 8 visible rows
 }
 
 #[test]
@@ -2960,6 +2962,7 @@ fn ctrl_u_half_page_up() {
         });
     }
     let mut app = make_app_with_disks(disks);
+    app.viewport_rows = 8;
     app.selected = Some(15);
     app.handle_key(KeyEvent {
         code: KeyCode::Char('u'),
@@ -2967,7 +2970,7 @@ fn ctrl_u_half_page_up() {
         kind: KeyEventKind::Press,
         state: KeyEventState::NONE,
     });
-    assert_eq!(app.selected, Some(5)); // 15 - 10
+    assert_eq!(app.selected, Some(11)); // 15 - half of the 8 visible rows
 }
 
 #[test]
@@ -2988,6 +2991,7 @@ fn ctrl_d_from_none_starts_at_half() {
         });
     }
     let mut app = make_app_with_disks(disks);
+    app.viewport_rows = 6;
     assert!(app.selected.is_none());
     app.handle_key(KeyEvent {
         code: KeyCode::Char('d'),
@@ -2995,7 +2999,7 @@ fn ctrl_d_from_none_starts_at_half() {
         kind: KeyEventKind::Press,
         state: KeyEventState::NONE,
     });
-    assert_eq!(app.selected, Some(5));
+    assert_eq!(app.selected, Some(3)); // half of the 6 visible rows, from 0
 }
 
 #[test]
