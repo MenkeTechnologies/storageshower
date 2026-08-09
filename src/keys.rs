@@ -1094,20 +1094,22 @@ mod tests {
     #[test]
     fn ctrl_d_half_page_down() {
         let mut app = test_app();
+        // 4 disks in a 4-row window: half a page is 2, well short of the end.
+        app.viewport_rows = 4;
+        assert_eq!(app.sorted_disks().len(), 4);
         app.selected = Some(0);
-        let count = app.sorted_disks().len();
         app.handle_key(make_ctrl_key(KeyCode::Char('d')));
-        assert_eq!(app.selected, Some((count / 2).min(count - 1)));
+        assert_eq!(app.selected, Some(2));
     }
 
     #[test]
     fn ctrl_u_half_page_up() {
         let mut app = test_app();
-        let count = app.sorted_disks().len();
-        app.selected = Some(count - 1);
+        app.viewport_rows = 4;
+        assert_eq!(app.sorted_disks().len(), 4);
+        app.selected = Some(3);
         app.handle_key(make_ctrl_key(KeyCode::Char('u')));
-        let expected = (count - 1).saturating_sub(count / 2);
-        assert_eq!(app.selected, Some(expected));
+        assert_eq!(app.selected, Some(1));
     }
 
     #[test]
@@ -1855,11 +1857,11 @@ mod tests {
     #[test]
     fn ctrl_d_from_none() {
         let mut app = test_app();
+        app.viewport_rows = 4;
         assert_eq!(app.selected, None);
-        let count = app.sorted_disks().len();
+        assert_eq!(app.sorted_disks().len(), 4);
         app.handle_key(make_ctrl_key(KeyCode::Char('d')));
-        let jump = (count / 2).max(1);
-        assert_eq!(app.selected, Some(jump.min(count - 1)));
+        assert_eq!(app.selected, Some(2), "no selection starts the jump at 0");
     }
 
     #[test]
