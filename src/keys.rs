@@ -1288,6 +1288,19 @@ mod tests {
         assert_eq!(app.drill.mode, ViewMode::DrillDown);
     }
 
+    /// The man page used to document `h` as "drill up one level", which no
+    /// arm implements — Esc and Backspace are the only way up. `h` must also
+    /// not reach the list-mode help toggle from inside drill-down.
+    #[test]
+    fn drill_h_neither_walks_up_nor_opens_help() {
+        let mut app = drill_app(4);
+        app.drill.path = vec!["/root".into(), "/root/e00".into()];
+        app.handle_key(make_key(KeyCode::Char('h')));
+        assert_eq!(app.drill.path.len(), 2, "h must not pop the drill path");
+        assert_eq!(app.drill.mode, ViewMode::DrillDown);
+        assert!(!app.show_help, "h must not reach the list-mode help toggle");
+    }
+
     // ── Key handling — filter mode ─────────────────────────
 
     #[test]

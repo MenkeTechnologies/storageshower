@@ -3989,4 +3989,98 @@ mod tests {
     fn segment_at_x_empty_title_bar() {
         assert_eq!(super::segment_at_x("", 0, 0), Some(String::new()));
     }
+
+    /// Read one help-overlay column back out of the rendered buffer, using the
+    /// same geometry `draw_help` lays the columns out with. Blank rows below the
+    /// last entry are dropped.
+    fn help_column_rows(buf: &Buffer, w: u16, h: u16, ci: u16) -> Vec<String> {
+        let box_w: u16 = 120u16.min(w.saturating_sub(4));
+        let box_h: u16 = 48u16.min(h.saturating_sub(4));
+        let x0 = (w.saturating_sub(box_w)) / 2;
+        let y0 = (h.saturating_sub(box_h)) / 2;
+        let col_w = ((box_w as usize).saturating_sub(4)) / 3;
+        let cx = x0 + 2 + ci * col_w as u16;
+        (y0 + 4..y0 + box_h - 1)
+            .map(|y| {
+                (cx..cx + col_w as u16)
+                    .map(|x| buf[(x, y)].symbol())
+                    .collect::<String>()
+                    .trim_end()
+                    .to_string()
+            })
+            .filter(|row| !row.is_empty())
+            .collect()
+    }
+
+    /// The overlay is the surface that goes stale: it listed neither g/G nor the
+    /// reclaim c/C toggle while both were implemented, and it predates copy,
+    /// export and the ctrl chords becoming reachable in drill-down. Pin the exact
+    /// key list so it cannot drift away from `handle_key` or the README again.
+    #[test]
+    fn help_overlay_drill_down_section_lists_every_drill_key() {
+        use crate::app::App;
+        use std::sync::{Arc, Mutex};
+
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.show_help = true;
+
+        let (w, h) = (200u16, 60u16);
+        let mut buf = Buffer::empty(Rect::new(0, 0, w, h));
+        draw_help(&mut buf, w, h, &app);
+
+        let rows = help_column_rows(&buf, w, h, 2);
+        let start = rows
+            .iter()
+            .position(|r| r == "DRILL DOWN")
+            .expect("the DRILL DOWN section header is rendered");
+        let end = start
+            + 1
+            + rows[start + 1..]
+                .iter()
+                .position(|r| r == "MOUSE")
+                .expect("the MOUSE section closes the drill-down list");
+        let keys: Vec<String> = rows[start + 1..end]
+            .iter()
+            .map(|r| r.chars().take(8).collect::<String>().trim_end().to_string())
+            .collect();
+
+        #[cfg(feature = "reclaim")]
+        let expected = vec![
+            "Enter", "Bksp", "Esc", "s/n", "r", "g/G", "^D/^U", "^G", "o/O", "y/Y", "e/E", "c/C",
+        ];
+        #[cfg(not(feature = "reclaim"))]
+        let expected = vec![
+            "Enter", "Bksp", "Esc", "s/n", "r", "g/G", "^D/^U", "^G", "o/O", "y/Y", "e/E",
+        ];
+        assert_eq!(keys, expected);
+    }
+
+    /// The overlay calls ^D/^U "Half-page dn/up" in both the list and drill-down
+    /// sections; the README says the same. That wording is only honest because
+    /// the jump is derived from the recorded viewport.
+    #[test]
+    fn help_overlay_describes_ctrl_d_as_a_half_page() {
+        use crate::app::App;
+        use std::sync::{Arc, Mutex};
+
+        let shared = Arc::new(Mutex::new((SysStats::default(), vec![])));
+        let mut app = App::new_default(shared);
+        app.show_help = true;
+        app.viewport_rows = 24;
+        assert_eq!(app.list_half_page(), 12);
+
+        let (w, h) = (200u16, 60u16);
+        let mut buf = Buffer::empty(Rect::new(0, 0, w, h));
+        draw_help(&mut buf, w, h, &app);
+
+        let halves = (0..3u16)
+            .flat_map(|ci| help_column_rows(&buf, w, h, ci))
+            .filter(|r| r.starts_with("^D/^U"))
+            .count();
+        assert_eq!(
+            halves, 2,
+            "both the list and drill-down sections document ^D/^U"
+        );
+    }
 }
