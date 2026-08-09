@@ -214,7 +214,7 @@ to force-override in either direction.
 | `-b, --bar-style STYLE` | Bar visualization — `gradient`, `solid`, `thin`, `ascii` |
 | `--color PALETTE` | Color palette — 30 builtins: `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset`, `neon-noir`, `chrome-heart`, `blade-runner`, `void-walker`, `toxic-waste`, `cyber-frost`, `plasma-core`, `steel-nerve`, `dark-signal`, `glitch-pop`, `holo-shift`, `night-city`, `deep-net`, `laser-grid`, `quantum-flux`, `bio-hazard`, `darkwave`, `overlock`, `megacorp`, `zaibatsu` |
 | `--theme NAME` | Activate a custom theme by name (defined in config) |
-| `--list-colors` | List all builtin color schemes with preview |
+| `--list-colors` | List all builtin color schemes with a swatch preview; each row prints the exact value `--color` accepts |
 | `--export-theme` | Export current palette as TOML (combine with `--color` or `--theme`) |
 | `-u, --units MODE` | Unit display — `human`, `gib`, `mib`, `bytes` |
 | `-k, --compact` / `--no-compact` | Compact mount names |

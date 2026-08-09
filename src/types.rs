@@ -147,6 +147,19 @@ impl ColorMode {
         }
     }
 
+    /// The exact string `--color` accepts for this palette.
+    ///
+    /// Sourced from clap's own `ValueEnum` metadata rather than from `Debug`,
+    /// so multi-word variants render as the hyphenated form clap parses
+    /// (`neon-noir`, not `neonnoir`) and the two can never drift apart.
+    pub fn flag(self) -> String {
+        use clap::ValueEnum;
+        self.to_possible_value()
+            .expect("ColorMode has no skipped variants")
+            .get_name()
+            .to_string()
+    }
+
     pub fn next(self) -> ColorMode {
         let all = ColorMode::ALL;
         let idx = all.iter().position(|&m| m == self).unwrap_or(0);

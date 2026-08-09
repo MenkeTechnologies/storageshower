@@ -175,6 +175,14 @@ const B_GREEN: &str = "\x1b[1;32m";
 const B_YELLOW: &str = "\x1b[1;33m";
 
 pub fn print_help() {
+    println!("{}", help_text());
+}
+
+/// The full `--help` transmission as a string.
+///
+/// Split out from [`print_help`] so tests can assert the text stays in step
+/// with the actual flag set and key handlers instead of drifting silently.
+pub fn help_text() -> String {
     let ver = env!("CARGO_PKG_VERSION");
     // Status box, padded at runtime so its right border never drifts as
     // VERSION grows. BOX_W tracks the banner's display width (STORAGE row).
@@ -182,7 +190,8 @@ pub fn print_help() {
     let status = format!(" STATUS: ONLINE  // SIGNAL: ████████░░ // v{ver}");
     let space = " ".repeat(BOX_W.saturating_sub(status.chars().count()));
     let rule = "─".repeat(BOX_W);
-    println!(
+    #[allow(unused_mut)]
+    let mut out = format!(
         "
 {CYAN}  ███████╗████████╗ ██████╗ ██████╗  █████╗  ██████╗ ███████╗{RST}
 {CYAN}  ██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝ ██╔════╝{RST}
@@ -225,6 +234,7 @@ pub fn print_help() {
       --no-border          \x1b[32m//\x1b[0m hide border chrome
       --no-header          \x1b[32m//\x1b[0m hide column headers
       --no-used            \x1b[32m//\x1b[0m hide used/total size display
+      --no-tooltips        \x1b[32m//\x1b[0m hide hover tooltips {B_MAGENTA}(right-click still works){RST}
 
 {B_CYAN}  ── THRESHOLDS ────────────────────────────────────{RST}
   -w, --warn PCT           \x1b[32m//\x1b[0m warning threshold {B_MAGENTA}(default: 70%){RST}
@@ -242,18 +252,21 @@ pub fn print_help() {
   -V, --version            \x1b[32m//\x1b[0m display version information
 
 {B_CYAN}  ── KEYBINDS ──────────────────────────────────────{RST}
-  q, Esc                   \x1b[32m//\x1b[0m flatline {B_MAGENTA}(quit){RST}
+  q / Q                    \x1b[32m//\x1b[0m flatline {B_MAGENTA}(quit){RST}
+  Esc                      \x1b[32m//\x1b[0m deselect the current disk
   j / k                    \x1b[32m//\x1b[0m scroll the datastream
-  s                        \x1b[32m//\x1b[0m cycle sort ICE
+  Enter                    \x1b[32m//\x1b[0m drill down into the selected mount
+  n / u / s                \x1b[32m//\x1b[0m sort by name / usage % / size
   r                        \x1b[32m//\x1b[0m reverse sort polarity
   b                        \x1b[32m//\x1b[0m swap bar firmware
-  c                        \x1b[32m//\x1b[0m shift chroma palette
-  u                        \x1b[32m//\x1b[0m toggle used/total
-  a                        \x1b[32m//\x1b[0m toggle all/local netlinks
-  m                        \x1b[32m//\x1b[0m toggle full mount path
+  c / C                    \x1b[32m//\x1b[0m theme chooser popup / theme editor
+  i                        \x1b[32m//\x1b[0m cycle units {B_MAGENTA}(human, GiB, MiB, bytes){RST}
+  d                        \x1b[32m//\x1b[0m toggle used/total
+  m / w                    \x1b[32m//\x1b[0m compact mount names / full mount paths
+  l / a                    \x1b[32m//\x1b[0m local disks only / all filesystems
   /                        \x1b[32m//\x1b[0m enter filter daemon
   p                        \x1b[32m//\x1b[0m pause data feed
-  ?                        \x1b[32m//\x1b[0m open help overlay
+  h / ?                    \x1b[32m//\x1b[0m open help overlay {B_MAGENTA}(full keybind matrix){RST}
 
 {B_CYAN}  ── EXAMPLES ──────────────────────────────────────{RST}
   storageshower --color purple -b ascii \x1b[32m//\x1b[0m purple palette with ascii bars
@@ -270,13 +283,16 @@ pub fn print_help() {
 "
     );
     #[cfg(feature = "reclaim")]
-    println!(
-        "{B_CYAN}  ── RECLAIM_MAP ───────────────────────────────────{RST}
+    out.push_str(
+        &format!(
+            "{B_CYAN}  ── RECLAIM_MAP ───────────────────────────────────{RST}
       --reclaim            \x1b[32m//\x1b[0m estimate reclaimable (compressible) space per subtree
                            \x1b[32m//\x1b[0m in drill-down; adds a reclaim overlay + sort
   {B_MAGENTA}drill key{RST} c            \x1b[32m//\x1b[0m toggle the reclaim overlay / sort in drill-down
 "
+        ),
     );
+    out
 }
 
 pub fn print_version() {
@@ -287,8 +303,17 @@ pub fn print_version() {
 }
 
 pub fn print_colors() {
+    print!("{}", colors_text());
+}
+
+/// The `--list-colors` table as a string.
+///
+/// Split out from [`print_colors`] so tests can assert every printed flag is
+/// a value `--color` actually accepts.
+pub fn colors_text() -> String {
     use crate::ui::palette;
     use ratatui::style::Color;
+    use std::fmt::Write;
 
     fn idx(c: Color) -> u8 {
         match c {
@@ -297,21 +322,42 @@ pub fn print_colors() {
         }
     }
 
-    println!("\n{B_CYAN}  ── BUILTIN COLOR SCHEMES ────────────────────────{RST}\n");
+    // Column widths are measured from the data so the table stays aligned as
+    // palettes are added or renamed, instead of drifting past a fixed pad.
+    let flag_w = ColorMode::ALL
+        .iter()
+        .map(|&m| m.flag().chars().count())
+        .max()
+        .unwrap_or(0);
+    let name_w = ColorMode::ALL
+        .iter()
+        .map(|&m| m.name().chars().count())
+        .max()
+        .unwrap_or(0);
+
+    let mut out = format!("\n{B_CYAN}  ── BUILTIN COLOR SCHEMES ────────────────────────{RST}\n\n");
     for &mode in ColorMode::ALL {
         let (a, b, c, d, e, f) = palette(mode);
         let swatch: String = [a, b, c, d, e, f]
             .iter()
             .map(|&col| format!("\x1b[48;5;{}m   {RST}", idx(col)))
             .collect();
-        println!(
-            "  {B_GREEN}{flag:<10}{RST} {B_MAGENTA}{name:<14}{RST} {swatch}",
-            flag = format!("{:?}", mode).to_lowercase(),
+        let _ = writeln!(
+            out,
+            "  {B_GREEN}{flag:<flag_w$}{RST} {B_MAGENTA}{name:<name_w$}{RST} {swatch}",
+            flag = mode.flag(),
             name = mode.name(),
         );
     }
-    println!("\n  {B_YELLOW}Usage:{RST} storageshower {B_GREEN}-c{RST} {B_MAGENTA}<flag>{RST}");
-    println!("  {B_YELLOW}Cycle:{RST} press {B_GREEN}c{RST} in the TUI\n");
+    let _ = writeln!(
+        out,
+        "\n  {B_YELLOW}Usage:{RST}   storageshower {B_GREEN}--color{RST} {B_MAGENTA}<flag>{RST}"
+    );
+    let _ = writeln!(
+        out,
+        "  {B_YELLOW}Chooser:{RST} press {B_GREEN}c{RST} in the TUI for the live theme picker\n"
+    );
+    out
 }
 
 pub fn print_export_theme(prefs: &Prefs) {
@@ -1558,5 +1604,89 @@ mod tests {
                 .unwrap_or_else(|e| panic!("parse -u {name:?} ({unit:?}): {e}"));
             assert_eq!(cli.unit_mode, Some(unit));
         }
+    }
+
+    fn strip_ansi(s: &str) -> String {
+        let mut out = String::with_capacity(s.len());
+        let mut chars = s.chars().peekable();
+        while let Some(c) = chars.next() {
+            if c != '\x1b' {
+                out.push(c);
+                continue;
+            }
+            // CSI sequence: ESC '[' params/intermediates, then a final byte in
+            // @..~. The '[' must be consumed first — it is itself in that range.
+            if chars.peek() == Some(&'[') {
+                chars.next();
+                for c in chars.by_ref() {
+                    if ('@'..='~').contains(&c) {
+                        break;
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    /// Every palette `--list-colors` advertises must round-trip through
+    /// `--color`. The table used to print the `Debug` spelling
+    /// (`neonnoir`), which clap rejects — 20 of 30 listed flags were
+    /// unusable copy-paste.
+    #[test]
+    fn every_listed_palette_flag_is_accepted_by_color() {
+        let listing = strip_ansi(&colors_text());
+        for &mode in ColorMode::ALL {
+            let flag = mode.flag();
+            assert!(
+                listing.contains(&flag),
+                "--list-colors never prints the flag {flag:?} for {mode:?}",
+            );
+            let cli = Cli::try_parse_from(["storageshower", "--color", &flag])
+                .unwrap_or_else(|e| panic!("--color {flag:?} ({mode:?}) rejected: {e}"));
+            assert_eq!(cli.color_mode, Some(mode), "--color {flag:?} parsed wrong");
+        }
+    }
+
+    /// The usage hint under the palette table must name `--color`. It used to
+    /// say `-c <flag>`, which is `--config` — that command silently kept the
+    /// default palette and treated the palette name as a config path.
+    #[test]
+    fn list_colors_usage_hint_names_color_not_config() {
+        let listing = strip_ansi(&colors_text());
+        assert!(
+            listing.contains("storageshower --color <flag>"),
+            "usage hint missing --color: {listing}",
+        );
+        assert!(
+            !listing.contains("storageshower -c <flag>"),
+            "usage hint still points at -c, which is --config",
+        );
+        let stray = Cli::try_parse_from(["storageshower", "-c", "purple"])
+            .expect("-c takes a path, so this parses");
+        assert!(
+            stray.color_mode.is_none(),
+            "-c must not set the palette; it sets the config path",
+        );
+    }
+
+    /// `--help` is hand-written, so it can silently omit a flag that was added
+    /// to the parser. Every user-visible long flag must appear in it.
+    #[test]
+    fn help_text_documents_every_visible_long_flag() {
+        use clap::CommandFactory;
+        let help = strip_ansi(&help_text());
+        let cmd = Cli::command();
+        let mut missing = Vec::new();
+        for arg in cmd.get_arguments() {
+            if arg.is_hide_set() {
+                continue;
+            }
+            if let Some(long) = arg.get_long()
+                && !help.contains(&format!("--{long}"))
+            {
+                missing.push(format!("--{long}"));
+            }
+        }
+        assert!(missing.is_empty(), "--help omits: {missing:?}");
     }
 }
