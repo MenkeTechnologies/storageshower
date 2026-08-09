@@ -139,23 +139,25 @@ Show version and exit.
 While the TUI is running:
 .RS 4
 .IP \(bu 2
-\fBq\fR, \fBEsc\fR \(em quit
+\fBq\fR \(em quit (\fBEsc\fR deselects the focused row instead)
 .IP \(bu 2
 \fBj\fR / \fBk\fR \(em scroll the list
 .IP \(bu 2
-\fBs\fR \(em cycle sort mode
+\fBCtrl+d\fR / \fBCtrl+u\fR \(em half-page down / up (half the visible rows)
+.IP \(bu 2
+\fBn\fR / \fBu\fR / \fBs\fR \(em sort by name / usage percent / size
 .IP \(bu 2
 \fBr\fR \(em reverse sort
 .IP \(bu 2
 \fBb\fR \(em cycle bar style
 .IP \(bu 2
-\fBc\fR \(em cycle color palette
+\fBc\fR \(em open the theme chooser
 .IP \(bu 2
-\fBu\fR \(em toggle used/total display
+\fBd\fR \(em toggle the used/size columns
 .IP \(bu 2
-\fBa\fR \(em toggle all/local mount view
+\fBa\fR \(em show all filesystems (\fBl\fR restricts to local disks)
 .IP \(bu 2
-\fBm\fR \(em toggle compact / full mount paths
+\fBm\fR \(em toggle compact mount names (\fBw\fR toggles full paths)
 .IP \(bu 2
 \fB/\fR \(em enter filter prompt (Ctrl+W deletes word, Ctrl+H backspaces)
 .IP \(bu 2
@@ -202,7 +204,7 @@ Default config file (TOML). All CLI flags have matching keys; CLI overrides.
 
 .SH EXIT STATUS
 .B storageshower
-exits 0 on a clean quit (\fBq\fR / \fBEsc\fR), 1 on argument-parse errors,
+exits 0 on a clean quit (\fBq\fR), 1 on argument-parse errors,
 and 2 if the TTY can't be put into raw mode.
 
 .SH SEE ALSO

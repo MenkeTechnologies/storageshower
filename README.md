@@ -301,8 +301,8 @@ storageshower --config /tmp/ss.conf  # use alternate config
 
 | `KEY` | `ACTION` |
 |:---:|:---|
-| `q` `Q` | Disconnect (or close help overlay) |
-| `h` `H` `?` | Toggle help HUD |
+| `q` `Q` | Disconnect — including from inside the help overlay |
+| `h` `H` `?` | Open the help HUD (`h` `H` `Esc` `j` `k` close it) |
 | `p` `P` | Pause / resume data stream |
 | `Esc` | Deselect current disk |
 

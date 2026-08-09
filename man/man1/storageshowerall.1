@@ -75,16 +75,22 @@ the disk rows while open.
 \fBj\fR / \fBk\fR / \fB\(da\fR / \fB\(ua\fR
 Scroll the disk list one row.
 .TP
-\fBPgDn\fR / \fBPgUp\fR / \fBSpace\fR
-Page-scroll.
+\fBCtrl+d\fR / \fBCtrl+u\fR
+Half-page down / up \(em half the visible rows, in the disk list and in
+drill-down alike.
 .TP
-\fBHome\fR / \fBEnd\fR / \fBg\fR / \fBG\fR
-First / last row.
+\fBHome\fR / \fBCtrl+g\fR
+First row.
+.TP
+\fBEnd\fR / \fBG\fR
+Last row. In the disk list \fBg\fR toggles the column headers rather than
+jumping; drill-down uses \fBg\fR for the first entry.
 
 .SS Sort + filter
 .TP
-\fBs\fR
-Cycle sort mode (name → pct → size → name …).
+\fBn\fR / \fBu\fR / \fBs\fR
+Sort by mount name / usage percent / size. Pressing the active mode again
+reverses it.
 .TP
 \fBr\fR
 Reverse current sort.
@@ -100,16 +106,17 @@ cancels.
 Cycle bar style (gradient → solid → thin → ascii).
 .TP
 \fBc\fR
-Cycle color palette.
+Open the theme chooser popup (live preview, mouse click, scroll).
 .TP
-\fBu\fR
-Toggle used/total display vs percent-only.
+\fBd\fR
+Toggle the used/size columns.
 .TP
 \fBa\fR
-Toggle all mounts vs local-only (HDD/SSD).
+Show all filesystems, including virtual ones. \fBl\fR is the separate
+local-disks-only (HDD/SSD) toggle.
 .TP
 \fBm\fR
-Toggle compact mount names vs full paths.
+Toggle compact mount names. \fBw\fR toggles full mount paths.
 
 .SS Drill-down + actions
 .TP
@@ -117,12 +124,18 @@ Toggle compact mount names vs full paths.
 Drill into the focused mount: spawn a background scan, populate a
 per-directory size view.
 .TP
-\fBBkspc\fR / \fBh\fR
-Drill up one level.
+\fBBkspc\fR / \fBEsc\fR
+Drill up one level; from the top level, back to the disk list.
 .TP
 \fBy\fR
-Copy the focused mount path or drill path to the system clipboard
+Copy the focused mount path, or in drill-down the selected entry's path
+(the listed directory when the listing is empty), to the system clipboard
 (pbcopy / wl-copy / xclip / xsel).
+.TP
+\fBe\fR
+Export the disk matrix to \fI~/.storageshower.export.txt\fR, or in
+drill-down the current listing to
+\fI~/.storageshower.drill-export.txt\fR.
 .TP
 \fBp\fR
 Pause auto-refresh.
@@ -134,13 +147,14 @@ Open the theme editor: adjust 6 palette colors interactively, name it, and
 save into the config file. Press \fBEsc\fR to revert.
 .TP
 \fBT\fR
-Open the theme chooser (saved themes + built-ins).
+Toggle hover tooltips (right-click still shows them).
 .TP
 \fB?\fR / \fBh\fR
 Open the help overlay.
 .TP
-\fBq\fR, \fBEsc\fR (top-level)
-Quit. The runtime restores the cooked terminal mode.
+\fBq\fR
+Quit. The runtime restores the cooked terminal mode. \fBEsc\fR deselects
+the focused row in the disk list rather than quitting.
 
 .SH 4. CONFIG FILE
 .B ~/.storageshower.conf
@@ -197,9 +211,21 @@ view switches to the drill page with sortable
 .RB ( s )
 and reversible
 .RB ( r )
-entries. \fBEnter\fR drills deeper; \fBh\fR /
+entries. \fBEnter\fR drills deeper;
 .B Bkspc
+or
+.B Esc
 drills back up.
+.PP
+Drill-down answers the same navigation and action keys as the disk list:
+\fBj\fR / \fBk\fR move, \fBg\fR / \fBG\fR jump to the first / last entry,
+\fBo\fR opens the current directory, \fBy\fR copies the selected entry's
+path and \fBe\fR exports the listing. Ctrl chords are routed before the
+plain keys, so \fBCtrl+d\fR / \fBCtrl+u\fR page by half the visible rows
+and \fBCtrl+g\fR returns to the first entry, while \fBCtrl+q\fR does not
+quit. Built with the
+.B reclaim
+feature, \fBc\fR toggles the RECLAIM_MAP overlay.
 
 .SH 7. ALERTS
 A mount crossing
@@ -226,7 +252,7 @@ Override the auto-detected clipboard tool.
 .SH 9. EXIT CODES & EXAMPLES
 .TP
 .B 0
-Clean quit via \fBq\fR / \fBEsc\fR.
+Clean quit via \fBq\fR.
 .TP
 .B 1
 Argument-parse error (bad
