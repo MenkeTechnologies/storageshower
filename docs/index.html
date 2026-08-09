@@ -380,7 +380,7 @@ storageshower --config /tmp/ss.conf      # use an alternate config file</pre>
           <tr><td>k  Up</td><td>Select previous disk</td></tr>
           <tr><td>G  End</td><td>Jump to last disk</td></tr>
           <tr><td>Home  Ctrl+g</td><td>Jump to first disk</td></tr>
-          <tr><td>Ctrl+d  /  Ctrl+u</td><td>Half-page down / up</td></tr>
+          <tr><td>Ctrl+d  /  Ctrl+u</td><td>Half-page down / up (half the visible rows)</td></tr>
         </tbody></table>
         <h3>Sort &amp; filter</h3>
         <table class="key-table"><tbody>
@@ -426,9 +426,14 @@ storageshower --config /tmp/ss.conf      # use an alternate config file</pre>
           <tr><td>s  S</td><td>Sort by size (again to reverse)</td></tr>
           <tr><td>n  N</td><td>Sort by name (again to reverse)</td></tr>
           <tr><td>r  R</td><td>Reverse sort direction</td></tr>
+          <tr><td>c  C</td><td>Toggle RECLAIM_MAP overlay (needs the <code>reclaim</code> feature)</td></tr>
           <tr><td>o  O</td><td>Open current directory in file manager</td></tr>
-          <tr><td>g  G</td><td>Jump to first / last entry</td></tr>
+          <tr><td>y  Y</td><td>Copy the selected entry's path (the listed directory when empty)</td></tr>
+          <tr><td>e  E</td><td>Export the listing to <code>~/.storageshower.drill-export.txt</code></td></tr>
+          <tr><td>g  Home  Ctrl+g  /  G  End</td><td>Jump to first / last entry</td></tr>
+          <tr><td>Ctrl+d  /  Ctrl+u</td><td>Half-page down / up (half the visible rows)</td></tr>
         </tbody></table>
+        <p>Ctrl chords are routed before the plain keys here too, so <code>Ctrl+q</code> does not quit and <code>Ctrl+c</code> does not toggle the reclaim overlay.</p>
         <h3>Filter edit mode (after <code>/</code>)</h3>
         <table class="key-table"><tbody>
           <tr><td>Enter</td><td>Confirm filter</td></tr>

@@ -314,8 +314,8 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `k` `Up` | Select previous disk |
 | `G` `End` | Jump to last disk |
 | `Home` `Ctrl+g` | Jump to first disk |
-| `Ctrl+d` | Half-page down |
-| `Ctrl+u` | Half-page up |
+| `Ctrl+d` | Half-page down (half the visible rows) |
+| `Ctrl+u` | Half-page up (half the visible rows) |
 
 #### `// SORT_PROTOCOL`
 
@@ -377,7 +377,7 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `Enter` | Drill down into selected mount |
 | `o` `O` | Open selected mount in file manager |
 | `y` `Y` | Copy mount path to clipboard |
-| `e` `E` | Export disk matrix to file |
+| `e` `E` | Export disk matrix to `~/.storageshower.export.txt` |
 | `B` | Toggle bookmark (pin to top) |
 
 #### `// DRILL_DOWN_MODE`
@@ -393,7 +393,16 @@ storageshower --config /tmp/ss.conf  # use alternate config
 | `r` `R` | Reverse sort direction |
 | `c` `C` | Toggle RECLAIM_MAP overlay (est. reclaimable space + sort) — requires the `reclaim` build feature |
 | `o` `O` | Open current directory in file manager |
+| `y` `Y` | Copy the selected entry's path to clipboard (the listed directory when the listing is empty) |
+| `e` `E` | Export the current listing to `~/.storageshower.drill-export.txt` |
 | `g` `G` | Jump to first / last entry |
+| `Home` `Ctrl+g` | Jump to first entry |
+| `End` | Jump to last entry |
+| `Ctrl+d` | Half-page down (half the visible rows) |
+| `Ctrl+u` | Half-page up (half the visible rows) |
+
+Ctrl chords are routed before the plain keys in drill-down, so `Ctrl+q` does not
+quit and `Ctrl+c` does not toggle the reclaim overlay — same as in the disk list.
 
 #### `// THEME_EDITOR (C)`
 

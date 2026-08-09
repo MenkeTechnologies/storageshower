@@ -234,6 +234,27 @@ impl App {
         }
 
         if self.drill.mode == ViewMode::DrillDown {
+            // Ctrl chords are routed first, exactly as in list mode. Falling
+            // through would make ^Q quit and ^C toggle the reclaim overlay.
+            if ctrl {
+                match key.code {
+                    KeyCode::Char('d') if !self.drill.entries.is_empty() => {
+                        let jump = self.drill_half_page();
+                        self.drill.selected =
+                            (self.drill.selected + jump).min(self.drill.entries.len() - 1);
+                    }
+                    KeyCode::Char('u') => {
+                        self.drill.selected =
+                            self.drill.selected.saturating_sub(self.drill_half_page());
+                    }
+                    KeyCode::Char('g') => {
+                        self.drill.selected = 0;
+                    }
+                    _ => {}
+                }
+                return;
+            }
+
             match key.code {
                 KeyCode::Esc | KeyCode::Backspace => {
                     if self.drill.path.len() > 1 {
@@ -321,6 +342,39 @@ impl App {
                     }
                     self.status_msg = Some((format!("Opened {}", path), Instant::now()));
                 }
+                KeyCode::Char('y') | KeyCode::Char('Y') => {
+                    let target = self.drill_copy_target();
+                    if target.is_empty() {
+                        self.status_msg = Some(("Nothing to copy".into(), Instant::now()));
+                    } else {
+                        match copy_to_clipboard(&target) {
+                            Ok(_) => {
+                                self.status_msg =
+                                    Some((format!("Copied: {}", target), Instant::now()))
+                            }
+                            Err(e) => {
+                                self.status_msg =
+                                    Some((format!("Copy failed: {}", e), Instant::now()))
+                            }
+                        }
+                    }
+                }
+                KeyCode::Char('e') | KeyCode::Char('E') => {
+                    let out = self.drill_export_text();
+                    let path = dirs::home_dir()
+                        .unwrap_or_else(|| PathBuf::from("."))
+                        .join(".storageshower.drill-export.txt");
+                    match std::fs::write(&path, &out) {
+                        Ok(_) => {
+                            self.status_msg =
+                                Some((format!("Exported to {}", path.display()), Instant::now()))
+                        }
+                        Err(e) => {
+                            self.status_msg =
+                                Some((format!("Export failed: {}", e), Instant::now()))
+                        }
+                    }
+                }
                 KeyCode::Char('q') | KeyCode::Char('Q') => {
                     self.quit = true;
                 }
@@ -334,7 +388,7 @@ impl App {
                 KeyCode::Char('d') => {
                     let count = self.sorted_disks().len();
                     if count > 0 {
-                        let jump = (count / 2).max(1);
+                        let jump = self.list_half_page();
                         self.selected = Some(match self.selected {
                             Some(i) => (i + jump).min(count - 1),
                             None => jump.min(count - 1),
@@ -345,7 +399,7 @@ impl App {
                 KeyCode::Char('u') => {
                     let count = self.sorted_disks().len();
                     if count > 0 {
-                        let jump = (count / 2).max(1);
+                        let jump = self.list_half_page();
                         self.selected = Some(match self.selected {
                             Some(i) => i.saturating_sub(jump),
                             None => 0,
@@ -1062,6 +1116,174 @@ mod tests {
         app.selected = Some(3);
         app.handle_key(make_ctrl_key(KeyCode::Char('g')));
         assert_eq!(app.selected, Some(0));
+    }
+
+    // ── ^D/^U page by the viewport, not the disk count ─────
+
+    /// The jump must track the measured window. With 40 disks on screen a
+    /// 12-row viewport moves 6, not 20.
+    #[test]
+    fn ctrl_d_jump_is_half_the_viewport_not_half_the_disk_count() {
+        let mut app = test_app();
+        app.disks = (0..40)
+            .map(|i| {
+                let mut d = app.disks[0].clone();
+                d.mount = format!("/m{i:02}");
+                d
+            })
+            .collect();
+        app.update_sorted();
+        assert_eq!(app.sorted_disks().len(), 40);
+        app.viewport_rows = 12;
+        app.selected = Some(0);
+        app.handle_key(make_ctrl_key(KeyCode::Char('d')));
+        assert_eq!(app.selected, Some(6), "^D must move half of 12 rows");
+        app.handle_key(make_ctrl_key(KeyCode::Char('u')));
+        assert_eq!(app.selected, Some(0), "^U must undo the same distance");
+    }
+
+    /// A viewport shorter than two rows still has to advance the selection.
+    #[test]
+    fn ctrl_d_jump_is_at_least_one_row_on_a_tiny_viewport() {
+        let mut app = test_app();
+        app.viewport_rows = 1;
+        app.selected = Some(0);
+        app.handle_key(make_ctrl_key(KeyCode::Char('d')));
+        assert_eq!(app.selected, Some(1));
+    }
+
+    // ── Drill-down: ctrl chords ────────────────────────────
+
+    fn drill_app(n: usize) -> App {
+        let mut app = test_app();
+        app.drill.mode = ViewMode::DrillDown;
+        app.drill.path = vec!["/root".into()];
+        app.drill.entries = (0..n)
+            .map(|i| DirEntry {
+                path: format!("/root/e{i:02}"),
+                name: format!("e{i:02}"),
+                size: 1000 - i as u64,
+                is_dir: i % 2 == 0,
+                reclaimable: 0,
+                ratio: 0.0,
+            })
+            .collect();
+        app.drill.selected = 0;
+        app
+    }
+
+    #[test]
+    fn drill_ctrl_d_pages_half_a_viewport() {
+        let mut app = drill_app(40);
+        app.drill_viewport_rows = 10;
+        app.handle_key(make_ctrl_key(KeyCode::Char('d')));
+        assert_eq!(app.drill.selected, 5);
+        app.handle_key(make_ctrl_key(KeyCode::Char('d')));
+        assert_eq!(app.drill.selected, 10);
+    }
+
+    #[test]
+    fn drill_ctrl_u_pages_back_and_clamps_at_zero() {
+        let mut app = drill_app(40);
+        app.drill_viewport_rows = 10;
+        app.drill.selected = 7;
+        app.handle_key(make_ctrl_key(KeyCode::Char('u')));
+        assert_eq!(app.drill.selected, 2);
+        app.handle_key(make_ctrl_key(KeyCode::Char('u')));
+        assert_eq!(app.drill.selected, 0, "^U must not underflow");
+    }
+
+    #[test]
+    fn drill_ctrl_d_clamps_at_the_last_entry() {
+        let mut app = drill_app(6);
+        app.drill_viewport_rows = 40;
+        app.handle_key(make_ctrl_key(KeyCode::Char('d')));
+        assert_eq!(app.drill.selected, 5);
+    }
+
+    #[test]
+    fn drill_ctrl_d_on_empty_listing_is_a_noop() {
+        let mut app = drill_app(0);
+        app.handle_key(make_ctrl_key(KeyCode::Char('d')));
+        assert_eq!(app.drill.selected, 0);
+    }
+
+    #[test]
+    fn drill_ctrl_g_jumps_to_first() {
+        let mut app = drill_app(40);
+        app.drill.selected = 33;
+        app.handle_key(make_ctrl_key(KeyCode::Char('g')));
+        assert_eq!(app.drill.selected, 0);
+    }
+
+    /// ^Q used to fall through to the plain 'q' arm and quit the app.
+    #[test]
+    fn drill_ctrl_q_does_not_quit() {
+        let mut app = drill_app(4);
+        app.handle_key(make_ctrl_key(KeyCode::Char('q')));
+        assert!(
+            !app.quit,
+            "^Q must not reach the plain q arm while drilled in"
+        );
+    }
+
+    /// ^S/^N/^R must not reach the sort arms either.
+    #[test]
+    fn drill_ctrl_n_does_not_change_sort() {
+        let mut app = drill_app(4);
+        assert_eq!(app.drill.sort, DrillSortMode::Size);
+        app.handle_key(make_ctrl_key(KeyCode::Char('n')));
+        assert_eq!(app.drill.sort, DrillSortMode::Size);
+    }
+
+    #[cfg(feature = "reclaim")]
+    #[test]
+    fn drill_ctrl_c_does_not_toggle_reclaim() {
+        let mut app = drill_app(4);
+        let before = app.prefs.reclaim;
+        app.handle_key(make_ctrl_key(KeyCode::Char('c')));
+        assert_eq!(app.prefs.reclaim, before);
+    }
+
+    // ── Drill-down: copy and export ────────────────────────
+
+    #[test]
+    fn drill_y_copies_the_highlighted_entry_path() {
+        let mut app = drill_app(4);
+        app.drill.selected = 2;
+        app.handle_key(make_key(KeyCode::Char('y')));
+        let msg = &app.status_msg.as_ref().expect("y must set a status").0;
+        // The clipboard helper is absent on headless CI; either outcome is
+        // acceptable, but the path it acted on must be the selected entry.
+        assert!(
+            msg == "Copied: /root/e02" || msg.starts_with("Copy failed"),
+            "unexpected status: {msg}"
+        );
+    }
+
+    #[test]
+    fn drill_upper_y_is_wired_too() {
+        let mut app = drill_app(4);
+        app.handle_key(make_key(KeyCode::Char('Y')));
+        assert!(app.status_msg.is_some(), "Y must be handled in drill-down");
+    }
+
+    #[test]
+    fn drill_e_exports_and_reports_the_file() {
+        let mut app = drill_app(3);
+        app.handle_key(make_key(KeyCode::Char('e')));
+        let msg = &app.status_msg.as_ref().expect("e must set a status").0;
+        assert!(
+            msg.contains("drill-export.txt"),
+            "drill export must name its own file, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn drill_e_does_not_leave_drill_mode() {
+        let mut app = drill_app(3);
+        app.handle_key(make_key(KeyCode::Char('e')));
+        assert_eq!(app.drill.mode, ViewMode::DrillDown);
     }
 
     // ── Key handling — filter mode ─────────────────────────

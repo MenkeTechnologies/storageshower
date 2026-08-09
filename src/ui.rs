@@ -3390,7 +3390,7 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
         },
     ];
 
-    let col3 = vec![
+    let mut col3 = vec![
         HelpEntry {
             key: "ACTIONS",
             desc: "",
@@ -3464,11 +3464,53 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
             is_section: false,
         },
         HelpEntry {
+            key: "g/G",
+            desc: "First/last entry",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "^D/^U",
+            desc: "Half-page dn/up",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "^G",
+            desc: "Jump to first",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
             key: "o/O",
             desc: "Open directory",
             val_fn: empty_val,
             is_section: false,
         },
+        HelpEntry {
+            key: "y/Y",
+            desc: "Copy entry path",
+            val_fn: empty_val,
+            is_section: false,
+        },
+        HelpEntry {
+            key: "e/E",
+            desc: "Export listing",
+            val_fn: empty_val,
+            is_section: false,
+        },
+    ];
+
+    // Only reachable when the RECLAIM_MAP overlay is compiled in.
+    #[cfg(feature = "reclaim")]
+    col3.push(HelpEntry {
+        key: "c/C",
+        desc: "RECLAIM_MAP",
+        val_fn: |a| format!("[{}]", if a.prefs.reclaim { "on" } else { "off" }),
+        is_section: false,
+    });
+
+    col3.extend([
         HelpEntry {
             key: "MOUSE",
             desc: "",
@@ -3505,7 +3547,7 @@ fn draw_help(buf: &mut Buffer, w: u16, h: u16, app: &App) {
             val_fn: empty_val,
             is_section: false,
         },
-    ];
+    ]);
 
     let columns = [col1, col2, col3];
     let col_w = ((box_w as usize).saturating_sub(4)) / 3;

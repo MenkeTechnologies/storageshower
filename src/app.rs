@@ -4,9 +4,15 @@ use std::time::Instant;
 use sysinfo::DiskKind;
 
 use crate::cli::Cli;
+use crate::helpers::format_bytes;
 use crate::prefs::{Prefs, load_prefs_from, save_prefs};
-use crate::system::scan_directory_with_progress;
+use crate::system::{chrono_now, scan_directory_with_progress};
 use crate::types::*;
+
+/// Viewport height assumed before the main loop has measured the terminal.
+/// Overwritten every frame by `run_app`, so it only ever applies to a key
+/// delivered to an `App` that has never been drawn (i.e. in tests).
+pub const DEFAULT_VIEWPORT_ROWS: usize = 20;
 
 pub fn copy_to_clipboard(text: &str) -> Result<(), String> {
     use std::io::Write;
@@ -149,6 +155,11 @@ pub struct App {
     pub theme_chooser: ThemeChooser,
     pub test_mode: bool,
     pub sorted_cache: Vec<DiskEntry>,
+    /// Rows the disk list can show in the current terminal. Refreshed every
+    /// frame by the main loop; half-page paging (^D/^U) is derived from it.
+    pub viewport_rows: usize,
+    /// Same, for the drill-down listing, which has different chrome.
+    pub drill_viewport_rows: usize,
 }
 
 impl App {
@@ -185,6 +196,8 @@ impl App {
             theme_chooser: ThemeChooser::default(),
             test_mode: false,
             sorted_cache: Vec::new(),
+            viewport_rows: DEFAULT_VIEWPORT_ROWS,
+            drill_viewport_rows: DEFAULT_VIEWPORT_ROWS,
         };
         app.update_sorted();
         app
@@ -363,6 +376,53 @@ impl App {
 
     pub fn drill_current_path(&self) -> String {
         self.drill.path.last().cloned().unwrap_or_default()
+    }
+
+    /// Rows to move for a half-page jump in the disk list.
+    pub fn list_half_page(&self) -> usize {
+        (self.viewport_rows / 2).max(1)
+    }
+
+    /// Rows to move for a half-page jump in the drill-down listing.
+    pub fn drill_half_page(&self) -> usize {
+        (self.drill_viewport_rows / 2).max(1)
+    }
+
+    /// Path that `y`/`Y` copies while drilled in: the highlighted entry, or the
+    /// directory currently being listed when there is nothing to highlight.
+    pub fn drill_copy_target(&self) -> String {
+        self.drill
+            .entries
+            .get(self.drill.selected)
+            .map(|e| e.path.clone())
+            .unwrap_or_else(|| self.drill_current_path())
+    }
+
+    /// Plain-text dump of the directory currently shown in drill-down mode,
+    /// in the same shape as the disk-matrix export.
+    pub fn drill_export_text(&self) -> String {
+        let (date, time) = chrono_now();
+        let mut out = String::from("DRILL DOWN EXPORT\n");
+        out.push_str(&format!(
+            "Host: {}  Date: {} {}\n",
+            self.stats.hostname, date, time
+        ));
+        out.push_str(&format!("Path: {}\n\n", self.drill_current_path()));
+        out.push_str(&format!("{:<44} {:>14}\n", "NAME", "SIZE"));
+        out.push_str(&format!("{}\n", "-".repeat(60)));
+        for e in &self.drill.entries {
+            let name = if e.is_dir {
+                format!("{}/", e.name)
+            } else {
+                e.name.clone()
+            };
+            out.push_str(&format!(
+                "{:<44} {:>14}\n",
+                name,
+                format_bytes(e.size, self.prefs.unit_mode)
+            ));
+        }
+        out
     }
 
     pub fn sort_drill_entries(&mut self) {
@@ -1048,6 +1108,89 @@ mod tests {
         app.drill.scroll_offset = 0;
         app.ensure_drill_visible(3);
         assert_eq!(app.drill.scroll_offset, 7);
+    }
+
+    // ── Half-page geometry ────────────────────────────────
+
+    #[test]
+    fn half_page_is_half_the_recorded_viewport() {
+        let mut app = test_app();
+        app.viewport_rows = 30;
+        app.drill_viewport_rows = 18;
+        assert_eq!(app.list_half_page(), 15);
+        assert_eq!(app.drill_half_page(), 9);
+    }
+
+    #[test]
+    fn half_page_never_stalls_on_a_one_row_viewport() {
+        let mut app = test_app();
+        app.viewport_rows = 1;
+        app.drill_viewport_rows = 0;
+        assert_eq!(app.list_half_page(), 1);
+        assert_eq!(app.drill_half_page(), 1);
+    }
+
+    // ── Drill-down copy / export payloads ─────────────────
+
+    fn drill_entry(name: &str, size: u64, is_dir: bool) -> DirEntry {
+        DirEntry {
+            path: format!("/root/{name}"),
+            name: name.into(),
+            size,
+            is_dir,
+            reclaimable: 0,
+            ratio: 0.0,
+        }
+    }
+
+    #[test]
+    fn drill_copy_target_is_the_selected_entry() {
+        let mut app = test_app();
+        app.drill.path = vec!["/root".into()];
+        app.drill.entries = vec![
+            drill_entry("alpha", 10, true),
+            drill_entry("beta", 20, false),
+        ];
+        app.drill.selected = 1;
+        assert_eq!(app.drill_copy_target(), "/root/beta");
+    }
+
+    #[test]
+    fn drill_copy_target_falls_back_to_the_listed_directory() {
+        let mut app = test_app();
+        app.drill.path = vec!["/root".into(), "/root/empty".into()];
+        app.drill.entries.clear();
+        assert_eq!(app.drill_copy_target(), "/root/empty");
+    }
+
+    #[test]
+    fn drill_export_text_lists_every_entry_with_a_dir_marker() {
+        let mut app = test_app();
+        app.drill.path = vec!["/root".into()];
+        app.drill.entries = vec![
+            drill_entry("alpha", 2048, true),
+            drill_entry("beta", 512, false),
+        ];
+        let out = app.drill_export_text();
+        assert!(out.starts_with("DRILL DOWN EXPORT\n"));
+        assert!(out.contains("Path: /root\n"));
+        assert!(out.contains("alpha/"), "directories get a trailing slash");
+        assert!(
+            out.contains("beta") && !out.contains("beta/"),
+            "files do not"
+        );
+        // header + host + path + blank + column header + rule + 2 rows
+        assert_eq!(out.lines().count(), 8);
+    }
+
+    #[test]
+    fn drill_export_text_on_an_empty_listing_keeps_its_header() {
+        let mut app = test_app();
+        app.drill.path = vec!["/root".into()];
+        app.drill.entries.clear();
+        let out = app.drill_export_text();
+        assert!(out.contains("Path: /root\n"));
+        assert_eq!(out.lines().count(), 6);
     }
 
     #[test]

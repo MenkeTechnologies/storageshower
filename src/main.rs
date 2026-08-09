@@ -73,11 +73,15 @@ fn run_app(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<()> {
             let footer_rows: u16 = 2 + border_rows;
             let chrome = border_rows + 2 + header_rows + footer_rows;
             let visible = size.height.saturating_sub(chrome) as usize;
-            app.ensure_visible(visible.max(1));
+            // Record the measured window so ^D/^U page by half a viewport
+            // rather than half the total row count.
+            app.viewport_rows = visible.max(1);
+            app.ensure_visible(app.viewport_rows);
             if app.drill.mode == storageshower::types::ViewMode::DrillDown {
                 let drill_chrome: u16 = border_rows + 4 + footer_rows;
                 let drill_visible = size.height.saturating_sub(drill_chrome) as usize;
-                app.ensure_drill_visible(drill_visible.max(1));
+                app.drill_viewport_rows = drill_visible.max(1);
+                app.ensure_drill_visible(app.drill_viewport_rows);
             }
         }
         app.update_sorted();
