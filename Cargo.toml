@@ -11,6 +11,11 @@ documentation = "https://docs.rs/storageshower"
 keywords = ["tui", "disk", "cyberpunk", "terminal", "monitoring"]
 categories = ["command-line-utilities"]
 
+[package.metadata.docs.rs]
+# `reclaim` is opt-in and pulls only pure-Rust crates (rayon, lz4_flex), so the
+# published docs can carry the whole surface rather than the default subset.
+all-features = true
+
 [features]
 # RECLAIM_MAP: per-subtree estimated-reclaimable-space overlay. Opt-in so the
 # default build/behavior is unchanged and pulls in zero extra dependencies.
