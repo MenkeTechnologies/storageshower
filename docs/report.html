@@ -93,7 +93,7 @@
       <!-- SECTION 1: EXECUTIVE SUMMARY           -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">&gt;_</span>EXECUTIVE SUMMARY</h2>
-      <p class="tutorial-subtitle">storageshower is a single-binary TUI for disk usage monitoring written in Rust on top of <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a>. It paints per-mount usage bars in four styles across 30 builtin cyberpunk palettes, refreshes telemetry (load avg, memory, CPU, swap, processes, uptime, network, battery) on a background thread behind an <code>Arc&lt;Mutex&lt;&gt;&gt;</code>, probes per-device SMART status and per-mount disk I/O throughput against IOKit on macOS and <code>/proc/diskstats</code> on Linux, samples network-filesystem latency with a timed <code>read_dir</code>, drills into mounts with a recursive directory explorer, and ships a live per-channel theme editor that round-trips to a TOML config. <strong>14,723 Rust source lines + 50,242 integration test lines across 1,336 test files; 3,736 test functions total; 8 production + 4 dev direct dependencies (269 in the resolved tree); 252 commits since 2026-03-26.</strong></p>
+      <p class="tutorial-subtitle">storageshower is a single-binary TUI for disk usage monitoring written in Rust on top of <a href="https://github.com/ratatui/ratatui">ratatui</a> + <a href="https://github.com/crossterm-rs/crossterm">crossterm</a>. It paints per-mount usage bars in four styles across 30 builtin cyberpunk palettes, refreshes telemetry (load avg, memory, CPU, swap, processes, uptime, network, battery) on a background thread behind an <code>Arc&lt;Mutex&lt;&gt;&gt;</code>, probes per-device SMART status and per-mount disk I/O throughput against IOKit on macOS and <code>/proc/diskstats</code> on Linux, samples network-filesystem latency with a timed <code>read_dir</code>, drills into mounts with a recursive directory explorer, and ships a live per-channel theme editor that round-trips to a TOML config. <strong>14,723 Rust source lines + 50,242 integration test lines across 1,337 test files; 3,736 test functions total; 8 production + 4 dev direct dependencies (269 in the resolved tree); 271 commits since 2026-03-26.</strong></p>
 
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-val">14,723</div><div class="stat-label">Rust Src Lines</div></div>
@@ -114,7 +114,7 @@
           <div class="bar-fill magenta" style="width:78.1%;"></div>
           <span class="bar-pct" style="font-size:12px;">50,242 tests / 14,723 src / 344 bench &middot; 76.9% tests</span>
         </div>
-        <p style="font-size:10px;color:var(--text-muted);margin-top:4px;">Tests: 1,336 files in <code>tests/</code>. Src: 13 modules in <code>src/</code>. Bench: 1 file (<code>benches/bench.rs</code>, 344 lines, criterion-driven). Test:src ratio is 3.66:1.</p>
+        <p style="font-size:10px;color:var(--text-muted);margin-top:4px;">Tests: 1,337 files in <code>tests/</code>. Src: 13 modules in <code>src/</code>. Bench: 1 file (<code>benches/bench.rs</code>, 344 lines, criterion-driven). Test:src ratio is 3.66:1.</p>
       </div>
 
       <hr class="section-rule">
@@ -160,7 +160,7 @@
       <!-- SECTION 3: TEST SURFACE                -->
       <!-- ═══════════════════════════════════════ -->
       <h2 class="tutorial-title"><span class="step-hash">*</span>TEST SURFACE</h2>
-      <p class="tutorial-subtitle">1,336 integration test files in <code>tests/</code> plus inline <code>#[cfg(test)]</code> modules in every source file. 3,736 total <code>#[test]</code> functions. Integration tests dominate (3,101 of 3,736) and target whole-binary behavior: CLI parsing, config merge, scan output, drill-down sorting, threshold transitions, palette equivalence.</p>
+      <p class="tutorial-subtitle">1,337 integration test files in <code>tests/</code> plus inline <code>#[cfg(test)]</code> modules in every source file. 3,736 total <code>#[test]</code> functions. Integration tests dominate (3,101 of 3,736) and target whole-binary behavior: CLI parsing, config merge, scan output, drill-down sorting, threshold transitions, palette equivalence.</p>
 
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-val">3,736</div><div class="stat-label">Test Functions</div></div>
