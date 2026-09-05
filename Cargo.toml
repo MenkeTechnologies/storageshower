@@ -1,6 +1,6 @@
 [package]
 name = "storageshower"
-version = "0.28.15"
+version = "0.28.16"
 edition = "2024"
 authors = ["MenkeTechnologies <linux.dev25@gmail.com>"]
 description = "Cyberpunk disk usage TUI"
