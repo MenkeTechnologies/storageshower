@@ -5,7 +5,7 @@ use storageshower::app::copy_to_clipboard;
 #[test]
 fn copy_to_clipboard_ok_or_expected_err() {
     match copy_to_clipboard("storageshower-clipboard-integration-probe") {
-        Ok(()) => {}
+        Ok(via) => assert!(!via.is_empty(), "the mechanism that copied must be named"),
         Err(e) => {
             assert!(
                 e.contains("clipboard") || e.contains("pbcopy") || e.contains("wl-copy"),

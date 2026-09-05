@@ -14,44 +14,7 @@ use crate::types::*;
 /// delivered to an `App` that has never been drawn (i.e. in tests).
 pub const DEFAULT_VIEWPORT_ROWS: usize = 20;
 
-pub fn copy_to_clipboard(text: &str) -> Result<(), String> {
-    use std::io::Write;
-    use std::process::{Command, Stdio};
-
-    let candidates: &[&[&str]] = &[
-        #[cfg(target_os = "macos")]
-        &["pbcopy"],
-        #[cfg(target_os = "linux")]
-        &["wl-copy"],
-        #[cfg(target_os = "linux")]
-        &["xclip", "-selection", "clipboard"],
-        #[cfg(target_os = "linux")]
-        &["xsel", "--clipboard", "--input"],
-    ];
-
-    for cmd in candidates {
-        let program = cmd[0];
-        let args = &cmd[1..];
-        if let Ok(mut child) = Command::new(program)
-            .args(args)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-        {
-            if let Some(ref mut stdin) = child.stdin {
-                let _ = stdin.write_all(text.as_bytes());
-            }
-            if let Ok(status) = child.wait()
-                && status.success()
-            {
-                return Ok(());
-            }
-        }
-    }
-
-    Err("no clipboard tool found (pbcopy/wl-copy/xclip/xsel)".into())
-}
+pub use crate::clipboard::copy_to_clipboard;
 
 #[derive(Default)]
 pub struct AlertState {
@@ -319,15 +282,57 @@ impl App {
             .unwrap_or(false)
     }
 
+    /// Rows the disk view draws above its first disk row: the border, the title
+    /// banner and its separator, plus the column header and its separator when
+    /// the header is shown. Every hit-test derives its offset from this.
+    pub fn first_disk_row(&self) -> u16 {
+        (if self.prefs.show_border { 1 } else { 0 })
+            + 2
+            + if self.prefs.show_header { 2 } else { 0 }
+    }
+
+    /// Rows the drill-down view draws above its first entry: the border, the
+    /// breadcrumb and its separator, the column header and its separator, plus
+    /// the scanning indicator while a scan is running.
+    pub fn first_drill_row(&self) -> u16 {
+        (if self.prefs.show_border { 1 } else { 0 }) + 4 + u16::from(self.drill.scanning)
+    }
+
+    /// First screen row of the footer block — both lists stop painting here.
+    fn footer_start_row(&self, term_h: u16) -> u16 {
+        let footer_rows: u16 = 2 + if self.prefs.show_border { 1 } else { 0 };
+        term_h.saturating_sub(footer_rows)
+    }
+
+    /// Map a screen row to an index into the sorted disk list, honouring the
+    /// scroll offset. `None` above the list, in the footer, or past the end.
+    pub fn disk_row_at(&self, y: u16, term_h: u16) -> Option<usize> {
+        let first = self.first_disk_row();
+        if y < first || y >= self.footer_start_row(term_h) {
+            return None;
+        }
+        let idx = self.scroll_offset + (y - first) as usize;
+        (idx < self.sorted_disks().len()).then_some(idx)
+    }
+
+    /// Map a screen row to an index into the drill-down entries, honouring the
+    /// scroll offset. `None` above the list, in the footer, or past the end.
+    pub fn drill_row_at(&self, y: u16, term_h: u16) -> Option<usize> {
+        let first = self.first_drill_row();
+        if y < first || y >= self.footer_start_row(term_h) {
+            return None;
+        }
+        let idx = self.drill.scroll_offset + (y - first) as usize;
+        (idx < self.drill.entries.len()).then_some(idx)
+    }
+
     pub fn hovered_zone(&self, term_h: u16) -> HoverZone {
         let (_, y) = match self.hover.pos {
             Some(pos) => pos,
             None => return HoverZone::None,
         };
         let title_row: u16 = if self.prefs.show_border { 1 } else { 0 };
-        let first_disk_row = title_row + 2 + if self.prefs.show_header { 2 } else { 0 };
-        let footer_rows: u16 = 2 + if self.prefs.show_border { 1 } else { 0 };
-        let footer_row = term_h.saturating_sub(footer_rows) + 1;
+        let footer_row = self.footer_start_row(term_h) + 1;
 
         if y == title_row {
             return HoverZone::TitleBar;
@@ -336,42 +341,34 @@ impl App {
         {
             return HoverZone::FooterBar;
         }
-        if y >= first_disk_row {
-            let idx = (y - first_disk_row) as usize;
-            let count = self.sorted_disks().len();
-            if idx < count {
-                return HoverZone::DiskRow(idx);
-            }
+        if let Some(idx) = self.disk_row_at(y, term_h) {
+            return HoverZone::DiskRow(idx);
         }
         HoverZone::None
     }
 
-    pub fn hovered_disk_index(&self) -> Option<usize> {
+    pub fn hovered_disk_index(&self, term_h: u16) -> Option<usize> {
         let (_, y) = self.hover.pos?;
-        let first_disk_row: u16 = if self.prefs.show_border { 1 } else { 0 }
-            + 2
-            + if self.prefs.show_header { 2 } else { 0 };
-        if y < first_disk_row {
-            return None;
-        }
-        let idx = (y - first_disk_row) as usize;
-        let count = self.sorted_disks().len();
-        if idx < count { Some(idx) } else { None }
+        self.disk_row_at(y, term_h)
     }
 
-    pub fn hovered_drill_index(&self) -> Option<usize> {
+    pub fn hovered_drill_index(&self, term_h: u16) -> Option<usize> {
         let (_, y) = self.hover.pos?;
-        // Drill-down layout: border(0/1) + breadcrumb + separator + header + separator = first entry row
-        let first_entry_row: u16 = if self.prefs.show_border { 1 } else { 0 } + 4;
-        if y < first_entry_row {
-            return None;
+        self.drill_row_at(y, term_h)
+    }
+
+    /// Descend into the highlighted drill-down entry when it is a directory —
+    /// the shared body behind Enter and a click on the highlighted row.
+    pub fn drill_open_selected(&mut self) {
+        if self.drill.scanning {
+            return;
         }
-        let idx = (y - first_entry_row) as usize;
-        if idx < self.drill.entries.len() {
-            Some(idx)
-        } else {
-            None
-        }
+        let path = match self.drill.entries.get(self.drill.selected) {
+            Some(entry) if entry.is_dir => entry.path.clone(),
+            _ => return,
+        };
+        self.drill.path.push(path.clone());
+        self.start_drill_scan(&path);
     }
 
     pub fn drill_current_path(&self) -> String {
@@ -969,7 +966,7 @@ mod tests {
     #[test]
     fn copy_to_clipboard_ok_or_expected_err() {
         match copy_to_clipboard("storageshower-test-clipboard") {
-            Ok(()) => {}
+            Ok(via) => assert!(!via.is_empty(), "mechanism must be named"),
             Err(err) => assert!(err.contains("clipboard"), "unexpected error message: {err}"),
         }
     }
@@ -1237,7 +1234,7 @@ mod tests {
         app.prefs.show_header = true;
         // first_disk_row = 0 + 2 + 2 = 4
         app.hover.pos = Some((0, 4));
-        assert_eq!(app.hovered_disk_index(), Some(0));
+        assert_eq!(app.hovered_disk_index(40), Some(0));
     }
 
     #[test]
@@ -1246,7 +1243,7 @@ mod tests {
         app.prefs.show_border = false;
         app.prefs.show_header = true;
         app.hover.pos = Some((0, 2));
-        assert!(app.hovered_disk_index().is_none());
+        assert!(app.hovered_disk_index(40).is_none());
     }
 
     #[test]
@@ -1274,9 +1271,86 @@ mod tests {
         ];
         app.prefs.show_border = false;
         app.hover.pos = Some((10, 4));
-        assert_eq!(app.hovered_drill_index(), Some(0));
+        assert_eq!(app.hovered_drill_index(40), Some(0));
         app.hover.pos = Some((10, 5));
-        assert_eq!(app.hovered_drill_index(), Some(1));
+        assert_eq!(app.hovered_drill_index(40), Some(1));
+    }
+
+    /// A scrolled disk list must map rows through `scroll_offset` — the
+    /// renderer skips that many disks before painting the first row.
+    #[test]
+    fn disk_row_at_accounts_for_scroll_offset() {
+        let mut app = test_app();
+        app.prefs.show_border = false;
+        app.prefs.show_header = true;
+        let first = app.first_disk_row();
+        app.scroll_offset = 2;
+        assert_eq!(app.disk_row_at(first, 40), Some(2));
+        assert_eq!(app.disk_row_at(first + 1, 40), Some(3));
+        // Only 4 test disks: scroll 2 + offset 2 is past the end.
+        assert_eq!(app.disk_row_at(first + 2, 40), None);
+    }
+
+    /// Rows in the footer block belong to the footer, never to the last disks.
+    #[test]
+    fn disk_row_at_stops_at_the_footer() {
+        let mut app = test_app();
+        app.prefs.show_border = true;
+        app.prefs.show_header = false;
+        let term_h = 12;
+        // footer_rows = 2 + border = 3, so rows 9..12 are footer/border.
+        assert_eq!(app.disk_row_at(9, term_h), None);
+        assert_eq!(app.disk_row_at(app.first_disk_row(), term_h), Some(0));
+    }
+
+    /// While a scan runs the drill view paints a progress row above the
+    /// entries, so every entry sits one row lower than usual.
+    #[test]
+    fn drill_row_at_shifts_while_scanning() {
+        use crate::types::DirEntry;
+
+        let mut app = test_app();
+        app.prefs.show_border = false;
+        app.drill.entries = (0..3)
+            .map(|i| DirEntry {
+                path: format!("/e{i}"),
+                name: format!("e{i}"),
+                size: 1,
+                is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
+            })
+            .collect();
+        assert_eq!(app.first_drill_row(), 4);
+        assert_eq!(app.drill_row_at(4, 40), Some(0));
+
+        app.drill.scanning = true;
+        assert_eq!(app.first_drill_row(), 5);
+        assert_eq!(app.drill_row_at(4, 40), None, "scanning indicator row");
+        assert_eq!(app.drill_row_at(5, 40), Some(0));
+    }
+
+    /// Drill entries scroll too, so the hit-test must add the drill offset.
+    #[test]
+    fn drill_row_at_accounts_for_scroll_offset() {
+        use crate::types::DirEntry;
+
+        let mut app = test_app();
+        app.prefs.show_border = false;
+        app.drill.entries = (0..20)
+            .map(|i| DirEntry {
+                path: format!("/e{i}"),
+                name: format!("e{i}"),
+                size: 1,
+                is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
+            })
+            .collect();
+        app.drill.scroll_offset = 6;
+        let first = app.first_drill_row();
+        assert_eq!(app.drill_row_at(first, 40), Some(6));
+        assert_eq!(app.drill_row_at(first + 3, 40), Some(9));
     }
 
     #[test]
@@ -1292,7 +1366,7 @@ mod tests {
         });
         app.prefs.show_border = false;
         app.hover.pos = Some((10, 2));
-        assert!(app.hovered_drill_index().is_none());
+        assert!(app.hovered_drill_index(40).is_none());
     }
 
     #[test]

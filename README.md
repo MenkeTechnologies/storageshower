@@ -376,7 +376,7 @@ storageshower --config /tmp/ss.conf  # use alternate config
 |:---:|:---|
 | `Enter` | Drill down into selected mount |
 | `o` `O` | Open selected mount in file manager |
-| `y` `Y` | Copy mount path to clipboard |
+| `y` `Y` | Copy mount path to clipboard (`pbcopy`/`wl-copy`/`xclip`/`xsel`, falling back to the OSC 52 terminal escape over ssh) |
 | `e` `E` | Export disk matrix to `~/.storageshower.export.txt` |
 | `B` | Toggle bookmark (pin to top) |
 
@@ -420,6 +420,7 @@ quit and `Ctrl+c` does not toggle the reclaim overlay — same as in the disk li
 |:---:|:---|
 | `Left-click` disk row | Select disk |
 | `Left-click` selected disk | Drill down into mount |
+| `Left-click` drill-down entry | Select entry (click again to descend into a directory) |
 | `Left-click` column header | Cycle sort on that column |
 | `Left-click` theme chooser row | Select and preview theme |
 | `Left-click` outside theme popup | Cancel and revert theme |

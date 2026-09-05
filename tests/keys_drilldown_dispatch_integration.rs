@@ -103,7 +103,8 @@ fn drill_y_acts_on_the_highlighted_entry() {
     // Headless CI has no clipboard helper; either branch is fine, but the
     // path acted on must be the highlighted entry, not the parent directory.
     assert!(
-        msg == "Copied: /root/e004" || msg.starts_with("Copy failed"),
+        (msg.starts_with("Copied (") && msg.ends_with("): /root/e004"))
+            || msg.starts_with("Copy failed"),
         "y must target the selected entry, got: {msg}"
     );
     assert!(!app.quit, "y must not leak into any other arm");
@@ -120,7 +121,8 @@ fn drill_y_on_an_empty_listing_falls_back_to_the_directory() {
     app.handle_key(key(KeyCode::Char('y')));
     let msg = &app.status_msg.as_ref().expect("y must set a status").0;
     assert!(
-        msg == "Copied: /root" || msg.starts_with("Copy failed"),
+        (msg.starts_with("Copied (") && msg.ends_with("): /root"))
+            || msg.starts_with("Copy failed"),
         "empty listing must fall back to the shown directory, got: {msg}"
     );
 }

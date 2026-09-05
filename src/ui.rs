@@ -1516,7 +1516,7 @@ fn draw_drilldown(frame: &mut Frame, app: &App) {
     // ─── Hover tooltip for drill-down entries (right-click only) ───
     if app.hover_ready()
         && app.hover.right_click
-        && let Some(idx) = app.hovered_drill_index()
+        && let Some(idx) = app.hovered_drill_index(h)
         && let Some(entry) = app.drill.entries.get(idx)
     {
         draw_hover_drill_tooltip(buf, w, h, app, entry);
@@ -3600,6 +3600,49 @@ mod tests {
         let green = palette(ColorMode::Green);
         // At least the first color should differ
         assert_ne!(default.0, green.0);
+    }
+
+    /// The row geometry the mouse hit-tests use must match where `draw`
+    /// actually paints the first disk row and the first drill-down entry.
+    #[test]
+    fn first_row_helpers_match_rendered_output() {
+        use crate::testutil::test_app;
+        use crate::types::{DirEntry, ViewMode};
+
+        fn row_text(buf: &Buffer, y: u16, w: u16) -> String {
+            (0..w).map(|x| buf[(x, y)].symbol()).collect()
+        }
+
+        let mut app = test_app();
+        app.prefs.show_border = true;
+        app.prefs.show_header = true;
+
+        let backend = ratatui::backend::TestBackend::new(100, 30);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal.draw(|f| draw(f, &app)).unwrap();
+        let buf = terminal.backend().buffer().clone();
+        let first_mount = app.sorted_disks()[0].mount.clone();
+        assert!(
+            row_text(&buf, app.first_disk_row(), 100).contains(&first_mount),
+            "first disk row is not at first_disk_row()"
+        );
+
+        app.drill.mode = ViewMode::DrillDown;
+        app.drill.path = vec!["/root".into()];
+        app.drill.entries = vec![DirEntry {
+            path: "/root/alpha".into(),
+            name: "alpha".into(),
+            size: 4096,
+            is_dir: true,
+            reclaimable: 0,
+            ratio: 0.0,
+        }];
+        terminal.draw(|f| draw(f, &app)).unwrap();
+        let buf = terminal.backend().buffer().clone();
+        assert!(
+            row_text(&buf, app.first_drill_row(), 100).contains("alpha"),
+            "first drill entry is not at first_drill_row()"
+        );
     }
 
     #[test]

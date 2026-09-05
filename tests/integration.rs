@@ -1726,25 +1726,25 @@ fn hover_resolves_disk_index() {
     let mut app = make_app_with_disks(sample_disks());
     // With border + header, first disk row is at y=5
     app.hover.pos = Some((10, 5));
-    assert_eq!(app.hovered_disk_index(), Some(0));
+    assert_eq!(app.hovered_disk_index(40), Some(0));
     app.hover.pos = Some((10, 6));
-    assert_eq!(app.hovered_disk_index(), Some(1));
+    assert_eq!(app.hovered_disk_index(40), Some(1));
 }
 
 #[test]
 fn hover_out_of_range_returns_none() {
     let mut app = make_app_with_disks(sample_disks());
     app.hover.pos = Some((10, 50));
-    assert!(app.hovered_disk_index().is_none());
+    assert!(app.hovered_disk_index(40).is_none());
     app.hover.pos = Some((10, 0)); // title bar
-    assert!(app.hovered_disk_index().is_none());
+    assert!(app.hovered_disk_index(40).is_none());
 }
 
 #[test]
 fn hover_none_returns_none() {
     let app = make_app_with_disks(sample_disks());
     assert!(app.hover.pos.is_none());
-    assert!(app.hovered_disk_index().is_none());
+    assert!(app.hovered_disk_index(40).is_none());
 }
 
 #[test]
@@ -1986,11 +1986,11 @@ fn hovered_drill_index_resolves() {
     ];
     // First entry at row 5 (border=1 + 4 chrome rows)
     app.hover.pos = Some((10, 5));
-    assert_eq!(app.hovered_drill_index(), Some(0));
+    assert_eq!(app.hovered_drill_index(40), Some(0));
     app.hover.pos = Some((10, 6));
-    assert_eq!(app.hovered_drill_index(), Some(1));
+    assert_eq!(app.hovered_drill_index(40), Some(1));
     app.hover.pos = Some((10, 50));
-    assert!(app.hovered_drill_index().is_none());
+    assert!(app.hovered_drill_index(40).is_none());
 }
 
 // ─── Hover delay value ──────────────────────────────────────────────────
@@ -2014,11 +2014,11 @@ fn hover_zone_matches_hovered_disk_index() {
     let mut app = make_app_with_disks(sample_disks());
     app.hover.pos = Some((10, 5));
     assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(0));
-    assert_eq!(app.hovered_disk_index(), Some(0));
+    assert_eq!(app.hovered_disk_index(40), Some(0));
 
     app.hover.pos = Some((10, 7));
     assert_eq!(app.hovered_zone(40), HoverZone::DiskRow(2));
-    assert_eq!(app.hovered_disk_index(), Some(2));
+    assert_eq!(app.hovered_disk_index(40), Some(2));
 }
 
 #[test]
@@ -2026,7 +2026,7 @@ fn hover_zone_title_not_disk() {
     let mut app = make_app_with_disks(sample_disks());
     app.hover.pos = Some((10, 1));
     assert_eq!(app.hovered_zone(40), HoverZone::TitleBar);
-    assert!(app.hovered_disk_index().is_none());
+    assert!(app.hovered_disk_index(40).is_none());
 }
 
 // ─── Drill-down hover index with scroll offset ──────────────────────────
@@ -2045,7 +2045,7 @@ fn drill_hover_index_none_on_header() {
     }];
     // Row 3 is header area in drill-down (border + breadcrumb + sep + header)
     app.hover.pos = Some((10, 3));
-    assert!(app.hovered_drill_index().is_none());
+    assert!(app.hovered_drill_index(40).is_none());
 }
 
 // ─── Version string accessible ──────────────────────────────────────────
@@ -4304,7 +4304,7 @@ fn hovered_disk_index_no_border() {
     app.prefs.show_border = false;
     // Without border: title=0, sep, header, sep, first disk at row 4
     app.hover.pos = Some((10, 4));
-    assert_eq!(app.hovered_disk_index(), Some(0));
+    assert_eq!(app.hovered_disk_index(40), Some(0));
 }
 
 #[test]
@@ -4314,7 +4314,7 @@ fn hovered_disk_index_no_border_no_header() {
     app.prefs.show_header = false;
     // No border, no header: first_disk_row = 0 + 2 + 0 = 2
     app.hover.pos = Some((10, 2));
-    assert_eq!(app.hovered_disk_index(), Some(0));
+    assert_eq!(app.hovered_disk_index(40), Some(0));
 }
 
 // ─── Scan directory with progress ───────────────────────────────────────

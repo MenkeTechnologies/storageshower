@@ -267,16 +267,7 @@ impl App {
                         self.drill.entries.clear();
                     }
                 }
-                KeyCode::Enter => {
-                    if !self.drill.scanning
-                        && let Some(entry) = self.drill.entries.get(self.drill.selected)
-                        && entry.is_dir
-                    {
-                        let path = entry.path.clone();
-                        self.drill.path.push(path.clone());
-                        self.start_drill_scan(&path);
-                    }
-                }
+                KeyCode::Enter => self.drill_open_selected(),
                 KeyCode::Char('j') | KeyCode::Down if !self.drill.entries.is_empty() => {
                     self.drill.selected =
                         (self.drill.selected + 1).min(self.drill.entries.len() - 1);
@@ -348,9 +339,9 @@ impl App {
                         self.status_msg = Some(("Nothing to copy".into(), Instant::now()));
                     } else {
                         match copy_to_clipboard(&target) {
-                            Ok(_) => {
+                            Ok(via) => {
                                 self.status_msg =
-                                    Some((format!("Copied: {}", target), Instant::now()))
+                                    Some((format!("Copied ({}): {}", via, target), Instant::now()))
                             }
                             Err(e) => {
                                 self.status_msg =
@@ -714,9 +705,9 @@ impl App {
                     if let Some(disk) = disks.get(idx) {
                         let mount = disk.mount.clone();
                         match copy_to_clipboard(&mount) {
-                            Ok(_) => {
+                            Ok(via) => {
                                 self.status_msg =
-                                    Some((format!("Copied: {}", mount), Instant::now()))
+                                    Some((format!("Copied ({}): {}", via, mount), Instant::now()))
                             }
                             Err(e) => {
                                 self.status_msg =
@@ -1258,7 +1249,8 @@ mod tests {
         // The clipboard helper is absent on headless CI; either outcome is
         // acceptable, but the path it acted on must be the selected entry.
         assert!(
-            msg == "Copied: /root/e02" || msg.starts_with("Copy failed"),
+            (msg.starts_with("Copied (") && msg.ends_with("): /root/e02"))
+                || msg.starts_with("Copy failed"),
             "unexpected status: {msg}"
         );
     }

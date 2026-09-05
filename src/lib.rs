@@ -2,6 +2,7 @@
 
 pub mod app;
 pub mod cli;
+pub mod clipboard;
 pub mod columns;
 pub mod helpers;
 mod keys;

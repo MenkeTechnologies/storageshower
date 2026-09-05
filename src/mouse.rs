@@ -94,6 +94,21 @@ impl App {
 
         let header_row: u16 = if show_border { 3 } else { 2 };
 
+        // Drill-down view has its own row geometry and no draggable columns.
+        if self.drill.mode == ViewMode::DrillDown
+            && let MouseEventKind::Down(MouseButton::Left) = event.kind
+        {
+            if let Some(idx) = self.drill_row_at(event.row, term_h) {
+                if self.drill.selected == idx {
+                    // Click again on the highlighted entry: descend into it.
+                    self.drill_open_selected();
+                } else {
+                    self.drill.selected = idx;
+                }
+            }
+            return;
+        }
+
         match event.kind {
             MouseEventKind::Down(MouseButton::Left) => {
                 let x = event.column;
@@ -128,29 +143,19 @@ impl App {
                         }
                         self.save();
                     }
-                } else {
-                    // Click on disk row to select
-                    let first_disk_row: u16 = if show_border { 1 } else { 0 }
-                        + 2 // title + separator
-                        + if self.prefs.show_header { 2 } else { 0 };
-                    if y >= first_disk_row {
-                        let disk_idx = (y - first_disk_row) as usize;
-                        let count = self.sorted_disks().len();
-                        if disk_idx < count {
-                            if self.selected == Some(disk_idx) {
-                                // Click again on selected: drill down
-                                let disks = self.sorted_disks();
-                                if let Some(disk) = disks.get(disk_idx) {
-                                    let mount = disk.mount.clone();
-                                    self.drill.mode = ViewMode::DrillDown;
-                                    self.drill.path = vec![mount.clone()];
-                                    self.drill.selected = 0;
-                                    self.start_drill_scan(&mount);
-                                }
-                            } else {
-                                self.selected = Some(disk_idx);
-                            }
+                } else if let Some(disk_idx) = self.disk_row_at(y, term_h) {
+                    if self.selected == Some(disk_idx) {
+                        // Click again on selected: drill down
+                        let disks = self.sorted_disks();
+                        if let Some(disk) = disks.get(disk_idx) {
+                            let mount = disk.mount.clone();
+                            self.drill.mode = ViewMode::DrillDown;
+                            self.drill.path = vec![mount.clone()];
+                            self.drill.selected = 0;
+                            self.start_drill_scan(&mount);
                         }
+                    } else {
+                        self.selected = Some(disk_idx);
                     }
                 }
             }
@@ -192,7 +197,7 @@ impl App {
                 // Re-enable timer only when position landed in a valid hover zone.
                 if hover_moved => {
                     if self.drill.mode == ViewMode::DrillDown {
-                        if self.hovered_drill_index().is_some() {
+                        if self.hovered_drill_index(term_h).is_some() {
                             self.hover.since = Some(Instant::now());
                         }
                     } else if self.hovered_zone(term_h) != HoverZone::None {
@@ -238,6 +243,7 @@ mod tests {
 
     use crate::columns::{mount_col_width, right_col_width};
 
+    use crate::app::App;
     use crate::testutil::*;
     use crate::types::*;
     use crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -261,6 +267,78 @@ mod tests {
         assert_eq!(app.hover.pos, Some((15, 5)));
         // Should be instantly ready (timestamp set in the past)
         assert!(app.hover_ready());
+    }
+
+    fn left_click(app: &mut App, row: u16, term_h: u16) {
+        app.handle_mouse(
+            MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 20,
+                row,
+                modifiers: KeyModifiers::NONE,
+            },
+            80,
+            term_h,
+        );
+    }
+
+    fn drill_test_app(n: usize) -> App {
+        let mut app = test_app();
+        app.prefs.show_border = false;
+        app.drill.mode = ViewMode::DrillDown;
+        app.drill.path = vec!["/root".into()];
+        app.drill.entries = (0..n)
+            .map(|i| DirEntry {
+                path: format!("/root/e{i}"),
+                name: format!("e{i}"),
+                size: 100,
+                is_dir: true,
+                reclaimable: 0,
+                ratio: 0.0,
+            })
+            .collect();
+        app
+    }
+
+    /// In drill-down a left click must act on the entry list, not fall through
+    /// to the disk-matrix hit-test behind it.
+    #[test]
+    fn left_click_in_drilldown_selects_entry() {
+        let mut app = drill_test_app(5);
+        let first = app.first_drill_row();
+        left_click(&mut app, first + 2, 40);
+        assert_eq!(app.drill.selected, 2);
+        assert_eq!(app.selected, None, "disk selection must not move");
+    }
+
+    /// Clicking the highlighted entry again descends into it, mirroring the
+    /// disk view's click-again-to-drill behaviour.
+    #[test]
+    fn second_left_click_in_drilldown_descends() {
+        let mut app = drill_test_app(5);
+        let first = app.first_drill_row();
+        left_click(&mut app, first + 1, 40);
+        assert_eq!(app.drill.selected, 1);
+        left_click(&mut app, first + 1, 40);
+        assert_eq!(
+            app.drill.path.last().map(String::as_str),
+            Some("/root/e1"),
+            "second click must descend into the highlighted directory"
+        );
+    }
+
+    /// A click on the column header must not select the first disk.
+    #[test]
+    fn left_click_on_column_header_selects_nothing() {
+        let mut app = test_app();
+        app.prefs.show_border = false;
+        app.prefs.show_header = true;
+        // first_disk_row = 4; row 2 is the column header, row 3 its separator.
+        left_click(&mut app, 2, 40);
+        assert_eq!(app.selected, None);
+        let first = app.first_disk_row();
+        left_click(&mut app, first, 40);
+        assert_eq!(app.selected, Some(0));
     }
 
     #[test]
