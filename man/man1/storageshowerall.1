@@ -130,7 +130,9 @@ Drill up one level; from the top level, back to the disk list.
 \fBy\fR
 Copy the focused mount path, or in drill-down the selected entry's path
 (the listed directory when the listing is empty), to the system clipboard
-(pbcopy / wl-copy / xclip / xsel).
+(the first of pbcopy, /usr/bin/pbcopy, wl-copy, xclip, xsel, clip.exe or
+termux-clipboard-set that exits 0, else the OSC 52 terminal escape,
+wrapped for tmux inside tmux).
 .TP
 \fBe\fR
 Export the disk matrix to \fI~/.storageshower.export.txt\fR, or in
@@ -245,9 +247,6 @@ to point at an alternate.
 .TP
 .B SS_NO_COLOR
 If set, suppress ANSI color in the TUI (degrade to monochrome).
-.TP
-.B CLIPBOARD_CMD
-Override the auto-detected clipboard tool.
 
 .SH 9. EXIT CODES & EXAMPLES
 .TP
