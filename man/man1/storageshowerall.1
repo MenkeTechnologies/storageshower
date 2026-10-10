@@ -48,7 +48,8 @@ single page so you can grep with `/`:
 See
 .BR storageshower (1)
 for the per-flag table. All CLI options have a matching key in the
-config file (long-name → snake_case); CLI flags override the file.
+config file (the key names differ from the flag names; see section 4);
+CLI flags override the file.
 
 .SH 2. TUI LAYOUT
 .B storageshower
@@ -56,14 +57,16 @@ renders three regions, top to bottom:
 .RS 2
 .IP \(bu 2
 .B Header
-\(em ASCII banner, version, current mode, refresh interval.
+\(em one title line: hostname, date, clock, paused / LOCAL / ALL state,
+active filter, load, memory and CPU count; wider terminals add process
+count, swap, kernel and architecture.
 .IP \(bu 2
 .B Disk rows
 \(em one row per mount: name (truncated to col width), bar (style configurable),
 used/total (units configurable), and color-coded percent.
 .IP \(bu 2
 .B Status line
-\(em filter prompt, last alert, paused indicator, sort indicator.
+\(em transient status messages (alerts, copy / export results).
 .RE
 .PP
 The help overlay (\fB?\fR) and theme-editor overlay (\fBC\fR) modal-cover
@@ -80,7 +83,7 @@ Half-page down / up \(em half the visible rows, in the disk list and in
 drill-down alike.
 .TP
 \fBHome\fR / \fBCtrl+g\fR
-First row.
+First row (\fBCtrl+g\fR; \fBHome\fR in the disk list).
 .TP
 \fBEnd\fR / \fBG\fR
 Last row. In the disk list \fBg\fR toggles the column headers rather than
@@ -163,30 +166,45 @@ the focused row in the disk list rather than quitting.
 is TOML. Example:
 .RS 4
 .nf
-sort = "size"           # name | pct | size
-reverse = false
-local_only = false
-no_virtual = false
-bar_style = "gradient"  # gradient | solid | thin | ascii
-color = "default"
-units = "human"         # human | gib | mib | bytes
-compact_mount = false
-warn_pct = 70
-crit_pct = 90
-refresh_secs = 1
+sort_mode    = "Name"      # Name | Pct | Size
+sort_rev     = false
+show_local   = false
+show_all     = true
+bar_style    = "Gradient"  # Gradient | Solid | Thin | Ascii
+color_mode   = "Default"
+unit_mode    = "Human"     # Human | GiB | MiB | Bytes
+compact      = false
+thresh_warn  = 70
+thresh_crit  = 90
+refresh_rate = 1
+active_theme = "neon"
 
-[[themes]]
-name = "neon"
-colors = ["#05d9e8", "#ff2a6d", "#d300c5", "#39ff14", "#ff073a", "#0d0d1a"]
+[custom_themes.neon]
+blue         = 51
+green        = 46
+purple       = 201
+light_purple = 213
+royal        = 196
+dark_purple  = 161
 .fi
 .RE
 .PP
-CLI flags override config keys; per-key precedence is documented in
-.BR storageshower (1).
+Other keys:
+.BR show_bars ,
+.BR show_border ,
+.BR show_header ,
+.BR show_used ,
+.BR full_mount ,
+.BR show_tooltips ,
+.BR col_mount_w ,
+.BR col_bar_end_w ,
+.BR col_pct_w ,
+.BR bookmarks .
+Theme colors are 256-color terminal indices. CLI flags override config keys.
 
 .SH 5. COLOR THEMES
 .B storageshower
-ships with ~12 cyberpunk-tuned palettes. Run
+ships with built-in palettes. Run
 .B storageshower --list-colors
 to enumerate them. To make your own:
 .RS 4
@@ -194,16 +212,16 @@ to enumerate them. To make your own:
 Open the theme editor with \fBC\fR, tune 6 colors interactively, name it.
 .IP \(bu 2
 Or hand-edit a
-.B [[themes]]
-block in the config (see \fB4. CONFIG FILE\fR above).
+.B [custom_themes.NAME]
+table in the config (see \fB4. CONFIG FILE\fR above).
 .IP \(bu 2
 Switch with
 .B --theme NAME
-or with the \fBT\fR overlay at runtime.
+or with the \fBc\fR theme chooser at runtime.
 .RE
 .PP
 .B --export-theme
-prints the current palette as a ready-to-paste TOML block.
+prints the current palette as TOML.
 
 .SH 6. DRILL-DOWN
 Pressing \fBEnter\fR on a mount row launches a background thread that
@@ -230,13 +248,13 @@ quit. Built with the
 feature, \fBc\fR toggles the RECLAIM_MAP overlay.
 
 .SH 7. ALERTS
-A mount crossing
-.B warn_pct
-flashes the status line + sets the row color; a mount crossing
-.B crit_pct
-additionally bells the terminal once per crossing. The bell is suppressed
-across rescans of the same mount until the percent drops back below warn
-and then re-crosses.
+A mount reaching
+.B thresh_warn
+flashes the status line, shows an ALERT message and bells the terminal. The
+alert is not repeated for that mount across refreshes until its usage drops
+below the warn threshold and reaches it again.
+.B thresh_crit
+only affects the row color.
 
 .SH 8. FILES & ENV
 .TP
@@ -244,16 +262,13 @@ and then re-crosses.
 Default config file. Use
 .B --config PATH
 to point at an alternate.
-.TP
-.B SS_NO_COLOR
-If set, suppress ANSI color in the TUI (degrade to monochrome).
 
 .SH 9. EXIT CODES & EXAMPLES
 .TP
 .B 0
 Clean quit via \fBq\fR.
 .TP
-.B 1
+.B 2
 Argument-parse error (bad
 .BR \-s ,
 .BR \-b ,
@@ -261,8 +276,8 @@ or
 .B \-u
 value).
 .TP
-.B 2
-TTY can't be put into raw mode (typically: stdin not a terminal).
+.B 1
+Terminal I/O error.
 .PP
 Example invocations are in
 .BR storageshower (1).

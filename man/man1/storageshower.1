@@ -21,9 +21,9 @@ The UI updates at the
 .B --refresh
 interval (default 1 second) until you press
 .BR q .
-All CLI flags have a matching
+Boolean display flags have a matching
 .B --no-flag
-inverse so a runtime config in
+inverse (and the reverse) so a setting in
 .RB \(aq "~/.storageshower.conf" \(aq
 can be overridden per-invocation.
 .SH OPTIONS
@@ -38,7 +38,7 @@ is one of
 or
 .BR size
 (default
-.BR size ).
+.BR name ).
 .TP
 .BR \-R ", " \-\-reverse
 Reverse the sort order.
@@ -99,6 +99,9 @@ Hide column headers.
 .TP
 .B \-\-no-used
 Hide the used/total size display.
+.TP
+.B \-\-no-tooltips
+Hide hover tooltips on the title and footer bars (right-click still works).
 
 .SS THRESHOLDS
 .TP
@@ -106,8 +109,7 @@ Hide the used/total size display.
 Warning threshold in percent (default 70).
 .TP
 .BR \-C ", " \-\-crit " " \fIPCT\fR
-Critical threshold in percent (default 90). Mounts at or above this level
-also bell the terminal once.
+Critical threshold in percent (default 90).
 
 .SS COLUMNS
 .TP
@@ -134,6 +136,12 @@ Show built-in help and exit.
 .TP
 .BR \-V ", " \-\-version
 Show version and exit.
+.TP
+.B \-\-reclaim
+Estimate reclaimable (compressible) space per subtree during drill-down.
+Present only in builds with the
+.B reclaim
+cargo feature.
 
 .SH KEYBINDS
 While the TUI is running:
@@ -142,6 +150,8 @@ While the TUI is running:
 \fBq\fR \(em quit (\fBEsc\fR deselects the focused row instead)
 .IP \(bu 2
 \fBj\fR / \fBk\fR \(em scroll the list
+.IP \(bu 2
+\fBEnter\fR \(em drill down into the selected mount
 .IP \(bu 2
 \fBCtrl+d\fR / \fBCtrl+u\fR \(em half-page down / up (half the visible rows)
 .IP \(bu 2
@@ -200,12 +210,13 @@ Use an alternate config:
 .SH FILES
 .TP
 .RB \(aq ~/.storageshower.conf \(aq
-Default config file (TOML). All CLI flags have matching keys; CLI overrides.
+Default config file (TOML). Most CLI flags have matching keys; CLI overrides.
+Preference changes made in the TUI are written back to it.
 
 .SH EXIT STATUS
 .B storageshower
-exits 0 on a clean quit (\fBq\fR), 1 on argument-parse errors,
-and 2 if the TTY can't be put into raw mode.
+exits 0 on a clean quit (\fBq\fR), 2 on argument-parse errors,
+and 1 if terminal I/O fails.
 
 .SH SEE ALSO
 .BR storageshowerall (1),
