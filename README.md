@@ -78,7 +78,7 @@ cargo install storageshower             # via crates.io
   ├── Sort ─── name / usage% / size / asc / desc
   ├── Filter ─── case-insensitive substring match
   ├── Units ─── human / GiB / MiB / raw bytes
-  ├── Themes ─── 30 builtin + custom user themes (TOML)
+  ├── Themes ─── builtin + custom user themes (TOML)
   ├── Theme chooser ─── live preview with mouse click + keyboard nav
   ├── Theme editor ─── live color picker with per-channel control
   └── Persistent config ─── ~/.storageshower.conf (TOML)
@@ -212,7 +212,7 @@ to force-override in either direction.
 | `FLAG` | `DESCRIPTION` |
 |:---|:---|
 | `-b, --bar-style STYLE` | Bar visualization — `gradient`, `solid`, `thin`, `ascii` |
-| `--color PALETTE` | Color palette — 30 builtins: `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset`, `neon-noir`, `chrome-heart`, `blade-runner`, `void-walker`, `toxic-waste`, `cyber-frost`, `plasma-core`, `steel-nerve`, `dark-signal`, `glitch-pop`, `holo-shift`, `night-city`, `deep-net`, `laser-grid`, `quantum-flux`, `bio-hazard`, `darkwave`, `overlock`, `megacorp`, `zaibatsu` |
+| `--color PALETTE` | Color palette — builtins: `default`, `green`, `blue`, `purple`, `amber`, `cyan`, `red`, `sakura`, `matrix`, `sunset`, `neon-noir`, `chrome-heart`, `blade-runner`, `void-walker`, `toxic-waste`, `cyber-frost`, `plasma-core`, `steel-nerve`, `dark-signal`, `glitch-pop`, `holo-shift`, `night-city`, `deep-net`, `laser-grid`, `quantum-flux`, `bio-hazard`, `darkwave`, `overlock`, `megacorp`, `zaibatsu` |
 | `--theme NAME` | Activate a custom theme by name (defined in config) |
 | `--list-colors` | List all builtin color schemes with a swatch preview; each row prints the exact value `--color` accepts |
 | `--export-theme` | Export current palette as TOML (combine with `--color` or `--theme`) |
@@ -583,7 +583,7 @@ To run **all** tests (library + integration + doc) in one command: `cargo test -
  └──────────────────────────────────────────────────┘
 ```
 
-30 builtin palettes including: **Neon Sprawl** · **Acid Rain** · **Ice Breaker** · **Synth Wave** · **Rust Belt** · **Ghost Wire** · **Red Sector** · **Sakura Den** · **Data Stream** · **Solar Flare** · **Neon Noir** · **Chrome Heart** · **Blade Runner** · **Void Walker** · **Toxic Waste** · **Cyber Frost** · **Plasma Core** · **Steel Nerve** · **Dark Signal** · **Glitch Pop** + 10 more
+Builtin palettes include: **Neon Sprawl** · **Acid Rain** · **Ice Breaker** · **Synth Wave** · **Rust Belt** · **Ghost Wire** · **Red Sector** · **Sakura Den** · **Data Stream** · **Solar Flare** · **Neon Noir** · **Chrome Heart** · **Blade Runner** · **Void Walker** · **Toxic Waste** · **Cyber Frost** · **Plasma Core** · **Steel Nerve** · **Dark Signal** · **Glitch Pop** and more (full list under `--color`)
 
 Create your own by adding to `~/.storageshower.conf`:
 
@@ -601,7 +601,7 @@ active_theme = "neonpink"
 
 Or use the **in-app theme editor** (`C` key) to tweak colors live and save.
 
-See `themes/` for the first 10 builtin palettes as ready-to-copy TOML files.
+See `themes/` for a subset of the builtin palettes as ready-to-copy TOML files.
 
 ---
 
