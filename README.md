@@ -106,8 +106,8 @@ cargo install storageshower             # via crates.io
   │   └── overlay on bar: ▲1.2M/s ▼500K/s (shown when active)
   │
 [ALERT_ENGINE]
-  ├── Disk free space alerts ─── threshold crossing detection
-  │   ├── terminal bell (\x07) on newly crossed thresholds
+  ├── Disk usage alerts ─── warn-threshold crossing detection
+  │   ├── terminal bell (\x07) on newly crossed warn threshold
   │   ├── pulsing red border flash for 2 seconds
   │   ├── dark red row highlight on alerting disks
   │   ├── status bar message: ⚠ ALERT: /mount 90%
@@ -195,7 +195,7 @@ cargo run --release
  └──────────────────────────────────────────────────┘
 ```
 
-CLI flags **override** config file settings. Every `--flag` has a `--no-flag` inverse
+CLI flags **override** config file settings. Boolean display flags come in `--flag` / `--no-flag` pairs
 to force-override in either direction.
 
 #### `// SORTING`
