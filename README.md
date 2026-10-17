@@ -167,6 +167,8 @@ TARGET_OS     == macOS || Linux
 | `serde` | Config serialization |
 | `toml` | Config file format |
 | `libc` | Unix syscalls (time, TTY) |
+| `rayon` | Parallel directory walk (optional, `reclaim` feature) |
+| `lz4_flex` | Compressibility sampling (optional, `reclaim` feature) |
 
 ---
 
