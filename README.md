@@ -96,7 +96,7 @@ cargo install storageshower             # via crates.io
   ├── Network filesystem latency ─── NFS/SMB/CIFS/SSHFS
   │   ├── timed read_dir with 2s timeout (no root needed)
   │   ├── color-coded badge: green(<50ms) / warn / red
-  │   └── detects: nfs, nfs4, cifs, smbfs, afp, ncp, sshfs, rclone, s3fs, 9p, afs
+  │   └── detects: nfs, nfs4, cifs, smbfs, afp, ncp, fuse.sshfs, fuse.rclone, fuse.s3fs, 9p, afs
   │
 [DISK_IO]
   ├── Live disk I/O throughput ─── per-mount read/write rates
